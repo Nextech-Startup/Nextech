@@ -111,7 +111,8 @@ export function Navbar() {
         </button>
       </nav>
 
-      {/* Mobile Menu */}
+      Aqui está o código atualizado com o LiquidMetalButton no mobile também:
+      tsx{/* Mobile Menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
@@ -131,11 +132,11 @@ export function Navbar() {
                 </button>
               ))}
               <div className="h-px bg-white/10 my-4" />
-              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="w-full">
-                <Button className="w-full bg-white text-zinc-950 hover:bg-zinc-200 rounded-2xl py-7 text-lg font-bold cursor-pointer">
-                  Agendar Reunião
-                </Button>
-              </a>
+              <div className="flex justify-center">
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                  <LiquidMetalButton label="Agendar Reunião" />
+                </a>
+              </div>
             </div>
           </motion.div>
         )}
