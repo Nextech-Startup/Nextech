@@ -5,18 +5,22 @@ import { useRef } from "react"
 import { Check, Zap } from "lucide-react"
 import { LiquidMetalButton } from "@/components/ui/liquidMetalButton"
 
+// --- Configuração WhatsApp ---
+const WHATSAPP_NUMBER = "5581999112895"
+
 const plans = [
   {
     name: "Starter",
     description: "Ideal para pequenas clínicas iniciando na automação.",
     features: [
-      "IA no WhatsApp 24/7", 
-      "Qualificação básica de leads", 
-      "Até 500 conversas/mês", 
-      "Suporte via e-mail", 
+      "IA no WhatsApp 24/7",
+      "Qualificação básica de leads",
+      "Até 500 conversas/mês",
+      "Suporte via e-mail",
       "Dashboard de métricas"
     ],
     highlighted: false,
+    whatsappMessage: "Olá Jhon! Tenho interesse no plano *Starter* da Nextech. Gostaria de saber mais detalhes sobre valores e como funciona a implementação para minha clínica.",
   },
   {
     name: "Pro",
@@ -31,6 +35,7 @@ const plans = [
       "Multicanal (Insta/Site)",
     ],
     highlighted: true,
+    whatsappMessage: "Olá Jhon! Tenho interesse no plano *Pro* da Nextech. Quero escalar minha clínica com IA e gostaria de agendar uma demonstração para conhecer todas as funcionalidades.",
   },
   {
     name: "Enterprise",
@@ -45,6 +50,7 @@ const plans = [
       "SLA de 99.9%",
     ],
     highlighted: false,
+    whatsappMessage: "Olá Jhon! Represento uma rede de clínicas/hospital e tenho interesse no plano *Enterprise* da Nextech. Gostaria de agendar uma reunião para discutir uma solução personalizada para nossa operação.",
   },
 ]
 
@@ -52,8 +58,9 @@ export function Planos() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
 
-  const handleContact = () => {
-    window.open('https://wa.me/SEUNUMERO', '_blank')
+  const handleContact = (message: string) => {
+    const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
+    window.open(whatsappUrl, '_blank')
   }
 
   return (
@@ -72,7 +79,7 @@ export function Planos() {
             <Zap className="w-4 h-4 text-emerald-400 fill-emerald-400" />
             <span className="text-xs font-bold text-white/80 uppercase tracking-widest">Soluções Customizadas</span>
           </div>
-          
+
           <h2 className="text-4xl md:text-6xl font-bold text-white mb-6 tracking-tight">
             Planos feitos para <br />
             <span className="block mt-2 text-zinc-500 italic">escalar sua clínica.</span>
@@ -82,18 +89,17 @@ export function Planos() {
           </p>
         </motion.div>
 
-        <div ref={ref} className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+        <div ref={ref} className="grid grid-cols-1 md:grid-cols-3 gap-14 items-stretch">
           {plans.map((plan, index) => (
             <motion.div
               key={plan.name}
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: index * 0.1 }}
-              className={`relative p-8 rounded-[2.5rem] border flex flex-col transition-all duration-500 hover:scale-[1.02] ${
-                plan.highlighted
-                  ? "bg-white/10 border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl"
-                  : "bg-white/5 border-white/10 backdrop-blur-md"
-              }`}
+              className={`relative p-8 rounded-[2.5rem] border flex flex-col transition-all duration-500 hover:scale-[1.02] ${plan.highlighted
+                ? "bg-white/10 border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl"
+                : "bg-white/5 border-white/10 backdrop-blur-md"
+                }`}
             >
               {plan.highlighted && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg">
@@ -123,12 +129,15 @@ export function Planos() {
                 ))}
               </ul>
 
-              {/* Botões Liquid Metal Padronizados (h-16) */}
               <div className="mt-auto h-16 w-full flex items-center justify-center">
-                <LiquidMetalButton 
-                  label="Falar com Especialista" 
-                  onClick={handleContact}
-                />
+                <a
+                  href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(plan.whatsappMessage)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="cursor-pointer"
+                >
+                  <LiquidMetalButton label="Falar com Especialista" />
+                </a>
               </div>
             </motion.div>
           ))}

@@ -55,7 +55,7 @@ export function Hero() {
     <section
       id="Hero"
       ref={sectionRef}
-      className="relative pt-32 md:pt-24 min-h-screen flex flex-col items-center justify-center px-4 pb-16 overflow-hidden bg-transparent">
+      className="relative pt-40 md:pt-20 min-h-screen flex flex-col items-center justify-center px-4 pb-16 overflow-hidden bg-transparent">
 
       <div className="relative z-10 max-w-5xl mx-auto text-center">
         {/* Badge */}
@@ -96,8 +96,8 @@ export function Hero() {
                 options={{
                   strings: [
                     "Gestão inteligente.",
-                    "Vendas automatizadas.",
-                    "Faturamento otimizado.",
+                    "Vendas automáticas.",
+                    "Resultado imediato.",
                     "Nextech AI.",
                   ],
                   autoStart: true,
