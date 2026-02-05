@@ -65,7 +65,7 @@ export function Footer() {
                 alt="Nextech Logo"
                 width={160}
                 height={40}
-                className="h-12 w-auto md:h-18 -ml-2"
+                className="h-14 w-auto md:h-18"
                 priority
               />
             </div>
