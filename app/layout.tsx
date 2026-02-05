@@ -24,7 +24,7 @@ const instrumentSans = localFont({
 
 export const metadata: Metadata = {
   title: 'Nextech | Assistentes IA para Clínicas e Consultórios',
-  description: 'Assistentes de WhatsApp com IA que automatizam conversas de clinicas, recuperam consultas perdidas e oferecem atendimento 24/7. Desenvolvido para clinicas medicas, odontologicas e esteticas.',
+  description: 'Assistentes de WhatsApp com IA que automatizam conversas de clinicas, recuperam consultas perdidas e oferecem atendimento 24/7. Desenvolvido para todas as clínicas e consultórios do Brasil.',
   icons: {
     icon: [
       {
