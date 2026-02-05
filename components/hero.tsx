@@ -96,7 +96,7 @@ export function Hero() {
                 options={{
                   strings: [
                     "Gestão inteligente.",
-                    "Vendas automáticas.",
+                    "Vendas 24 horas.",
                     "Resultado imediato.",
                     "Nextech AI.",
                   ],
