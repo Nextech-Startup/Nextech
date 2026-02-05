@@ -111,8 +111,7 @@ export function Navbar() {
         </button>
       </nav>
 
-      Aqui está o código atualizado com o LiquidMetalButton no mobile também:
-      tsx{/* Mobile Menu */}
+      {/* Mobile Menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
