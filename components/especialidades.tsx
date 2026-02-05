@@ -81,10 +81,6 @@ export function Especialidades() {
 
       {/* Carrossel Infinito (Marquee) */}
       <div className="relative flex items-center">
-        {/* Máscaras laterais para suavizar o degradê (Glassmorphism) */}
-        <div className="absolute left-0 top-0 bottom-0 w-24 md:w-40 bg-gradient-to-r from-zinc-950 to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-24 md:w-40 bg-gradient-to-l from-zinc-950 to-transparent z-10 pointer-events-none" />
-
         {/* Container da Animação - Duplicado para loop infinito */}
         <div className="flex animate-marquee whitespace-nowrap gap-6 py-4 hover:[animation-play-state:paused] cursor-grab active:cursor-grabbing">
           {[...clinicTypes, ...clinicTypes].map((clinic, index) => (
