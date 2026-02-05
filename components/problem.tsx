@@ -1,23 +1,38 @@
 "use client"
 
-import { motion } from "framer-motion"
-import { 
-  CheckCircle2, 
-  XCircle, 
-  Zap, 
-  MessageSquareOff, 
-  Clock, 
-  Moon, 
-  Users2,
-  ArrowRight 
+import { motion, useInView } from "framer-motion"
+import { useRef } from "react"
+import {
+    CheckCircle2,
+    XCircle,
+    Zap,
+    MessageSquareOff,
+    Clock,
+    Moon,
+    Users2,
+    ArrowRight
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+// --- Configuração WhatsApp ---
+const WHATSAPP_NUMBER = "5581999112895"
+const WHATSAPP_MESSAGE =
+  "Olá Jhon, tudo bem? Cansei de perder reuniões, preciso da sua solução com urgência."
+const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+  WHATSAPP_MESSAGE
+)}`
+
 export function Problem() {
+    const sectionRef = useRef<HTMLElement>(null)
+    const isInView = useInView(sectionRef, { once: true, margin: "-100px" })
+
     return (
-        <section id="problem-solution" className="relative py-24 px-4">
+        <section
+            id="Cenario"
+            ref={sectionRef}
+            className="relative py-24 px-4">
             <div className="max-w-6xl mx-auto">
-                
+
                 {/* Badge Centralizado */}
                 <div className="flex justify-center mb-8">
                     <motion.div
@@ -165,15 +180,17 @@ export function Problem() {
                             </p>
 
                             <div className="flex justify-center">
-                                <Button
-                                    size="lg"
-                                    className="bg-white text-zinc-950 hover:bg-white rounded-full px-10 h-13 text-base font-bold transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgba(96,117,133,0.6)] active:scale-95"
-                                >
-                                    Reunião Gratuita
-                                    <ArrowRight className="ml-2 w-5 h-5" />
-                                </Button>
+                                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                                    <Button
+                                        size="lg"
+                                        className="bg-white text-zinc-950 hover:bg-white rounded-full px-10 h-13 text-base font-bold transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgba(96,117,133,0.6)] active:scale-95 cursor-pointer"
+                                    >
+                                        Reunião Gratuita
+                                        <ArrowRight className="w-5 h-5" />
+                                    </Button>
+                                </a>
                             </div>
-                            
+
                             <p className="text-[10px] text-zinc-500 mt-8 uppercase tracking-[0.2em] font-bold">
                                 Análise em tempo real • 100% Gratuito
                             </p>

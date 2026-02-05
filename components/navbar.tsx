@@ -1,46 +1,79 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Menu, X, ArrowRight } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { LiquidMetalButton } from "@/components/ui/liquidMetalButton"
+import Image from "next/image"
 
+// 1. Definição correta dos itens com Label e ID
 const navItems = [
-  { label: "Serviços", href: "#features" },
-  { label: "Sobre", href: "#about" },
-  { label: "Docs", href: "#docs" },
-  { label: "Blog", href: "#blog" },
+  { id: "Hero", label: "Início" },
+  { id: "Especialidades", label: "Especialidades" },
+  { id: "Cenario", label: "Cenário" },
+  { id: "Solucoes", label: "Soluções" },
+  { id: "Depoimentos", label: "Depoimentos" },
+  { id: "Planos", label: "Planos" },
 ]
+
+// --- Configuração ---
+const WHATSAPP_NUMBER = "5581999112895"
+const WHATSAPP_MESSAGE =
+  "Olá Jhon, tudo bem? Gostaria de agendar uma reunião para conhecer a Nextech."
+const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+  WHATSAPP_MESSAGE
+)}`
 
 export function Navbar() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // 2. Função de Scroll interna para ter acesso ao estado do menu mobile
+  const scrollToSection = (sectionId: string) => {
+    setMobileMenuOpen(false) // Fecha o menu mobile ao clicar
+    const section = document.getElementById(sectionId)
+    if (section) {
+      const SCROLL_OFFSET = 100 // Ajuste para não cobrir o título da seção
+      const sectionTop = section.getBoundingClientRect().top + window.pageYOffset - SCROLL_OFFSET
+
+      window.scrollTo({
+        top: sectionTop,
+        behavior: "smooth",
+      })
+    }
+  }
 
   return (
     <motion.header
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-      // Ajustado para garantir centralização perfeita e largura de cápsula
-      className="fixed top-6 left-1/2 -translate-x-1/2 z-100 w-[95vw] max-w-4xl"
+      className="fixed top-6 left-1/2 -translate-x-1/2 w-[95vw] z-[100] max-w-6xl"
     >
-      <nav className="relative flex items-center justify-between px-2 py-2 md:px-6 md:py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl transition-all duration-300">
+      <nav className="relative flex items-center justify-between px-6 py-2 md:px-6 rounded-full bg-black/20 backdrop-blur-xl border border-white/10 shadow-2xl">
 
-        {/* Logo - Estilo Nextech */}
-        <a href="/" className="flex items-center gap-2 hover:scale-105 transition-transform px-2">
-          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-            <span className="text-zinc-950 font-bold text-sm">N</span>
-          </div>
-          <span className="font-bold text-white hidden sm:block tracking-tight">Nextech</span>
-        </a>
+        {/* Logo - Caminho corrigido para a pasta public */}
+        <div
+          onClick={() => scrollToSection("Hero")}
+          className="cursor-pointer transition-transform hover:scale-105"
+        >
+          <Image
+            src="/Logo.png"
+            alt="Nextech Logo"
+            width={160}
+            height={40}
+            className="h-14 w-auto md:h-18 cursor-pointer"
+            priority
+          />
+        </div>
 
-        {/* Desktop Nav Items com Animação de Hover Fluida */}
+        {/* Desktop Nav Items */}
         <div className="hidden md:flex items-center gap-1 relative">
           {navItems.map((item, index) => (
-            <a
-              key={item.label}
-              href={item.href}
+            <button
+              key={item.id}
+              onClick={() => scrollToSection(item.id)}
               className="relative px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors duration-300"
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(null)}
@@ -58,51 +91,51 @@ export function Navbar() {
                 )}
               </AnimatePresence>
               <span className="relative z-10">{item.label}</span>
-            </a>
+            </button>
           ))}
         </div>
 
-        {/* Botão CTA Principal */}
-        <div className="hidden md:flex items-center gap-3">
-          <LiquidMetalButton
-            label="Agende uma reunião"
-            onClick={() => window.open('SEU_LINK_DO_CALENDLY', '_blank')}
-          />
+        {/* Botão CTA Principal Desktop */}
+        <div className="hidden md:flex items-center">
+          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+            <LiquidMetalButton label="Agendar reunião" />
+          </a>
         </div>
 
         {/* Mobile Menu Button */}
         <button
-          className="md:hidden p-3 text-white hover:bg-white/10 rounded-full transition-colors"
+          className="md:hidden p-2 text-white hover:bg-white/10 rounded-full transition-colors"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
-          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </nav>
 
-      {/* Mobile Menu com Estilo Glassmorphism Combinado */}
+      {/* Mobile Menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="absolute top-full left-0 right-0 mt-3 p-4 rounded-3xl bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl md:hidden"
+            className="absolute top-full left-0 right-0 mt-3 p-4 rounded-[2rem] bg-black/80 backdrop-blur-2xl border border-white/10 shadow-2xl md:hidden"
           >
             <div className="flex flex-col gap-2">
               {navItems.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className="px-4 py-3 text-base font-medium text-zinc-300 hover:text-white hover:bg-white/10 rounded-xl transition-all"
-                  onClick={() => setMobileMenuOpen(false)}
+                <button
+                  key={item.id}
+                  className="px-4 py-4 text-left text-lg font-medium text-zinc-300 hover:text-white hover:bg-white/5 rounded-2xl transition-all"
+                  onClick={() => scrollToSection(item.id)}
                 >
                   {item.label}
-                </a>
+                </button>
               ))}
-              <div className="h-px bg-white/10 my-2" />
-              <Button className="w-full bg-white text-zinc-950 hover:bg-zinc-200 rounded-xl py-6 text-base font-bold">
-                Agende uma reunião
-              </Button>
+              <div className="h-px bg-white/10 my-4" />
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="w-full">
+                <Button className="w-full bg-white text-zinc-950 hover:bg-zinc-200 rounded-2xl py-7 text-lg font-bold cursor-pointer">
+                  Agendar Reunião
+                </Button>
+              </a>
             </div>
           </motion.div>
         )}

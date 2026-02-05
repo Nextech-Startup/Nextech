@@ -67,7 +67,7 @@ export function CalculatorROI() {
   const revenueIncrease = ((newRevenue - currentRevenue) / currentRevenue) * 100
 
   return (
-    <section id="roi-calculator" ref={sectionRef} className="py-24 px-4 relative overflow-hidden">
+    <section id="Calculador" ref={sectionRef} className="py-24 px-4 relative overflow-hidden">
       <div className="max-w-6xl mx-auto">
         
         {/* Header */}
@@ -88,7 +88,7 @@ export function CalculatorROI() {
             className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6"
           >
             Veja o potencial de <br />
-            <span className="text-zinc-500 italic font-light">crescimento da sua receita</span>
+            <span className="block mt-2 text-zinc-500 italic font-light">crescimento da sua receita</span>
           </motion.h2>
 
           <motion.p 

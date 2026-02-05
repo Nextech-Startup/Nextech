@@ -1,11 +1,11 @@
 import { SmoothScroll } from "@/components/smooth-scroll"
 import { Navbar } from "@/components/navbar"
 import { Hero } from "@/components/hero"
-import { LogoMarquee } from "@/components/logo-marquee"
+import { Especialidades } from "@/components/especialidades"
 import { Problem } from "@/components/problem"
 import { Solutions } from "@/components/solutions"
-import { Testimonials } from "@/components/testimonials"
-import { Pricing } from "@/components/pricing"
+import { Depoimentos } from "@/components/depoimentos"
+import { Planos } from "@/components/pricing"
 import { CalculatorROI } from "@/components/calculatorROI"
 import { FinalCTA } from "@/components/final-cta"
 import { Footer } from "@/components/footer"
@@ -24,11 +24,11 @@ export default function Home() {
         <div className="relative z-10">
           <Navbar />
           <Hero />
-          <LogoMarquee />
+          <Especialidades />
           <Problem />
           <Solutions />
-          <Testimonials />
-          <Pricing />
+          <Depoimentos />
+          <Planos />
           <CalculatorROI />
           <FinalCTA />
           <Footer />

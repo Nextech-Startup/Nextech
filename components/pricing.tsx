@@ -48,7 +48,7 @@ const plans = [
   },
 ]
 
-export function Pricing() {
+export function Planos() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
 
@@ -57,7 +57,7 @@ export function Pricing() {
   }
 
   return (
-    <section id="pricing" className="py-24 px-4 relative overflow-hidden">
+    <section id="Planos" className="py-24 px-4 relative overflow-hidden">
       {/* Brilho Aurora de fundo sutil */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-200 h-100 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
 
@@ -75,7 +75,7 @@ export function Pricing() {
           
           <h2 className="text-4xl md:text-6xl font-bold text-white mb-6 tracking-tight">
             Planos feitos para <br />
-            <span className="text-zinc-500 italic">escalar sua clínica.</span>
+            <span className="block mt-2 text-zinc-500 italic">escalar sua clínica.</span>
           </h2>
           <p className="text-zinc-400 max-w-2xl mx-auto">
             Valores adaptados conforme o volume de pacientes e complexidade das integrações. Todos os planos incluem nossa tecnologia proprietária.

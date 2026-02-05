@@ -1,6 +1,7 @@
 "use client"
 
 import { motion, easeInOut } from "framer-motion"
+import { useRef } from "react"
 import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { LiquidMetalButton } from "@/components/ui/liquidMetalButton"
@@ -26,9 +27,35 @@ const textRevealVariants = {
   }),
 }
 
+// --- Configuração WhatsApp ---
+const WHATSAPP_NUMBER = "5581999112895"
+const WHATSAPP_MESSAGE =
+  "Olá Jhon, tudo bem? Gostaria de agendar uma reunião para conhecer a Nextech."
+const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+  WHATSAPP_MESSAGE
+)}`
+
 export function Hero() {
+  const sectionRef = useRef<HTMLElement>(null)
+
+  // Função de Scroll Suave
+  const scrollToSection = (sectionId: string) => {
+    const section = document.getElementById(sectionId)
+    if (section) {
+      const SCROLL_OFFSET = 100
+      const sectionTop = section.getBoundingClientRect().top + window.pageYOffset - SCROLL_OFFSET
+      window.scrollTo({
+        top: sectionTop,
+        behavior: "smooth",
+      })
+    }
+  }
+
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center px-4 pt-24 pb-16 overflow-hidden bg-transparent">
+    <section
+      id="Hero"
+      ref={sectionRef}
+      className="relative pt-32 md:pt-24 min-h-screen flex flex-col items-center justify-center px-4 pb-16 overflow-hidden bg-transparent">
 
       <div className="relative z-10 max-w-5xl mx-auto text-center">
         {/* Badge */}
@@ -44,7 +71,7 @@ export function Hero() {
 
         {/* Headline */}
         <h1
-          className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6"
+          className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6"
         >
           <span className="block overflow-hidden py-3">
             <motion.span
@@ -78,8 +105,8 @@ export function Hero() {
                   delay: 50,
                   deleteSpeed: 30,
                   cursor: "|",
-                  wrapperClassName: "text-zinc-500/80", // Mantém sua cor cinza
-                  cursorClassName: "text-emerald-800 ont-light", // Cursor em destaque
+                  wrapperClassName: "text-zinc-500/80",
+                  cursorClassName: "text-emerald-800 font-light",
                 }}
               />
             </motion.span>
@@ -103,22 +130,28 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-16"
         >
-          {/* BOTÃO PRINCIPAL: Fundo Branco */}
-          <Button
-            size="lg"
-            className="bg-white text-zinc-950 hover:bg-white rounded-full px-8 h-11.5 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(96,117,133,0.5)] active:scale-95"
+          {/* BOTÃO PRINCIPAL: Agendar Reunião (WhatsApp) */}
+          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+            <Button
+              size="lg"
+              className="bg-white text-zinc-950 hover:bg-white rounded-full px-8 h-11.5 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(96,117,133,0.5)] active:scale-95 cursor-pointer"
+            >
+              Agende uma reunião
+              <ArrowRight className="ml-2 w-4 h-4" />
+            </Button>
+          </a>
+
+          {/* BOTÃO SECUNDÁRIO: Ver Demonstração (Scroll para Soluções) */}
+          <div
+            onClick={() => scrollToSection("Solucoes")}
+            className="cursor-pointer"
+            style={{ pointerEvents: "auto" }}
           >
-            Agende uma reunião
-            <ArrowRight className="ml-2 w-4 h-4" />
-          </Button>
-
-          {/* BOTÃO SECUNDÁRIO: Liquid Metal (Fundo Preto) */}
-          <LiquidMetalButton
-            label="Ver Demonstração"
-            onClick={() => console.log("Iniciando demonstração...")}
-          />
+            <div style={{ pointerEvents: "none" }}>
+              <LiquidMetalButton label="Ver Demonstração" />
+            </div>
+          </div>
         </motion.div>
-
         {/* Social Proof */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

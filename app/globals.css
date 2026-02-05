@@ -71,29 +71,35 @@
   --color-border: var(--border);
   --color-ring: var(--ring);
 
-  /* Animações */
+  /* Animações Magic UI e Gerais */
   --animate-float: float 6s ease-in-out infinite;
   --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  --animate-marquee: marquee 30s linear infinite;
+  --animate-marquee: marquee var(--duration, 30s) linear infinite;
+  --animate-marquee-vertical: marquee-vertical var(--duration, 30s) linear infinite;
   --animate-border-beam: border-beam 8s linear infinite;
 
-  /* Keyframes */
+  /* Keyframes Otimizados */
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-20px); }
   }
 
+  /* Marquee Horizontal (Ajustado para loop perfeito) */
   @keyframes marquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
+    from { transform: translateX(0); }
+    to { transform: translateX(calc(-100% - var(--gap, 1rem))); }
+  }
+
+  /* Marquee Vertical (Caso use em algum card da Bento) */
+  @keyframes marquee-vertical {
+    from { transform: translateY(0); }
+    to { transform: translateY(calc(-100% - var(--gap, 1rem))); }
   }
 
   @keyframes border-beam {
-    0% { offset-distance: 0%; }
     100% { offset-distance: 100%; }
   }
 }
-
 /* ============================================
    3. CAMADA BASE OTIMIZADA
    ============================================ */
