@@ -84,10 +84,12 @@
     50% { transform: translateY(-20px); }
   }
 
-  /* Marquee Horizontal (Ajustado para loop perfeito) */
+/* Dentro de @theme inline */
+  --animate-marquee: marquee var(--duration, 40s) linear infinite;
+
   @keyframes marquee {
     from { transform: translateX(0); }
-    to { transform: translateX(calc(-100% - var(--gap, 1rem))); }
+    to { transform: translateX(-50%); } 
   }
 
   /* Marquee Vertical (Caso use em algum card da Bento) */
@@ -178,5 +180,17 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+@layer utilities {
+  .mask-marquee {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 10%,
+      black 90%,
+      transparent
+    );
   }
 }

@@ -140,22 +140,22 @@ export function Problem() {
                                 <li className="flex gap-4">
                                     <CheckCircle2 className="text-emerald-400 shrink-0" />
                                     <div>
-                                        <p className="text-white font-semibold">Qualificação Inteligente</p>
-                                        <p className="text-zinc-400 text-sm">Triagem automática para agendar quem realmente tem interesse.</p>
+                                        <p className="text-white font-semibold">Qualificação Inteligente e Follow-up</p>
+                                        <p className="text-zinc-400 text-sm">Triagem inteligente que separa pacientes reais de curiosos e faz o acompanhamento automático de quem parou de responder.</p>
                                     </div>
                                 </li>
                                 <li className="flex gap-4">
                                     <CheckCircle2 className="text-emerald-400 shrink-0" />
                                     <div>
-                                        <p className="text-white font-semibold">Integração Total CRM/Pipedrive</p>
-                                        <p className="text-zinc-400 text-sm">Sincronização automática com sua gestão e calendários.</p>
+                                        <p className="text-white font-semibold">Integração Total No CRM</p>
+                                        <p className="text-zinc-400 text-sm">Sincronização automática com sua gestão e operação.</p>
                                     </div>
                                 </li>
                                 <li className="flex gap-4">
                                     <CheckCircle2 className="text-emerald-400 shrink-0" />
                                     <div>
-                                        <p className="text-white font-semibold">Presença Omnichannel</p>
-                                        <p className="text-zinc-400 text-sm">Uma única inteligência no Site, WhatsApp e Instagram.</p>
+                                        <p className="text-white font-semibold">Escala de Atendimento</p>
+                                        <p className="text-zinc-400 text-sm">Atenda 10, 30 ou 50 pacientes simultaneamente no WhatsApp com a mesma qualidade, sem filas ou tempo de espera.</p>
                                     </div>
                                 </li>
                             </ul>

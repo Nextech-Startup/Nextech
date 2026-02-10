@@ -8,9 +8,17 @@ interface LiquidMetalButtonProps {
   label?: string
   onClick?: () => void
   viewMode?: "text" | "icon"
+  icon?: React.ReactNode
+  className?: string
 }
 
-export function LiquidMetalButton({ label = "Agende uma reunião", onClick, viewMode = "text" }: LiquidMetalButtonProps) {
+export function LiquidMetalButton({
+  label = "Agende uma reunião",
+  onClick,
+  viewMode = "text",
+  icon,
+  className = ""
+}: LiquidMetalButtonProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [isPressed, setIsPressed] = useState(false)
   const [ripples, setRipples] = useState<Array<{ x: number; y: number; id: number }>>([])
@@ -19,7 +27,6 @@ export function LiquidMetalButton({ label = "Agende uma reunião", onClick, view
   const buttonRef = useRef<HTMLButtonElement>(null)
   const rippleId = useRef(0)
 
-  // Ajustei a largura (width) para 180 para caber "Agende uma reunião" com folga
   const dimensions = useMemo(() => {
     if (viewMode === "icon") {
       return {
@@ -32,9 +39,9 @@ export function LiquidMetalButton({ label = "Agende uma reunião", onClick, view
       }
     } else {
       return {
-        width: 180, // Aumentado de 142 para 180
+        width: 180,
         height: 46,
-        innerWidth: 176, // Ajustado proporcionalmente
+        innerWidth: 176,
         innerHeight: 42,
         shaderWidth: 180,
         shaderHeight: 46,
@@ -127,6 +134,10 @@ export function LiquidMetalButton({ label = "Agende uma reunião", onClick, view
   }
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    console.log('🔵 BOTÃO CLICADO!', { onClick: !!onClick })
+    e.stopPropagation()
+    e.preventDefault()
+
     if (shaderMount.current?.setSpeed) {
       shaderMount.current.setSpeed(2.4)
       setTimeout(() => {
@@ -150,11 +161,12 @@ export function LiquidMetalButton({ label = "Agende uma reunião", onClick, view
       }, 600)
     }
 
+    console.log('🟢 EXECUTANDO onClick')
     onClick?.()
   }
 
   return (
-    <div className="relative inline-block">
+    <div className={`relative inline-block ${className}`} style={{ pointerEvents: 'auto' }}>
       <div style={{ perspective: "1000px", perspectiveOrigin: "50% 50%" }}>
         <div
           style={{
@@ -165,7 +177,7 @@ export function LiquidMetalButton({ label = "Agende uma reunião", onClick, view
             transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease, height 0.4s ease",
           }}
         >
-          {/* Layer do Texto */}
+          {/* Layer do Texto/Ícone */}
           <div
             style={{
               position: "absolute",
@@ -184,19 +196,30 @@ export function LiquidMetalButton({ label = "Agende uma reunião", onClick, view
             }}
           >
             {viewMode === "icon" ? (
-              <Sparkles size={16} style={{ color: "#ffffff", filter: "drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.5))" }} />
+              icon || <Sparkles size={16} style={{ color: "#ffffff", filter: "drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.5))" }} />
             ) : (
-              <span
-                style={{
-                  fontSize: "14px",
-                  color: "#ffffff", // Cor alterada para branco puro para melhor contraste
-                  fontWeight: 600,
-                  textShadow: "0px 1px 3px rgba(0, 0, 0, 0.8)",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {label}
-              </span>
+              <>
+                {icon && (
+                  <span style={{
+                    display: "flex",
+                    alignItems: "center",
+                    filter: "drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.5))"
+                  }}>
+                    {icon}
+                  </span>
+                )}
+                <span
+                  style={{
+                    fontSize: "14px",
+                    color: "#ffffff",
+                    fontWeight: 600,
+                    textShadow: "0px 1px 3px rgba(0, 0, 0, 0.8)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {label}
+                </span>
+              </>
             )}
           </div>
 
@@ -243,8 +266,8 @@ export function LiquidMetalButton({ label = "Agende uma reunião", onClick, view
                 height: `${dimensions.height}px`,
                 width: `${dimensions.width}px`,
                 borderRadius: "100px",
-                boxShadow: isHovered 
-                  ? "0px 12px 24px rgba(0,0,0,0.4)" 
+                boxShadow: isHovered
+                  ? "0px 12px 24px rgba(0,0,0,0.4)"
                   : "0px 4px 8px rgba(0,0,0,0.2)",
                 transition: "box-shadow 0.4s ease",
               }}

@@ -3,68 +3,39 @@
 import { motion, useInView } from "framer-motion"
 import { useRef } from "react"
 import { 
-  Stethoscope, 
-  Smile, 
-  Sparkles, 
-  Microscope, 
-  Leaf, 
-  Activity, 
-  Brain 
+  Stethoscope, Smile, Sparkles, Microscope, 
+  Leaf, Activity, Brain 
 } from "lucide-react"
 
-// --- Dados das Especialidades ---
+// Importações do Swiper para a animação infinita suave
+import { Swiper, SwiperSlide } from 'swiper/react'
+import { Autoplay } from 'swiper/modules'
+import 'swiper/css'
+
+// Seu componente de design premium para os ícones
+import { LiquidMetalFake } from "@/components/ui/LiquidMetalFake"
+
 const clinicTypes = [
-  {
-    icon: Stethoscope,
-    title: "Clínicas Médicas",
-    description: "Cardiologia, Ginecologia, Pediatria e mais."
-  },
-  {
-    icon: Smile,
-    title: "Odontologia",
-    description: "Dentistas, Ortodontia e Implantodontia."
-  },
-  {
-    icon: Sparkles,
-    title: "Estética & Dermato",
-    description: "Harmonização, Estética e Plástica."
-  },
-  {
-    icon: Microscope,
-    title: "Laboratórios",
-    description: "Análises clínicas e exames por imagem."
-  },
-  {
-    icon: Leaf,
-    title: "Nutrição",
-    description: "Emagrecimento e acompanhamento metabólico."
-  },
-  {
-    icon: Activity,
-    title: "Fisioterapia",
-    description: "Esportiva, Pilates e Reabilitação."
-  },
-  {
-    icon: Brain,
-    title: "Saúde Mental",
-    description: "Psicologia, Psiquiatria e Bem-estar."
-  }
+  { icon: <Stethoscope size={20} color="#ffffff" />, title: "Clínicas Médicas", description: "Cardiologia, Ginecologia, Pediatria e mais." },
+  { icon: <Smile size={20} color="#ffffff" />, title: "Odontologia", description: "Dentistas, Ortodontia e Implantodontia." },
+  { icon: <Sparkles size={20} color="#ffffff" />, title: "Estética & Dermato", description: "Harmonização, Estética e Plástica." },
+  { icon: <Microscope size={20} color="#ffffff" />, title: "Laboratórios", description: "Análises clínicas e exames por imagem." },
+  { icon: <Leaf size={20} color="#ffffff" />, title: "Nutrição", description: "Emagrecimento e acompanhamento metabólico." },
+  { icon: <Activity size={20} color="#ffffff" />, title: "Fisioterapia", description: "Esportiva, Pilates e Reabilitação." },
+  { icon: <Brain size={20} color="#ffffff" />, title: "Saúde Mental", description: "Psicologia, Psiquiatria e Bem-estar." }
 ]
 
 export function Especialidades() {
-  // 1. Referência para a seção (o "dedo apontando")
   const sectionRef = useRef<HTMLElement>(null)
-  
-  // 2. Hook moderno para detectar quando a seção aparece
   const isInView = useInView(sectionRef, { once: true, margin: "-100px" })
 
   return (
     <section 
       id="Especialidades" 
       ref={sectionRef} 
-      className="py-24 overflow-hidden bg-zinc-950/50 relative z-10"
+      className="py-24 overflow-hidden bg-transparent relative z-10"
     >
-      {/* Cabeçalho Animado com base no Scroll */}
+      {/* Cabeçalho */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
@@ -79,31 +50,52 @@ export function Especialidades() {
         </p>
       </motion.div>
 
-      {/* Carrossel Infinito (Marquee) */}
-      <div className="relative flex items-center">
-        {/* Container da Animação - Duplicado para loop infinito */}
-        <div className="flex animate-marquee whitespace-nowrap gap-6 py-4 hover:[animation-play-state:paused] cursor-grab active:cursor-grabbing">
+      {/* Carrossel com animação linear e design de card original */}
+      <div className="w-full select-none cursor-grab active:cursor-grabbing">
+        <Swiper
+          modules={[Autoplay]}
+          loop={true}
+          speed={5000} 
+          autoplay={{
+            delay: 0,
+            disableOnInteraction: false,
+            pauseOnMouseEnter: false,
+          }}
+          slidesPerView={1.3}
+          spaceBetween={24}
+          breakpoints={{
+            640: { slidesPerView: 2 },
+            1024: { slidesPerView: 3 },
+            1440: { slidesPerView: 4 },
+          }}
+          className="w-full py-4 [&>.swiper-wrapper]:ease-linear"
+        >
+          {/* Duplicamos os itens para garantir o preenchimento visual no loop */}
           {[...clinicTypes, ...clinicTypes].map((clinic, index) => (
-            <div
-              key={index}
-              className="flex items-center gap-4 bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-3xl min-w-[300px] md:min-w-[350px] hover:bg-white/10 hover:border-emerald-500/30 transition-all duration-500 group"
-            >
-              {/* Ícone com brilho sutil */}
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-emerald-500/20 transition-all duration-500">
-                <clinic.icon className="text-emerald-400 w-6 h-6" />
+            <SwiperSlide key={index} className="h-auto">
+              <div className="flex items-center gap-4 bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-3xl min-h-[120px] transition-all duration-500 group hover:bg-white/10">
+                
+                {/* Ícone LiquidMetalFake para manter o brilho metálico sutil */}
+                <div className="shrink-0">
+                  <LiquidMetalFake 
+                    viewMode="icon" 
+                    icon={clinic.icon}
+                    className="pointer-events-none" 
+                  />
+                </div>
+                
+                <div className="flex flex-col">
+                  <span className="text-white font-bold text-lg tracking-tight">
+                    {clinic.title}
+                  </span>
+                  <span className="text-zinc-500 text-sm whitespace-normal leading-snug">
+                    {clinic.description}
+                  </span>
+                </div>
               </div>
-              
-              <div className="flex flex-col">
-                <span className="text-white font-bold text-lg tracking-tight">
-                  {clinic.title}
-                </span>
-                <span className="text-zinc-500 text-sm whitespace-normal leading-snug">
-                  {clinic.description}
-                </span>
-              </div>
-            </div>
+            </SwiperSlide>
           ))}
-        </div>
+        </Swiper>
       </div>
     </section>
   )

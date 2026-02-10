@@ -143,7 +143,7 @@ export function Hero() {
 
           {/* BOTÃO SECUNDÁRIO: Ver Demonstração (Scroll para Soluções) */}
           <div
-            onClick={() => scrollToSection("Solucoes")}
+            onClick={() => scrollToSection("demo-celular")}
             className="cursor-pointer"
             style={{ pointerEvents: "auto" }}
           >

@@ -40,6 +40,7 @@
     "react-dom": "^19.2.4",
     "react-hook-form": "^7.60.0",
     "sonner": "^1.7.4",
+    "swiper": "^12.1.0",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
     "typewriter-effect": "^2.22.0",
