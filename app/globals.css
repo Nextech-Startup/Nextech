@@ -194,3 +194,27 @@
     );
   }
 }
+
+body[data-scroll-locked][data-scroll-locked] {
+  overflow-y: scroll !important;
+  margin-right: 0 !important;
+}
+
+[data-radix-slider-track] {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  height: 6px;
+}
+
+[data-radix-slider-range] {
+  background: #10b981;
+  border-radius: 9999px;
+}
+
+[data-radix-slider-thumb] {
+  background: white;
+  border-radius: 9999px;
+  width: 18px;
+  height: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}

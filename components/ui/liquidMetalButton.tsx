@@ -10,6 +10,8 @@ interface LiquidMetalButtonProps {
   viewMode?: "text" | "icon"
   icon?: React.ReactNode
   className?: string
+  width?: number  // <-- Nova prop
+  height?: number // <-- Nova prop
 }
 
 export function LiquidMetalButton({
@@ -17,7 +19,10 @@ export function LiquidMetalButton({
   onClick,
   viewMode = "text",
   icon,
-  className = ""
+  className = "",
+  width,  // <-- Recebe aqui
+  height, // <-- Recebe aqui
+  
 }: LiquidMetalButtonProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [isPressed, setIsPressed] = useState(false)
@@ -28,26 +33,22 @@ export function LiquidMetalButton({
   const rippleId = useRef(0)
 
   const dimensions = useMemo(() => {
-    if (viewMode === "icon") {
-      return {
-        width: 46,
-        height: 46,
-        innerWidth: 42,
-        innerHeight: 42,
-        shaderWidth: 46,
-        shaderHeight: 46,
-      }
-    } else {
-      return {
-        width: 180,
-        height: 46,
-        innerWidth: 176,
-        innerHeight: 42,
-        shaderWidth: 180,
-        shaderHeight: 46,
-      }
-    }
-  }, [viewMode])
+  // Define os padrões caso as props não sejam enviadas
+  const defaultWidth = viewMode === "icon" ? 46 : 180
+  const defaultHeight = 46
+
+  const finalWidth = width || defaultWidth
+  const finalHeight = height || defaultHeight
+
+  return {
+    width: finalWidth,
+    height: finalHeight,
+    innerWidth: finalWidth - 4,
+    innerHeight: finalHeight - 4,
+    shaderWidth: finalWidth,
+    shaderHeight: finalHeight,
+  }
+}, [viewMode, width, height]) // Adicione width e height nas dependências
 
   useEffect(() => {
     const styleId = "shader-canvas-style-exploded"

@@ -11,46 +11,51 @@ const WHATSAPP_NUMBER = "5581999112895"
 const plans = [
   {
     name: "Starter",
-    description: "Ideal para pequenas clínicas iniciando na automação.",
+    description: "Ideal para consultórios e clínicas iniciando na automação inteligente.",
     features: [
-      "IA no WhatsApp 24/7",
-      "Qualificação básica de leads",
-      "Até 500 conversas/mês",
-      "Suporte via e-mail",
-      "Dashboard de métricas"
+      "Assistente IA no WhatsApp 24/7",
+      "Qualificação automática de leads",
+      "Até 150 atendimentos/mês",
+      "Agendamento + Follow-up",
+      "Registro completo de conversas e pacientes",
+      "Respostas sobre convênios e valores",
+      "Transferência para atendente humano com resumo da conversa",
+      "Suporte via e-mail (SLA 24h)",
     ],
     highlighted: false,
     whatsappMessage: "Olá Jhon! Tenho interesse no plano *Starter* da Nextech. Gostaria de saber mais detalhes sobre valores e como funciona a implementação para minha clínica.",
   },
   {
     name: "Pro",
-    description: "O poder total da IA para clínicas em crescimento.",
+    description: "O poder total da IA para clínicas em crescimento acelerado.",
     features: [
       "Tudo do Starter",
-      "Conversas ilimitadas",
-      "Integração Pipedrive/CRM",
-      "Agendamento automático",
-      "Voz (AI Receptionist)",
-      "Suporte Prioritário VIP",
-      "Multicanal (Insta/Site)",
+      "Até 500 atendimentos/mês",
+      "Agendamento inteligente com reagendamento e cancelamento",
+      "Integração total no CRM (Pipedrive, Kommo, RD Station, Doctoralia e outros)",
+      "Processamento de áudios com IA",
+      "Redução de no-show com lembretes automáticos",
+      "Relatório semanal de leads qualificados",
+      "Suporte prioritário via WhatsApp (SLA 4h)",
     ],
     highlighted: true,
     whatsappMessage: "Olá Jhon! Tenho interesse no plano *Pro* da Nextech. Quero escalar minha clínica com IA e gostaria de agendar uma demonstração para conhecer todas as funcionalidades.",
   },
   {
-    name: "Enterprise",
-    description: "Soluções personalizadas para grandes redes hospitalares.",
+    name: "HealthTech",
+    description: "Para redes de clínicas e hospitais que exigem performance e segurança.",
     features: [
       "Tudo do Pro",
-      "IA treinada com seus dados",
-      "SSO & Segurança Avançada",
+      "Até 5.000 atendimentos/mês",
+      "IA treinada com os dados da sua operação",
+      "Integrações via API customizada",
+      "SSO & criptografia avançada (LGPD)",
       "Gerente de conta dedicado",
-      "Treinamento de equipe",
-      "Integrações via API custom",
-      "SLA de 99.9%",
+      "Onboarding e treinamento da equipe",
+      "SLA de resposta em até 1h (99,5% uptime)",
     ],
     highlighted: false,
-    whatsappMessage: "Olá Jhon! Represento uma rede de clínicas/hospital e tenho interesse no plano *Enterprise* da Nextech. Gostaria de agendar uma reunião para discutir uma solução personalizada para nossa operação.",
+    whatsappMessage: "Olá Jhon! Represento uma rede de clínicas/hospital e tenho interesse no plano *HealthTech* da Nextech. Gostaria de agendar uma reunião para discutir uma solução personalizada para nossa operação.",
   },
 ]
 
@@ -68,7 +73,7 @@ export function Planos() {
       {/* Brilho Aurora de fundo sutil */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-200 h-100 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
 
-      <div className="max-w-6xl mx-auto relative z-10">
+      <div className="max-w-7xl mx-auto relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -96,9 +101,9 @@ export function Planos() {
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: index * 0.1 }}
-              className={`relative p-8 rounded-[2.5rem] border flex flex-col transition-all duration-500 hover:scale-[1.02] ${plan.highlighted
-                ? "bg-white/10 border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl"
-                : "bg-white/5 border-white/10 backdrop-blur-md"
+              className={`relative p-8 rounded-[2.5rem] border flex flex-col transition-all duration-500 ${plan.highlighted
+                ? "bg-white/10 border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl scale-105 z-10 hover:scale-[1.08]"
+                : "bg-white/5 border-white/10 backdrop-blur-md hover:scale-[1.02]"
                 }`}
             >
               {plan.highlighted && (
