@@ -14,7 +14,7 @@ const plans = [
     description: "Ideal para consultórios e clínicas iniciando na automação inteligente.",
     features: [
       "Assistente IA no WhatsApp 24/7",
-      "Qualificação automática de leads",
+      "Qualificação automática de pacientes",
       "Até 150 atendimentos/mês",
       "Agendamento + Follow-up",
       "Registro completo de conversas e pacientes",
@@ -35,7 +35,7 @@ const plans = [
       "Integração total no CRM (Pipedrive, Kommo, RD Station, Doctoralia e outros)",
       "Processamento de áudios com IA",
       "Redução de no-show com lembretes automáticos",
-      "Relatório semanal de leads qualificados",
+      "Relatório semanal de pacientes qualificados",
       "Suporte prioritário via WhatsApp (SLA 4h)",
     ],
     highlighted: true,

@@ -10,6 +10,7 @@ import { CalculatorROI } from "@/components/calculatorROI"
 import { FinalCTA } from "@/components/final-cta"
 import { Footer } from "@/components/footer"
 import { Background } from "@/components/background"
+import { Chatbot } from "@/components/chatbot"
 
 export default function Home() {
   return (
@@ -23,6 +24,7 @@ export default function Home() {
         {/* Camada de conteúdo que rola */}
         <div className="relative z-10">
           <Navbar />
+          <Chatbot />
           <Hero />
           <Especialidades />
           <Problem />

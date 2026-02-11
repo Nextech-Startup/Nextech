@@ -174,7 +174,7 @@ export function Solutions() {
                                     <span className="text-xs font-bold text-blue-600 bg-blue-100 px-3 py-1 rounded-full">24/7 Online</span>
                                 </div>
                                 <h3 className="text-xl font-bold text-black mb-3">Atendimento via WhatsApp 24/7</h3>
-                                <p className="text-sm text-slate-600">Chatbots inteligentes que respondem dúvidas e capturam leads no seu site e redes sociais.</p>
+                                <p className="text-sm text-slate-600">Assistentes inteligentes que respondem dúvidas e qualificam seus pacientes todos os dias, em qualquer horário.</p>
                             </div>
 
                             {/* 2. Processamento de Áudio IA */}
@@ -231,7 +231,7 @@ export function Solutions() {
                                 </div>
                             </div>
 
-                            {/* 5. Qualificação de Leads */}
+                            {/* 5. Qualificação de Pacientes */}
                             <div className="p-8 rounded-3xl bg-slate-50 border border-slate-200 group hover:shadow-xl transition-all">
                                 <div className="flex justify-between items-start mb-6">
                                     <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
@@ -244,7 +244,7 @@ export function Solutions() {
                                     <div className="p-2 bg-white rounded-lg border border-blue-200 shadow-sm flex items-center justify-between gap-3">
                                         <div className="flex items-center gap-2">
                                             <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                            <span className="text-[10px] font-bold text-black">Novo Lead Qualificado</span>
+                                            <span className="text-[10px] font-bold text-black">Novo Paciente Qualificado</span>
                                         </div>
                                     </div>
                                     <div className="p-3 bg-white/60 rounded-xl border border-dashed border-blue-300">
@@ -296,8 +296,8 @@ export function Solutions() {
                                 <div className="space-y-6 text-slate-600 leading-relaxed">
                                     <p>Enquanto sua clínica está fechada, sua assistente responde dúvidas, filtra convênios e agenda consultas 24h por dia.</p>
                                     <div className="p-6 bg-slate-50 rounded-2xl border-l-4 border-blue-600 italic text-black">
-                                        "Saímos de 70% de mensagens perdidas para 100% de captura de leads. Nossos agendamentos subiram 50%."
-                                        <span className="block mt-2 font-bold not-italic text-black text-sm">— Dr. Mike Rodriguez, Cliente Nextech</span>
+                                        "Saímos de 45% de mensagens perdidas, para 100% de contato com nossos pacientes. Nossos agendamentos subiram 50%."
+                                        <span className="block mt-2 font-bold not-italic text-black text-sm">— Dr. Arthur Moura, Cliente Nextech</span>
                                     </div>
                                 </div>
                             </div>

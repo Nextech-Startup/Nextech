@@ -173,10 +173,10 @@ export function Problem() {
                     <div className="bg-white/5 backdrop-blur-md rounded-[2.5rem] p-8 md:p-16 text-center border border-white/10 shadow-2xl">
                         <div className="max-w-3xl mx-auto">
                             <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-                                Pare de perder pacientes hoje mesmo
+                                Pare de perder pacientes hoje mesmo!
                             </h2>
                             <p className="text-zinc-400 text-lg mb-10 leading-relaxed">
-                                Receba uma call gratuita da nossa equipe agora e pare de perder tempo. Veja ainda hoje exatamente quantos leads você está deixando escapar na sua empresa.
+                                Receba uma call gratuita da nossa equipe agora e pare de perder tempo. Veja ainda hoje exatamente quantos pacientes você está deixando escapar na sua empresa.
                             </p>
 
                             <div className="flex justify-center">

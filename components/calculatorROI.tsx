@@ -182,7 +182,7 @@ export function CalculatorROI() {
                   {/* Contatos Mensais */}
                   <div>
                     <div className="flex justify-between items-end mb-4">
-                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Contatos Mensais (Leads)</label>
+                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Contatos Mensais (Pacientes)</label>
                       <span className="text-xl font-bold text-white">{inputs.monthlyVisitors.toLocaleString()}</span>
                     </div>
                     <Slider

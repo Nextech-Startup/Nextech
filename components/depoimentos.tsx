@@ -6,12 +6,12 @@ import { TestimonialsColumn } from "@/components/ui/testimonials-column"
 
 const depoimentos = [
   {
-    text: "Deixamos de perder 70% das mensagens fora do horário para capturar cada lead. Os agendamentos aumentaram 50% no primeiro mês.",
+    text: "Recuperamos 35% das mensagens perdidas fora do horário e passamos a qualificar 100% dos pacientes. O resultado foi um aumento de 50% nos agendamentos já no primeiro mês.",
     name: "Dr. Ricardo Mendes",
     role: "Dono de Clínica",
   },
   {
-    text: "Gastamos muito menos tempo pensando em responder leads agora, graças ao engajamento instantâneo que a Nextech nos oferece.",
+    text: "Gastamos muito menos tempo pensando em responder pacientes agora, graças ao engajamento instantâneo que a Nextech nos oferece.",
     name: "Fernanda Oliveira",
     role: "Gerente Comercial",
   },
@@ -31,7 +31,7 @@ const depoimentos = [
     role: "Gerente de Customer Experience",
   },
   {
-    text: "Nossa clínica viu um aumento de 60% em leads qualificados. O chatbot lida com as dúvidas perfeitamente.",
+    text: "Nossa clínica viu um aumento de 60% em pacientes qualificados. O chatbot lida com as dúvidas perfeitamente.",
     name: "Dra. Camila Rocha",
     role: "Gestora Administrativa",
   },
@@ -56,7 +56,7 @@ const depoimentos = [
     role: "Proprietária de Consultório",
   },
   {
-    text: "O relatório de leads qualificados me ajuda a entender de onde vêm os melhores pacientes. Dados que antes não tínhamos.",
+    text: "O relatório de pacientes qualificados me ajuda a entender de onde vêm os melhores pacientes. Dados que antes não tínhamos.",
     name: "Lucas Pereira",
     role: "Analista de Marketing",
   },
