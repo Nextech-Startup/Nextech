@@ -306,7 +306,6 @@ export const Chatbot = () => {
             {!isOptionStep && (
               <div className="p-3 bg-zinc-950 border-t border-white/5 shrink-0">
                 <div className="flex items-center gap-2">
-                  // Substitua o seu input atual por este aqui:
                   <input
                     type="text"
                     value={inputValue}
@@ -315,7 +314,6 @@ export const Chatbot = () => {
                     placeholder={content.input_placeholder}
                     disabled={isSending}
                     autoFocus
-                    /* A mágica acontece aqui: text-base (16px) no mobile e text-sm (14px) no desktop */
                     className="flex-1 bg-white/5 text-white rounded-full px-4 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all border border-white/10 placeholder:text-zinc-500"
                   />
                   <button
