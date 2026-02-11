@@ -227,7 +227,7 @@ export const Chatbot = () => {
 
   return (
     <div className="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-50 flex flex-col items-end font-sans">
-      
+
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -266,11 +266,10 @@ export const Chatbot = () => {
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-zinc-900/50 chatbot-scroll">
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] p-3 text-sm rounded-2xl shadow-sm leading-relaxed ${
-                    msg.type === 'user' 
-                      ? 'bg-emerald-600 text-white rounded-br-none' 
-                      : 'bg-white/5 text-zinc-200 rounded-bl-none border border-white/5'
-                  }`}>
+                  <div className={`max-w-[85%] p-3 text-sm rounded-2xl shadow-sm leading-relaxed ${msg.type === 'user'
+                    ? 'bg-emerald-600 text-white rounded-br-none'
+                    : 'bg-white/5 text-zinc-200 rounded-bl-none border border-white/5'
+                    }`}>
                     {msg.text && <p>{msg.text}</p>}
                     {msg.options && (
                       <div className="mt-3 flex flex-col gap-2">
@@ -307,6 +306,7 @@ export const Chatbot = () => {
             {!isOptionStep && (
               <div className="p-3 bg-zinc-950 border-t border-white/5 shrink-0">
                 <div className="flex items-center gap-2">
+                  // Substitua o seu input atual por este aqui:
                   <input
                     type="text"
                     value={inputValue}
@@ -315,7 +315,8 @@ export const Chatbot = () => {
                     placeholder={content.input_placeholder}
                     disabled={isSending}
                     autoFocus
-                    className="flex-1 bg-white/5 text-white rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all border border-white/10 placeholder:text-zinc-500"
+                    /* A mágica acontece aqui: text-base (16px) no mobile e text-sm (14px) no desktop */
+                    className="flex-1 bg-white/5 text-white rounded-full px-4 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all border border-white/10 placeholder:text-zinc-500"
                   />
                   <button
                     onClick={handleSend}
