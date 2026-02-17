@@ -6,7 +6,9 @@ import { Problem } from "@/components/problem"
 import { Solutions } from "@/components/solutions"
 import { Depoimentos } from "@/components/depoimentos"
 import { Planos } from "@/components/pricing"
+{/* Calculadora comentada por enquanto, pode ser reativada futuramente. 
 import { CalculatorROI } from "@/components/calculatorROI"
+*/}
 import { FinalCTA } from "@/components/final-cta"
 import { Footer } from "@/components/footer"
 import { Background } from "@/components/background"
@@ -31,7 +33,9 @@ export default function Home() {
           <Solutions />
           <Depoimentos />
           <Planos />
+          {/* Calculadora comentada por enquanto, pode ser reativada futuramente. 
           <CalculatorROI />
+          */}
           <FinalCTA />
           <Footer />
         </div>
