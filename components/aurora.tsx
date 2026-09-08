@@ -86,18 +86,29 @@ struct ColorStop {
 
 void main() {
   vec2 uv = gl_FragCoord.xy / uResolution;
-  
+
   ColorStop colors[3];
   colors[0] = ColorStop(uColorStops[0], 0.0);
   colors[1] = ColorStop(uColorStops[1], 0.5);
   colors[2] = ColorStop(uColorStops[2], 1.0);
-  
+
   vec3 rampColor;
   COLOR_RAMP(colors, uv.x, rampColor);
-  
-  float height = snoise(vec2(uv.x * 2.0 + uTime * 0.1, uTime * 0.25)) * 0.5 * uAmplitude;
+
+  // A onda foi desenhada para uma tela larga (~16:9). Numa tela estreita
+  // e alta, uv.x cobre pouca distância real e o ruído sai comprimido —
+  // a onda parece achatada e agitada demais. Reamostra o ruído em espaço
+  // proporcional para o desenho ter a mesma largura visual em qualquer
+  // formato; em 16:9 o fator é 1.0 e o resultado é idêntico ao anterior.
+  float aspect = uResolution.x / uResolution.y;
+  float noiseScale = clamp(aspect / 1.78, 0.55, 1.0);
+
+  float height = snoise(vec2(uv.x * 2.0 * noiseScale + uTime * 0.1, uTime * 0.25)) * 0.5 * uAmplitude;
   height = exp(height);
-  height = (uv.y * 2.0 - height + 0.2);
+  // Em telas altas a faixa da aurora ocupa uma fatia vertical menor;
+  // este ganho devolve a ela a mesma presença que tem no desktop.
+  float verticalGain = mix(1.0, 2.0, clamp((1.0 - aspect) / 1.2, 0.0, 1.0));
+  height = (uv.y * 2.0 * verticalGain - height + 0.2);
   float intensity = 0.6 * height;
   
   float midPoint = 0.20;
@@ -155,20 +166,33 @@ export default function Aurora(props: AuroraProps) {
 
     function resize() {
       if (!ctn) return;
-      const width = ctn.offsetWidth;
-      const height = ctn.offsetHeight;
-      renderer.setSize(width, height);
+      renderer.setSize(ctn.offsetWidth, ctn.offsetHeight);
       if (program) {
+        // gl_FragCoord vem em pixels físicos, então uResolution precisa
+        // estar na mesma unidade — passar a medida CSS faria o uv passar
+        // de 1.0 sempre que o dpr fosse diferente de 1, deslocando a onda.
         // Reusa o array do uniform em vez de alocar um novo a cada resize.
-        program.uniforms.uResolution.value[0] = width;
-        program.uniforms.uResolution.value[1] = height;
+        program.uniforms.uResolution.value[0] = gl.drawingBufferWidth;
+        program.uniforms.uResolution.value[1] = gl.drawingBufferHeight;
       }
     }
 
     // ResizeObserver reage ao container, e não a cada evento de window;
     // o rAF agrupa rajadas de resize num único trabalho por frame.
     let resizeRaf = 0;
+    let lastW = 0;
+    let lastH = 0;
     const scheduleResize = () => {
+      if (!ctn) return;
+      const w = ctn.offsetWidth;
+      const h = ctn.offsetHeight;
+      // No celular a barra de endereço entra e sai durante a rolagem e muda
+      // a altura em algumas dezenas de pixels. Reagir a isso reescala o
+      // shader no meio da animação e a onda "pula"; variações pequenas de
+      // altura são ignoradas, mudanças de largura (rotação) não.
+      if (w === lastW && Math.abs(h - lastH) < 120) return;
+      lastW = w;
+      lastH = h;
       cancelAnimationFrame(resizeRaf);
       resizeRaf = requestAnimationFrame(resize);
     };
@@ -192,7 +216,9 @@ export default function Aurora(props: AuroraProps) {
         uTime: { value: 0 },
         uAmplitude: { value: amplitude },
         uColorStops: { value: colorStopsArray },
-        uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
+        // Em pixels físicos, como gl_FragCoord; o resize() logo abaixo
+        // reconfirma o valor assim que o canvas assume seu tamanho.
+        uResolution: { value: [gl.drawingBufferWidth, gl.drawingBufferHeight] },
         uBlend: { value: blend }
       }
     });
