@@ -7,48 +7,100 @@
    ============================================ */
 
 :root {
-  /* Cores principais - Tema escuro premium */
-  --background: oklch(0.09 0 0);
-  --foreground: oklch(1 0 0);
-  --card: oklch(0.13 0 0);
-  --card-foreground: oklch(1 0 0);
-  --popover: oklch(0.13 0 0);
-  --popover-foreground: oklch(1 0 0);
-  --primary: oklch(1 0 0);
-  --primary-foreground: oklch(0.09 0 0);
-  --secondary: oklch(0.18 0 0);
-  --secondary-foreground: oklch(1 0 0);
-  --muted: oklch(0.18 0 0);
-  --muted-foreground: oklch(0.6 0 0);
-  --accent: oklch(0.18 0 0);
-  --accent-foreground: oklch(1 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.22 0 0);
-  --input: oklch(0.22 0 0);
-  --ring: oklch(0.4 0 0);
+  /* Altura ocupada pela navbar fixa (offset do topo + altura da barra).
+     Fonte única de verdade: o hero deriva o padding daqui, em vez de
+     repetir paddings mágicos que saem de sincronia com a barra. */
+  --navbar-offset: 1.5rem;        /* top-6 */
+  --navbar-height: 4.5rem;        /* logo h-14 (3.5rem) + py-2 (1rem) */
+  --navbar-space: calc(var(--navbar-offset) + var(--navbar-height));
+
+  /* A escala de raio (pill / card / panel) vive no bloco @theme abaixo,
+     que é o que gera os utilitários rounded-*. */
+
+  /* --- Acento ---------------------------------------------------------
+     Um verde só, substituindo as seis variações de emerald que apareciam
+     sem critério. No tema claro ele precisa ser bem mais escuro: o verde
+     do tema escuro rende apenas 2:1 sobre fundo claro. */
+  --accent: oklch(0.52 0.11 165);
+  --accent-strong: oklch(0.45 0.12 165);
+  --accent-dim: oklch(0.58 0.10 165);
+  /* Reservado ao cenário de problema: é o único vermelho da página. */
+  --warn: oklch(0.65 0.17 25);
+
+  /* --- Tokens de superfície --------------------------------------------
+     Nomeados pelo papel, não pela cor: os componentes pedem "surface-2"
+     e não "white/5", então trocar de tema não exige tocar em componente.
+     Estes são os valores do tema claro; o bloco .dark abaixo os inverte. */
+  --surface-0: oklch(0.985 0.002 165);   /* fundo da página */
+  --surface-1: oklch(1 0 0);             /* cards */
+  --surface-2: oklch(0.965 0.004 165);   /* cards aninhados */
+  --hairline: oklch(0.89 0.005 165);     /* bordas */
+  --text-1: oklch(0.22 0.01 165);        /* texto principal */
+  --text-2: oklch(0.47 0.012 165);       /* texto secundário */
+  --text-3: oklch(0.62 0.012 165);       /* texto terciário */
+
+  /* Vidro: no claro escurece o que está atrás; no escuro, clareia. */
+  --glass-bg: oklch(0.22 0.01 165 / 0.05);
+  --glass-border: oklch(0.22 0.01 165 / 0.10);
+
+  /* Intensidade do fundo Aurora, reduzida no claro para não sujar a página. */
+  --aurora-opacity: 0.45;
+
+  /* Cores principais */
+  --background: var(--surface-0);
+  --foreground: var(--text-1);
+  --card: var(--surface-1);
+  --card-foreground: var(--text-1);
+  --popover: var(--surface-1);
+  --popover-foreground: var(--text-1);
+  --primary: var(--text-1);
+  --primary-foreground: var(--surface-0);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--text-1);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--text-2);
+  --destructive: var(--warn);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: var(--hairline);
+  --input: var(--hairline);
+  --ring: var(--accent);
   --radius: 1rem;
 }
 
-/* Tema claro (caso precise no futuro) */
-.light {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+/* A partir de md o logo cresce (h-14 -> h-18) e a barra fica mais alta. */
+@media (min-width: 48rem) {
+  :root {
+    --navbar-height: 5.5rem;      /* logo h-18 (4.5rem) + py-2 (1rem) */
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Tema escuro — o padrão do site. Só redefine os tokens de superfície:
+   tudo que deriva deles (card, border, muted…) acompanha sozinho.
+   --------------------------------------------------------------------- */
+.dark {
+  --surface-0: oklch(0.09 0 0);
+  --surface-1: oklch(0.14 0.006 165);
+  --surface-2: oklch(0.18 0.008 165);
+  --hairline: oklch(1 0 0 / 0.10);
+  --text-1: oklch(1 0 0);
+  --text-2: oklch(0.72 0.008 165);
+  --text-3: oklch(0.56 0.01 165);
+
+  /* No escuro o vidro clareia o que está atrás, em vez de escurecer. */
+  --glass-bg: oklch(1 0 0 / 0.05);
+  --glass-border: oklch(1 0 0 / 0.10);
+
+  --aurora-opacity: 1;
+
+  /* Sobre fundo escuro o verde pode ser claro e vibrante — é o que dá
+     o brilho da marca, e aqui rende quase 10:1 de contraste. */
+  --accent: oklch(0.75 0.14 165);
+  --accent-strong: oklch(0.82 0.15 165);
+  --accent-dim: oklch(0.62 0.11 165);
+
+  --primary: oklch(1 0 0);
+  --primary-foreground: oklch(0.09 0 0);
 }
 
 /* ============================================
@@ -56,10 +108,9 @@
    ============================================ */
 
 @theme inline {
-  /* Fontes */
-  --font-sans: "Manrope", "Geist", "Geist Fallback", sans-serif;
-  --font-display: "Cal Sans", sans-serif;
-  --font-mono: "Geist Mono", "Geist Mono Fallback", monospace;
+  /* Fontes: as variáveis vêm do next/font, no layout. */
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+  --font-display: var(--font-cal-sans), var(--font-manrope), system-ui, sans-serif;
 
   /* Cores mapeadas para o Tailwind */
   --color-background: var(--background);
@@ -70,6 +121,29 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-border: var(--border);
   --color-ring: var(--ring);
+
+  /* Acento único, disponível como text-accent / bg-accent / border-accent */
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-dim: var(--accent-dim);
+  --color-warn: var(--warn);
+
+  /* Superfícies e texto por papel: text-ink-2, bg-surface-1, border-hairline.
+     São estes que os componentes devem usar no lugar das cores fixas. */
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-hairline: var(--hairline);
+  --color-ink-1: var(--text-1);
+  --color-ink-2: var(--text-2);
+  --color-ink-3: var(--text-3);
+
+  /* Raios semânticos: rounded-pill / rounded-card / rounded-panel.
+     Valores literais: dentro de @theme uma var() de mesmo nome se
+     autorreferenciaria e o utilitário sairia vazio. */
+  --radius-pill: 9999px;
+  --radius-card: 1.25rem;
+  --radius-panel: 2.5rem;
 
   /* Animações Magic UI e Gerais */
   --animate-float: float 6s ease-in-out infinite;
@@ -109,16 +183,26 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    /* Otimizações de renderização */
+  }
+
+  html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    backface-visibility: hidden;
+    text-size-adjust: 100%;
   }
 
   body {
     @apply bg-background text-foreground;
     overflow-x: hidden;
-    scroll-behavior: smooth;
+    /* Sem scroll-behavior aqui: o Lenis controla o scroll e os dois
+       competiriam pela mesma rolagem. Ver .no-lenis abaixo. */
+  }
+
+  /* Alvo de foco visível e consistente para navegação por teclado. */
+  :focus-visible {
+    outline: 2px solid oklch(0.75 0.14 165);
+    outline-offset: 3px;
+    border-radius: 4px;
   }
 
   /* Oculta scrollbars mas mantém funcionalidade */
@@ -135,10 +219,11 @@
    4. UTILITÁRIOS PREMIUM
    ============================================ */
 
-/* Efeito Glassmorphism */
+/* Vidro que acompanha o tema: no claro escurece o fundo, no escuro clareia. */
 .glass-effect {
-  @apply backdrop-blur-md bg-white/5 border border-white/10;
-  transform: translateZ(0);
+  backdrop-filter: blur(12px);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
 }
 
 /* Efeito Noise sutil */
@@ -175,11 +260,22 @@
    ============================================ */
 
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* Carrosséis e marquees rodam via transform contínuo em JS/Swiper:
+     as regras acima não os alcançam, então são parados explicitamente. */
+  .swiper-wrapper {
+    transform: none !important;
+    transition: none !important;
   }
 }
 
