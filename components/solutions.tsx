@@ -159,7 +159,7 @@ export function Solutions() {
                                 Nossa solução
                             </motion.div>
                             <h2 className="font-display text-4xl md:text-6xl text-black mb-6 tracking-tight">
-                                Seu Time de IA <br /> <span className="text-accent-dim">Nunca Para de Vender.</span>
+                                Seu Time de IA <br /> <span className="text-accent-on-light">Nunca Para de Vender.</span>
                             </h2>
                         </div>
 
@@ -200,7 +200,7 @@ export function Solutions() {
                                 <h3 className="text-xl font-bold mb-3 text-black">Agendamento Inteligente</h3>
                                 <p className="text-sm text-[oklch(0.45_0.01_165)] mb-4">Checa disponibilidade e confirma horários sem intervenção humana.</p>
                                 <div className="text-xs font-medium text-black flex items-center gap-2">
-                                    <CheckCircle2 size={14} className="text-accent-dim" /> Agendamento confirmado para dia 15, às 14h.
+                                    <CheckCircle2 size={14} className="text-accent-on-light" /> Agendamento confirmado para dia 15, às 14h.
                                 </div>
                             </div>
 
@@ -216,17 +216,17 @@ export function Solutions() {
                                 <div className="space-y-2">
                                     <div className="p-2 bg-white rounded-lg border border-[oklch(0.90_0.005_165)] text-[10px] font-bold text-black flex justify-between items-center">
                                         <div className="flex flex-col">
-                                            <span className="text-[9px] text-accent-dim uppercase">Para: Paciente</span>
+                                            <span className="text-[9px] text-accent-on-light uppercase">Para: Paciente</span>
                                             Confirmação de Agendamento
                                         </div>
-                                        <span className="bg-accent/10 text-accent-dim px-2 py-0.5 rounded text-[9px]">Enviado ✓</span>
+                                        <span className="bg-accent/10 text-accent-on-light px-2 py-0.5 rounded text-[9px]">Enviado ✓</span>
                                     </div>
                                     <div className="p-2 bg-white rounded-lg border border-[oklch(0.90_0.005_165)] text-[10px] font-bold text-black flex justify-between items-center">
                                         <div className="flex flex-col">
-                                            <span className="text-[9px] text-accent-dim uppercase">Para: Médico</span>
+                                            <span className="text-[9px] text-accent-on-light uppercase">Para: Médico</span>
                                             Novo Paciente na Agenda
                                         </div>
-                                        <span className="bg-accent/10 text-accent-dim px-2 py-0.5 rounded text-[9px]">Notificado ✓</span>
+                                        <span className="bg-accent/10 text-accent-on-light px-2 py-0.5 rounded text-[9px]">Notificado ✓</span>
                                     </div>
                                 </div>
                             </div>
@@ -250,7 +250,7 @@ export function Solutions() {
                                     <div className="p-3 bg-white/60 rounded-xl border border-dashed border-accent/30">
                                         <div className="flex justify-between items-center mb-1">
                                             <span className="text-[9px] font-bold text-[oklch(0.55_0.01_165)]">STATUS DO NEGÓCIO</span>
-                                            <span className="text-[9px] font-bold text-accent-dim">ETAPA: AGENDADO</span>
+                                            <span className="text-[9px] font-bold text-accent-on-light">ETAPA: AGENDADO</span>
                                         </div>
                                         <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                                             <motion.div
@@ -287,7 +287,7 @@ export function Solutions() {
                         {/* SEÇÃO DE DEMO: CELULAR */}
                         <div id="demo-celular" className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
                             <div className="w-full lg:w-1/2">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 text-accent-dim text-xs font-bold mb-6">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 text-accent-on-light text-xs font-bold mb-6">
                                     Demo do Assistente IA
                                 </div>
                                 <h3 className="text-3xl md:text-4xl font-bold text-black mb-6 leading-tight">
@@ -454,7 +454,7 @@ export function Solutions() {
                                                 <div className="px-[6px] py-[5px] bg-[#f0f2f5] flex items-end gap-[5px] shrink-0">
                                                     <div className="flex-1 bg-white rounded-full px-[10px] py-[7px] flex items-center gap-[6px] shadow-[0_0.5px_1px_rgba(0,0,0,0.06)]">
                                                         <Smile size={20} className="text-[#54656f] shrink-0" />
-                                                        <span className="text-[#8696a0] text-[14px] flex-1">Mensagem</span>
+                                                        <span className="text-[#54656f] text-[14px] flex-1">Mensagem</span>
                                                         <div className="flex items-center gap-[10px]">
                                                             <Paperclip size={19} className="text-[#54656f] rotate-[135deg]" />
                                                             <Camera size={19} className="text-[#54656f]" />

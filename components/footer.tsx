@@ -72,7 +72,7 @@ export function Footer() {
 
           {/* Links de Produto (Sync com Navbar) */}
           <div className="col-span-1">
-            <h4 className="text-sm font-semibold text-ink-1 mb-6">Produto</h4>
+            <h3 className="text-sm font-semibold text-ink-1 mb-6">Produto</h3>
             <ul className="space-y-4">
               {produtoLinks.map((link) => (
                 <li key={link.id}>
@@ -91,7 +91,7 @@ export function Footer() {
               que criaria links mortos para o usuário e para os buscadores. */}
           {Object.entries(footerLinks).map(([title, links]) => (
             <div key={title} className="col-span-1">
-              <h4 className="text-sm font-semibold text-ink-1 mb-6">{title}</h4>
+              <h3 className="text-sm font-semibold text-ink-1 mb-6">{title}</h3>
               <ul className="space-y-4">
                 {links.map((link) => (
                   <li key={link}>

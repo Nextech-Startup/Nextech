@@ -307,7 +307,11 @@ export function LiquidMetalButton({
               onMouseLeave: handleMouseLeave,
               onMouseDown: () => setIsPressed(true),
               onMouseUp: () => setIsPressed(false),
-              "aria-label": ariaLabel ?? (viewMode === "icon" ? label : undefined),
+              /* O elemento é transparente e sem filhos: o rótulo visível é
+                 pintado no canvas atrás dele. Sem aria-label o leitor de
+                 tela anuncia só "botão" — por isso o nome vem sempre do
+                 label, e não apenas no modo ícone. */
+              "aria-label": ariaLabel ?? label,
               ...(href
                 ? { href, target, rel: rel ?? (target === "_blank" ? "noopener noreferrer" : undefined) }
                 : { type: "button" as const }),

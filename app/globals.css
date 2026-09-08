@@ -260,6 +260,23 @@
   .hero-sub { animation: none; }
 }
 
+/* Faixa de especialidades. Substitui o autoplay do Swiper: os itens estão
+   duplicados no DOM, então deslocar -50% recoloca a segunda metade
+   exatamente onde a primeira começou e o ciclo não tem emenda. */
+.especialidades-track {
+  animation: especialidades-scroll 45s linear infinite;
+  will-change: transform;
+}
+
+@keyframes especialidades-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .especialidades-track { animation: none; }
+}
+
 /* Shimmer para botões */
 .shimmer-btn {
   position: relative;
@@ -295,12 +312,8 @@
     scroll-behavior: auto !important;
   }
 
-  /* Carrosséis e marquees rodam via transform contínuo em JS/Swiper:
-     as regras acima não os alcançam, então são parados explicitamente. */
-  .swiper-wrapper {
-    transform: none !important;
-    transition: none !important;
-  }
+  /* O marquee de especialidades roda por animação CSS nomeada, que a
+     regra acima já zera; nada mais depende de transform contínuo. */
 }
 
 @layer utilities {

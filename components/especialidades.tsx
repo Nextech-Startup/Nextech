@@ -7,11 +7,6 @@ import {
   Leaf, Activity, Brain 
 } from "lucide-react"
 
-// Importações do Swiper para a animação infinita suave
-import { Swiper, SwiperSlide } from 'swiper/react'
-import { Autoplay } from 'swiper/modules'
-import 'swiper/css'
-
 // Seu componente de design premium para os ícones
 import { LiquidMetalFake } from "@/components/ui/LiquidMetalFake"
 
@@ -52,50 +47,48 @@ export function Especialidades() {
 
       {/* Carrossel com animação linear e design de card original */}
       <div className="w-full select-none cursor-grab active:cursor-grabbing">
-        <Swiper
-          modules={[Autoplay]}
-          loop={true}
-          speed={5000} 
-          autoplay={{
-            delay: 0,
-            disableOnInteraction: false,
-            pauseOnMouseEnter: false,
-          }}
-          slidesPerView={1.3}
-          spaceBetween={24}
-          breakpoints={{
-            640: { slidesPerView: 2 },
-            1024: { slidesPerView: 3 },
-            1440: { slidesPerView: 4 },
-          }}
-          className="w-full py-4 [&>.swiper-wrapper]:ease-linear"
-        >
-          {/* Duplicamos os itens para garantir o preenchimento visual no loop */}
-          {[...clinicTypes, ...clinicTypes].map((clinic, index) => (
-            <SwiperSlide key={index} className="h-auto">
-              <div className="flex items-center gap-4 glass-effect p-6 rounded-card min-h-[120px] transition-all duration-500 group hover:bg-[var(--glass-bg)]">
-                
-                {/* Ícone LiquidMetalFake para manter o brilho metálico sutil */}
-                <div className="shrink-0">
-                  <LiquidMetalFake 
-                    viewMode="icon" 
-                    icon={clinic.icon}
-                    className="pointer-events-none" 
-                  />
-                </div>
-                
-                <div className="flex flex-col">
-                  <span className="text-ink-1 font-bold text-lg tracking-tight">
-                    {clinic.title}
-                  </span>
-                  <span className="text-ink-2 text-sm whitespace-normal leading-snug">
-                    {clinic.description}
-                  </span>
+        {/* Marquee em CSS puro.
+            Era um Swiper com autoplay de delay 0 e velocidade constante —
+            ou seja, um marquee linear sem interação nenhuma. O 'swiper/css'
+            entrava como CSS crítico e bloqueava a renderização por 450ms
+            (mais que a folha principal, que é 8x maior), e o pacote somava
+            ~91KB de JS. A animação abaixo faz o mesmo sem nada disso.
+
+            A faixa tem os itens duplicados e desloca -50%: quando a
+            primeira metade sai, a segunda está exatamente na posição
+            inicial, então o ciclo é imperceptível. */}
+        <div className="mask-marquee overflow-hidden py-4">
+          <div className="especialidades-track flex w-max gap-6">
+            {[...clinicTypes, ...clinicTypes].map((clinic, index) => (
+              <div
+                key={index}
+                /* Larguras equivalentes ao slidesPerView do Swiper
+                   (1.3 / 2 / 3 / 4 por tela, com o gap descontado). */
+                className="w-[calc(76vw-1.5rem)] sm:w-[calc(50vw-1.5rem)] lg:w-[calc(33.333vw-1.5rem)] min-[1440px]:w-[calc(25vw-1.5rem)] shrink-0"
+                aria-hidden={index >= clinicTypes.length}
+              >
+                <div className="flex items-center gap-4 glass-effect p-6 rounded-card min-h-[120px] h-full">
+                  <div className="shrink-0">
+                    <LiquidMetalFake
+                      viewMode="icon"
+                      icon={clinic.icon}
+                      className="pointer-events-none"
+                    />
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-ink-1 font-bold text-lg tracking-tight">
+                      {clinic.title}
+                    </span>
+                    <span className="text-ink-2 text-sm whitespace-normal leading-snug">
+                      {clinic.description}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </SwiperSlide>
-          ))}
-        </Swiper>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   )
