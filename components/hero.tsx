@@ -3,8 +3,10 @@
 import { motion, easeInOut } from "framer-motion"
 import { useRef } from "react"
 import { ArrowRight } from "lucide-react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { LiquidMetalButton } from "@/components/ui/liquidMetalButton"
+import { useScrollTo } from "@/components/smooth-scroll"
 import Typewriter from "typewriter-effect"
 
 const avatars = [
@@ -37,25 +39,21 @@ const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null)
-
-  // Função de Scroll Suave
-  const scrollToSection = (sectionId: string) => {
-    const section = document.getElementById(sectionId)
-    if (section) {
-      const SCROLL_OFFSET = 100
-      const sectionTop = section.getBoundingClientRect().top + window.pageYOffset - SCROLL_OFFSET
-      window.scrollTo({
-        top: sectionTop,
-        behavior: "smooth",
-      })
-    }
-  }
+  const { scrollToSection } = useScrollTo()
 
   return (
     <section
       id="Hero"
       ref={sectionRef}
-      className="relative pt-40 md:pt-20 min-h-screen flex flex-col items-center justify-center px-4 pb-16 overflow-hidden bg-transparent">
+      /* O padding-top deriva da altura real da navbar fixa (--navbar-space),
+         com folga; antes um pt-20 fixo era menor que a barra em desktop e
+         o badge ficava por baixo dela. min-h também desconta a barra para
+         o conteúdo continuar centrado na área visível. */
+      style={{
+        paddingTop: "calc(var(--navbar-space) + 2.5rem)",
+        minHeight: "calc(100svh - var(--navbar-offset))",
+      }}
+      className="relative flex flex-col items-center justify-center px-4 pb-16 overflow-hidden bg-transparent">
 
       <div className="relative z-10 max-w-5xl mx-auto text-center">
         {/* Badge */}
@@ -63,15 +61,15 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 mb-8"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-pill bg-white/[0.04] backdrop-blur-sm border border-hairline mb-8"
         >
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-sm text-zinc-400">Assistentes de IA para clínicas e consultórios</span>
+          <span className="w-1.5 h-1.5 rounded-pill bg-accent" />
+          <span className="text-sm text-ink-2">Assistentes de IA para clínicas e consultórios</span>
         </motion.div>
 
-        {/* Headline */}
+        {/* Headline — Cal Sans nos títulos, Manrope no corpo. */}
         <h1
-          className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6"
+          className="font-display text-[clamp(2.5rem,7vw,4.5rem)] leading-[1.05] tracking-tight text-ink-1 mb-6"
         >
           <span className="block overflow-hidden py-3">
             <motion.span
@@ -86,29 +84,35 @@ export function Hero() {
           </span>
           <span className="block overflow-hidden py-3">
             <motion.span
-              className="block text-zinc-500/80"
+              className="block text-ink-3/80"
               variants={textRevealVariants}
               initial="hidden"
               animate="visible"
               custom={1}
             >
-              <Typewriter
-                options={{
-                  strings: [
-                    "Gestão inteligente.",
-                    "Vendas 24 horas.",
-                    "Resultado imediato.",
-                    "Nextech AI.",
-                  ],
-                  autoStart: true,
-                  loop: true,
-                  delay: 50,
-                  deleteSpeed: 30,
-                  cursor: "|",
-                  wrapperClassName: "text-zinc-500/80",
-                  cursorClassName: "text-emerald-800 font-light",
-                }}
-              />
+              {/* Texto estável para leitores de tela e indexação: o efeito de
+                  digitação reescreve o DOM continuamente e seria reanunciado
+                  a cada caractere. */}
+              <span className="sr-only">Gestão inteligente.</span>
+              <span aria-hidden="true">
+                <Typewriter
+                  options={{
+                    strings: [
+                      "Gestão inteligente.",
+                      "Vendas 24 horas.",
+                      "Resultado imediato.",
+                      "Nextech AI.",
+                    ],
+                    autoStart: true,
+                    loop: true,
+                    delay: 50,
+                    deleteSpeed: 30,
+                    cursor: "|",
+                    wrapperClassName: "text-ink-3/80",
+                    cursorClassName: "text-accent-dim font-light",
+                  }}
+                />
+              </span>
             </motion.span>
           </span>
         </h1>
@@ -118,7 +122,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.5 }}
-          className="text-lg sm:text-xl text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed"
+          className="text-lg sm:text-xl text-ink-2 max-w-2xl mx-auto mb-10 leading-relaxed"
         >
           Implementamos assistentes IA que automatizam conversas no WhatsApp e vendem 24 horas por dia.
         </motion.p>
@@ -131,26 +135,26 @@ export function Hero() {
           className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-16"
         >
           {/* BOTÃO PRINCIPAL: Agendar Reunião (WhatsApp) */}
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-            <Button
-              size="lg"
-              className="bg-white text-zinc-950 hover:bg-white rounded-full px-8 h-11.5 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(96,117,133,0.5)] active:scale-95 cursor-pointer"
-            >
-              Agende uma reunião
-              <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
-          </a>
-
-          {/* BOTÃO SECUNDÁRIO: Ver Demonstração (Scroll para Soluções) */}
-          <div
-            onClick={() => scrollToSection("demo-celular")}
-            className="cursor-pointer"
-            style={{ pointerEvents: "auto" }}
+          {/* asChild faz o Button virar a própria âncora: aninhar <button>
+              dentro de <a> é HTML inválido e quebra a hidratação. */}
+          <Button
+            asChild
+            size="lg"
+            className="bg-ink-1 text-surface-0 hover:bg-ink-1/90 rounded-pill px-8 h-11.5 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(96,117,133,0.5)] active:scale-95 cursor-pointer"
           >
-            <div style={{ pointerEvents: "none" }}>
-              <LiquidMetalButton label="Ver Demonstração" />
-            </div>
-          </div>
+            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+              Agende uma reunião
+              <ArrowRight className="ml-2 w-4 h-4" aria-hidden="true" />
+            </a>
+          </Button>
+
+          {/* BOTÃO SECUNDÁRIO: Ver Demonstração (Scroll para a demo).
+              O LiquidMetalButton já renderiza o próprio <button>: envolvê-lo
+              em outro produziria botão aninhado (HTML inválido). */}
+          <LiquidMetalButton
+            label="Ver Demonstração"
+            onClick={() => scrollToSection("demo-celular")}
+          />
         </motion.div>
         {/* Social Proof */}
         <motion.div
@@ -162,22 +166,26 @@ export function Hero() {
           <div className="flex items-center -space-x-3">
             {avatars.map((avatar, index) => (
               <motion.div
-                key={index}
+                key={avatar}
                 initial={{ opacity: 0, scale: 0.5, x: -20 }}
                 animate={{ opacity: 1, scale: 1, x: 0 }}
                 transition={{ duration: 0.4, delay: 0.8 + index * 0.1 }}
                 className="relative"
               >
-                <img
-                  src={avatar || "/placeholder.svg"}
+                <Image
+                  src={avatar}
                   alt=""
-                  className="w-10 h-10 rounded-full border-2 border-zinc-950 object-cover"
+                  width={40}
+                  height={40}
+                  sizes="40px"
+                  quality={85}
+                  className="w-10 h-10 rounded-pill border-2 border-surface-0 object-cover"
                 />
               </motion.div>
             ))}
           </div>
-          <p className="text-sm text-zinc-500">
-            Impactando mais de <span className="text-zinc-300 font-medium">100 clínicas</span> em todo o país
+          <p className="text-sm text-ink-3">
+            Impactando mais de <span className="text-ink-2 font-medium">100 clínicas</span> em todo o país
           </p>
         </motion.div>
       </div>

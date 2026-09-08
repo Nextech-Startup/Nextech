@@ -40,10 +40,10 @@ export function Problem() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.6, delay: 0.2 }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-pill glass-effect"
                     >
-                        <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-                        <span className="text-sm text-zinc-400 font-medium">O Cenário</span>
+                        <span className="w-2 h-2 rounded-pill bg-warn animate-pulse" />
+                        <span className="text-sm text-ink-2 font-medium">O Cenário</span>
                     </motion.div>
                 </div>
 
@@ -53,11 +53,11 @@ export function Problem() {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="text-4xl md:text-5xl font-bold text-white mb-6"
+                        className="text-4xl md:text-5xl font-bold text-ink-1 mb-6"
                     >
                         Sua clínica está perdendo pacientes todos os dias
                     </motion.h2>
-                    <p className="text-zinc-400 text-lg max-w-2xl mx-auto leading-relaxed">
+                    <p className="text-ink-2 text-lg max-w-2xl mx-auto leading-relaxed">
                         O WhatsApp sobrecarregado está custando consultas e receita.
                         Você pode continuar no caos ou escolher a eficiência da Nextech.
                     </p>
@@ -71,43 +71,43 @@ export function Problem() {
                         initial={{ opacity: 0, x: -30 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
-                        className="relative p-8 md:p-10 rounded-[2.5rem] bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl overflow-hidden"
+                        className="relative p-8 md:p-10 rounded-panel glass-effect shadow-2xl overflow-hidden"
                     >
                         <div className="absolute top-0 right-0 p-6 opacity-5">
-                            <XCircle size={120} className="text-red-500" />
+                            <XCircle size={120} className="text-warn" />
                         </div>
 
                         <div className="relative z-10">
-                            <span className="text-red-500 font-bold tracking-tighter text-sm">O Problema</span>
-                            <h3 className="text-3xl font-bold text-white mt-2 mb-8">A sua operação atual</h3>
+                            <span className="text-warn font-bold tracking-tighter text-sm">O Problema</span>
+                            <h3 className="text-3xl font-bold text-ink-1 mt-2 mb-8">A sua operação atual</h3>
 
                             <ul className="space-y-6">
                                 <li className="flex gap-4">
-                                    <MessageSquareOff className="text-red-500 shrink-0" />
+                                    <MessageSquareOff className="text-warn shrink-0" />
                                     <div>
-                                        <p className="text-white font-semibold">Mensagens perdidas no WhatsApp</p>
-                                        <p className="text-zinc-400 text-sm">Pacientes sem resposta e oportunidades que desaparecem.</p>
+                                        <p className="text-ink-1 font-semibold">Mensagens perdidas no WhatsApp</p>
+                                        <p className="text-ink-2 text-sm">Pacientes sem resposta e oportunidades que desaparecem.</p>
                                     </div>
                                 </li>
                                 <li className="flex gap-4">
-                                    <Clock className="text-red-500 shrink-0" />
+                                    <Clock className="text-warn shrink-0" />
                                     <div>
-                                        <p className="text-white font-semibold">Tempo de resposta lento</p>
-                                        <p className="text-zinc-400 text-sm">O paciente já agendou no concorrente antes de você responder.</p>
+                                        <p className="text-ink-1 font-semibold">Tempo de resposta lento</p>
+                                        <p className="text-ink-2 text-sm">O paciente já agendou no concorrente antes de você responder.</p>
                                     </div>
                                 </li>
                                 <li className="flex gap-4">
-                                    <Moon className="text-red-500 shrink-0" />
+                                    <Moon className="text-warn shrink-0" />
                                     <div>
-                                        <p className="text-white font-semibold">Perda de pacientes fora do horário</p>
-                                        <p className="text-zinc-400 text-sm">50% das consultas vêm à noite e sua equipe não está lá.</p>
+                                        <p className="text-ink-1 font-semibold">Perda de pacientes fora do horário</p>
+                                        <p className="text-ink-2 text-sm">50% das consultas vêm à noite e sua equipe não está lá.</p>
                                     </div>
                                 </li>
                                 <li className="flex gap-4">
-                                    <Users2 className="text-red-500 shrink-0" />
+                                    <Users2 className="text-warn shrink-0" />
                                     <div>
-                                        <p className="text-white font-semibold">Recepção sobrecarregada</p>
-                                        <p className="text-zinc-400 text-sm">Horas respondendo as mesmas dúvidas em vez de focar no cuidado.</p>
+                                        <p className="text-ink-1 font-semibold">Recepção sobrecarregada</p>
+                                        <p className="text-ink-2 text-sm">Horas respondendo as mesmas dúvidas em vez de focar no cuidado.</p>
                                     </div>
                                 </li>
                             </ul>
@@ -119,43 +119,43 @@ export function Problem() {
                         initial={{ opacity: 0, x: 30 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
-                        className="relative p-8 md:p-10 rounded-[2.5rem] bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl overflow-hidden"
+                        className="relative p-8 md:p-10 rounded-panel glass-effect shadow-2xl overflow-hidden"
                     >
                         <div className="absolute top-0 right-0 p-6 opacity-10">
-                            <Zap size={120} className="text-emerald-500" />
+                            <Zap size={120} className="text-accent" />
                         </div>
 
                         <div className="relative z-10">
-                            <span className="text-emerald-400 font-bold tracking-tighter text-sm">A Evolução</span>
-                            <h3 className="text-3xl font-bold text-white mt-2 mb-8">Nossa soluções</h3>
+                            <span className="text-accent font-bold tracking-tighter text-sm">A Evolução</span>
+                            <h3 className="text-3xl font-bold text-ink-1 mt-2 mb-8">Nossa soluções</h3>
 
                             <ul className="space-y-6">
                                 <li className="flex gap-4">
-                                    <CheckCircle2 className="text-emerald-400 shrink-0" />
+                                    <CheckCircle2 className="text-accent shrink-0" />
                                     <div>
-                                        <p className="text-white font-semibold">Atendimento 24/7 Instantâneo</p>
-                                        <p className="text-zinc-400 text-sm">IA responde em segundos e agenda enquanto você dorme.</p>
+                                        <p className="text-ink-1 font-semibold">Atendimento 24/7 Instantâneo</p>
+                                        <p className="text-ink-2 text-sm">IA responde em segundos e agenda enquanto você dorme.</p>
                                     </div>
                                 </li>
                                 <li className="flex gap-4">
-                                    <CheckCircle2 className="text-emerald-400 shrink-0" />
+                                    <CheckCircle2 className="text-accent shrink-0" />
                                     <div>
-                                        <p className="text-white font-semibold">Qualificação Inteligente e Follow-up</p>
-                                        <p className="text-zinc-400 text-sm">Triagem inteligente que separa pacientes reais de curiosos e faz o acompanhamento automático de quem parou de responder.</p>
+                                        <p className="text-ink-1 font-semibold">Qualificação Inteligente e Follow-up</p>
+                                        <p className="text-ink-2 text-sm">Triagem inteligente que separa pacientes reais de curiosos e faz o acompanhamento automático de quem parou de responder.</p>
                                     </div>
                                 </li>
                                 <li className="flex gap-4">
-                                    <CheckCircle2 className="text-emerald-400 shrink-0" />
+                                    <CheckCircle2 className="text-accent shrink-0" />
                                     <div>
-                                        <p className="text-white font-semibold">Integração Total No CRM</p>
-                                        <p className="text-zinc-400 text-sm">Sincronização automática com sua gestão e operação.</p>
+                                        <p className="text-ink-1 font-semibold">Integração Total No CRM</p>
+                                        <p className="text-ink-2 text-sm">Sincronização automática com sua gestão e operação.</p>
                                     </div>
                                 </li>
                                 <li className="flex gap-4">
-                                    <CheckCircle2 className="text-emerald-400 shrink-0" />
+                                    <CheckCircle2 className="text-accent shrink-0" />
                                     <div>
-                                        <p className="text-white font-semibold">Escala de Atendimento</p>
-                                        <p className="text-zinc-400 text-sm">Atenda 10, 30 ou 50 pacientes simultaneamente no WhatsApp com a mesma qualidade, sem filas ou tempo de espera.</p>
+                                        <p className="text-ink-1 font-semibold">Escala de Atendimento</p>
+                                        <p className="text-ink-2 text-sm">Atenda 10, 30 ou 50 pacientes simultaneamente no WhatsApp com a mesma qualidade, sem filas ou tempo de espera.</p>
                                     </div>
                                 </li>
                             </ul>
@@ -168,30 +168,31 @@ export function Problem() {
                     initial={{ opacity: 0, y: 40 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    className="mt-20 relative p-px rounded-[2.5rem] bg-linear-to-b from-white/20 to-transparent"
+                    className="mt-20 relative p-px rounded-panel bg-linear-to-b from-white/20 to-transparent"
                 >
-                    <div className="bg-white/5 backdrop-blur-md rounded-[2.5rem] p-8 md:p-16 text-center border border-white/10 shadow-2xl">
+                    <div className="bg-[var(--glass-bg)] backdrop-blur-md rounded-panel p-8 md:p-16 text-center border border-hairline shadow-2xl">
                         <div className="max-w-3xl mx-auto">
-                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+                            <h2 className="font-display text-3xl md:text-4xl text-ink-1 mb-6">
                                 Pare de perder pacientes hoje mesmo!
                             </h2>
-                            <p className="text-zinc-400 text-lg mb-10 leading-relaxed">
+                            <p className="text-ink-2 text-lg mb-10 leading-relaxed">
                                 Receba uma call gratuita da nossa equipe agora e pare de perder tempo. Veja ainda hoje exatamente quantos pacientes você está deixando escapar na sua empresa.
                             </p>
 
                             <div className="flex justify-center">
-                                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                                    <Button
-                                        size="lg"
-                                        className="bg-white text-zinc-950 hover:bg-white rounded-full px-10 h-13 text-base font-bold transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgba(96,117,133,0.6)] active:scale-95 cursor-pointer"
-                                    >
+                                <Button
+                                    asChild
+                                    size="lg"
+                                    className="bg-ink-1 text-surface-0 hover:bg-ink-1/90 rounded-pill px-10 h-13 text-base font-bold transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgba(96,117,133,0.6)] active:scale-95 cursor-pointer"
+                                >
+                                    <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
                                         Reunião Gratuita
-                                        <ArrowRight className="w-5 h-5" />
-                                    </Button>
-                                </a>
+                                        <ArrowRight className="w-5 h-5" aria-hidden="true" />
+                                    </a>
+                                </Button>
                             </div>
 
-                            <p className="text-[10px] text-zinc-500 mt-8 uppercase tracking-[0.2em] font-bold">
+                            <p className="text-xs text-ink-3 mt-8">
                                 Análise em tempo real • 100% Gratuito
                             </p>
                         </div>

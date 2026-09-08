@@ -1,9 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Menu, X } from "lucide-react"
 import { LiquidMetalButton } from "@/components/ui/liquidMetalButton"
+import { useScrollTo } from "@/components/smooth-scroll"
+import { ThemeToggle } from "@/components/theme-toggle"
 import Image from "next/image"
 
 // 1. Definição correta dos itens com Label e ID
@@ -27,21 +29,22 @@ const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
 export function Navbar() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { scrollToSection: scrollTo } = useScrollTo()
 
-  // 2. Função de Scroll interna para ter acesso ao estado do menu mobile
   const scrollToSection = (sectionId: string) => {
-    setMobileMenuOpen(false) // Fecha o menu mobile ao clicar
-    const section = document.getElementById(sectionId)
-    if (section) {
-      const SCROLL_OFFSET = 100 // Ajuste para não cobrir o título da seção
-      const sectionTop = section.getBoundingClientRect().top + window.pageYOffset - SCROLL_OFFSET
-
-      window.scrollTo({
-        top: sectionTop,
-        behavior: "smooth",
-      })
-    }
+    setMobileMenuOpen(false)
+    scrollTo(sectionId)
   }
+
+  // Esc fecha o menu: comportamento esperado de qualquer overlay.
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileMenuOpen(false)
+    }
+    document.addEventListener("keydown", onKeyDown)
+    return () => document.removeEventListener("keydown", onKeyDown)
+  }, [mobileMenuOpen])
 
   return (
     <motion.header
@@ -50,22 +53,27 @@ export function Navbar() {
       transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       className="fixed top-6 left-1/2 -translate-x-1/2 w-[95vw] z-[100] max-w-6xl"
     >
-      <nav className="relative flex items-center justify-between px-6 py-2 md:px-6 rounded-full bg-black/20 backdrop-blur-xl border border-white/10 shadow-2xl">
-
-        {/* Logo - Caminho corrigido para a pasta public */}
-        <div
+      <nav
+        aria-label="Navegação principal"
+        className="relative flex items-center justify-between px-6 py-2 md:px-6 rounded-pill bg-[var(--glass-bg)] backdrop-blur-xl border border-hairline shadow-2xl"
+      >
+        {/* Botão real: acessível por teclado, ao contrário de uma div com onClick. */}
+        <button
+          type="button"
           onClick={() => scrollToSection("Hero")}
-          className="cursor-pointer transition-transform hover:scale-105"
+          aria-label="Nextech — voltar ao início"
+          className="cursor-pointer transition-transform hover:scale-105 rounded-pill"
         >
           <Image
             src="/Logo.png"
-            alt="Nextech Logo"
+            alt=""
             width={160}
             height={40}
-            className="h-14 w-auto md:h-18 cursor-pointer"
+            className="h-14 w-auto md:h-18"
             priority
+            sizes="160px"
           />
-        </div>
+        </button>
 
         {/* Desktop Nav Items */}
         <div className="hidden md:flex items-center gap-1 relative">
@@ -73,7 +81,7 @@ export function Navbar() {
             <button
               key={item.id}
               onClick={() => scrollToSection(item.id)}
-              className="relative px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors duration-300"
+              className="relative px-4 py-2 text-sm font-medium text-ink-2 hover:text-ink-1 transition-colors duration-300"
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(null)}
             >
@@ -81,7 +89,7 @@ export function Navbar() {
                 {hoveredIndex === index && (
                   <motion.div
                     layoutId="navbar-hover"
-                    className="absolute inset-0 bg-white/10 rounded-full"
+                    className="absolute inset-0 bg-[var(--glass-bg)] rounded-pill"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -95,19 +103,26 @@ export function Navbar() {
         </div>
 
         {/* Botão CTA Principal Desktop */}
-        <div className="hidden md:flex items-center">
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-            <LiquidMetalButton label="Agendar reunião" />
-          </a>
+        <div className="hidden md:flex items-center gap-3">
+          <ThemeToggle />
+          <LiquidMetalButton label="Agendar reunião" href={whatsappUrl} target="_blank" />
         </div>
 
+        {/* Controles mobile */}
+        <div className="flex items-center gap-1 md:hidden">
+          <ThemeToggle />
         {/* Mobile Menu Button */}
         <button
-          className="md:hidden p-2 text-white hover:bg-white/10 rounded-full transition-colors"
+          type="button"
+          className="md:hidden p-2 text-ink-1 hover:bg-[var(--glass-bg)] rounded-pill transition-colors"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="menu-mobile"
+          aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
         >
-          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          {mobileMenuOpen ? <X size={24} aria-hidden="true" /> : <Menu size={24} aria-hidden="true" />}
         </button>
+        </div>
       </nav>
 
       {/* Mobile Menu */}
@@ -117,23 +132,22 @@ export function Navbar() {
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="absolute top-full left-0 right-0 mt-3 p-4 rounded-[2rem] bg-black/80 backdrop-blur-2xl border border-white/10 shadow-2xl md:hidden"
+            id="menu-mobile"
+            className="absolute top-full left-0 right-0 mt-3 p-4 rounded-panel bg-surface-1/90 backdrop-blur-2xl border border-hairline shadow-2xl md:hidden"
           >
             <div className="flex flex-col gap-2">
               {navItems.map((item) => (
                 <button
                   key={item.id}
-                  className="px-4 py-4 text-left text-lg font-medium text-zinc-300 hover:text-white hover:bg-white/5 rounded-2xl transition-all"
+                  className="px-4 py-4 text-left text-lg font-medium text-ink-2 hover:text-ink-1 hover:bg-[var(--glass-bg)] rounded-card transition-all"
                   onClick={() => scrollToSection(item.id)}
                 >
                   {item.label}
                 </button>
               ))}
-              <div className="h-px bg-white/10 my-4" />
+              <div className="h-px bg-hairline my-4" />
               <div className="flex justify-center">
-                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                  <LiquidMetalButton label="Agendar Reunião" />
-                </a>
+                <LiquidMetalButton label="Agendar Reunião" href={whatsappUrl} target="_blank" />
               </div>
             </div>
           </motion.div>

@@ -80,11 +80,12 @@ export function Depoimentos() {
       ref={sectionRef}
       className="relative pt-24 pb-24 px-4 overflow-hidden">
       {/* Grid Background */}
-      <div className="absolute inset-0 opacity-[0.05] pointer-events-none">
+      <div className="absolute inset-0 opacity-[0.06] text-ink-1 pointer-events-none">
         <div
           className="h-full w-full"
           style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            // currentColor herda do tema: linhas claras no escuro, escuras no claro.
+            backgroundImage: `linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)`,
             backgroundSize: "60px 60px",
           }}
         />
@@ -97,27 +98,27 @@ export function Depoimentos() {
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8 }}
-            className="inline-flex items-center gap-2 text-white/60 text-sm font-medium tracking-wider uppercase mb-6"
+            className="inline-flex items-center gap-2 text-ink-3 text-sm mb-6"
           >
-            <div className="w-8 h-px bg-white/30"></div>
+            <div className="w-8 h-px bg-hairline"></div>
             Histórias de Sucesso
-            <div className="w-8 h-px bg-white/30"></div>
+            <div className="w-8 h-px bg-hairline"></div>
           </motion.div>
 
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-5xl md:text-6xl lg:text-7xl font-light text-white mb-8 tracking-tight text-balance"
+            className="font-display text-[clamp(2.25rem,5.5vw,4rem)] leading-[1.08] text-ink-1 mb-8 tracking-tight text-balance"
           >
-            Empresas que <span className="font-medium italic text-zinc-400">potencializamos</span>
+            Empresas que potencializamos
           </motion.h2>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-xl text-white/70 max-w-2xl mx-auto leading-relaxed"
+            className="text-xl text-ink-2 max-w-2xl mx-auto leading-relaxed"
           >
             Descubra como clínicas líderes estão transformando o engajamento de clientes com a inteligência da Nextech.
           </motion.p>

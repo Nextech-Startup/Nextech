@@ -235,7 +235,14 @@ export const Chatbot = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="mb-4 w-[90vw] sm:w-[360px] h-[60vh] sm:h-[600px] max-h-[600px] bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            /* A altura é limitada pelo espaço real entre o botão e o topo
+               da janela: antes um h-[600px] fixo passava por cima do header
+               em telas baixas. O calc desconta a navbar, a margem inferior
+               e a folga; svh acompanha a barra de endereço no mobile. */
+            style={{
+              height: "min(600px, calc(100svh - var(--navbar-space) - 6.5rem))",
+            }}
+            className="mb-4 w-[90vw] sm:w-[360px] bg-surface-1 border border-hairline rounded-panel shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header com Avatar */}
             <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 p-4 text-white flex justify-between items-center shrink-0">
@@ -263,12 +270,12 @@ export const Chatbot = () => {
             </div>
 
             {/* Chat Body */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-zinc-900/50 chatbot-scroll">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-surface-2/50 chatbot-scroll">
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[85%] p-3 text-sm rounded-2xl shadow-sm leading-relaxed ${msg.type === 'user'
                     ? 'bg-emerald-600 text-white rounded-br-none'
-                    : 'bg-white/5 text-zinc-200 rounded-bl-none border border-white/5'
+                    : 'bg-[var(--glass-bg)] text-ink-1 rounded-bl-none border border-hairline'
                     }`}>
                     {msg.text && <p>{msg.text}</p>}
                     {msg.options && (
@@ -277,7 +284,7 @@ export const Chatbot = () => {
                           <button
                             key={opt.value}
                             onClick={() => handleOptionClick(opt.label, opt.value)}
-                            className="text-left px-4 py-2.5 bg-white/5 text-emerald-400 rounded-lg hover:bg-emerald-500/10 hover:scale-[1.02] transition-all text-xs font-bold border border-emerald-500/20 flex items-center justify-between group cursor-pointer"
+                            className="text-left px-4 py-2.5 bg-[var(--glass-bg)] text-emerald-400 rounded-lg hover:bg-emerald-500/10 hover:scale-[1.02] transition-all text-xs font-bold border border-emerald-500/20 flex items-center justify-between group cursor-pointer"
                           >
                             {opt.label}
                             <ChevronRight size={14} className="text-emerald-500 group-hover:translate-x-1 transition-transform" />
@@ -290,11 +297,11 @@ export const Chatbot = () => {
               ))}
               {isTyping && (
                 <div className="flex justify-start">
-                  <div className="bg-white/5 p-3 rounded-2xl rounded-bl-none border border-white/5">
+                  <div className="bg-[var(--glass-bg)] p-3 rounded-2xl rounded-bl-none border border-hairline">
                     <div className="flex gap-1.5 px-1">
-                      <motion.span className="w-1.5 h-1.5 bg-zinc-500 rounded-full" animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6 }} />
-                      <motion.span className="w-1.5 h-1.5 bg-zinc-500 rounded-full" animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.15 }} />
-                      <motion.span className="w-1.5 h-1.5 bg-zinc-500 rounded-full" animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.3 }} />
+                      <motion.span className="w-1.5 h-1.5 bg-ink-3 rounded-full" animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6 }} />
+                      <motion.span className="w-1.5 h-1.5 bg-ink-3 rounded-full" animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.15 }} />
+                      <motion.span className="w-1.5 h-1.5 bg-ink-3 rounded-full" animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.3 }} />
                     </div>
                   </div>
                 </div>
@@ -304,7 +311,7 @@ export const Chatbot = () => {
 
             {/* Input Area */}
             {!isOptionStep && (
-              <div className="p-3 bg-zinc-950 border-t border-white/5 shrink-0">
+              <div className="p-3 bg-surface-1 border-t border-hairline shrink-0">
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
@@ -314,7 +321,7 @@ export const Chatbot = () => {
                     placeholder={content.input_placeholder}
                     disabled={isSending}
                     autoFocus
-                    className="flex-1 bg-white/5 text-white rounded-full px-4 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all border border-white/10 placeholder:text-zinc-500"
+                    className="flex-1 bg-[var(--glass-bg)] text-white rounded-full px-4 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all border border-hairline placeholder:text-ink-3"
                   />
                   <button
                     onClick={handleSend}
@@ -327,8 +334,8 @@ export const Chatbot = () => {
               </div>
             )}
 
-            <div className="bg-zinc-950 py-1.5 text-center border-t border-white/5 shrink-0">
-              <p className="text-[10px] text-zinc-600 font-medium tracking-wide">⚡ Powered by Nextech</p>
+            <div className="bg-surface-1 py-1.5 text-center border-t border-hairline shrink-0">
+              <p className="text-[10px] text-ink-3 font-medium tracking-wide">⚡ Powered by Nextech</p>
             </div>
           </motion.div>
         )}
@@ -342,13 +349,13 @@ export const Chatbot = () => {
               initial={{ opacity: 0, x: 10, scale: 0.9 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="mb-4 bg-zinc-900 text-zinc-200 px-5 py-3 rounded-2xl rounded-br-none shadow-xl border border-white/10 text-sm font-medium origin-bottom-right z-40 max-w-[250px]"
+              className="mb-4 bg-surface-2 text-ink-1 px-5 py-3 rounded-2xl rounded-br-none shadow-xl border border-hairline text-sm font-medium origin-bottom-right z-40 max-w-[250px]"
             >
               {bubbleState === 'typing' ? (
                 <div className="flex gap-1 py-1">
-                  <motion.span className="w-1.5 h-1.5 bg-zinc-500 rounded-full" animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 0.6 }} />
-                  <motion.span className="w-1.5 h-1.5 bg-zinc-500 rounded-full" animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.15 }} />
-                  <motion.span className="w-1.5 h-1.5 bg-zinc-500 rounded-full" animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.3 }} />
+                  <motion.span className="w-1.5 h-1.5 bg-ink-3 rounded-full" animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 0.6 }} />
+                  <motion.span className="w-1.5 h-1.5 bg-ink-3 rounded-full" animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.15 }} />
+                  <motion.span className="w-1.5 h-1.5 bg-ink-3 rounded-full" animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.3 }} />
                 </div>
               ) : (
                 <span>{content.cta_bubble}</span>
@@ -377,7 +384,7 @@ export const Chatbot = () => {
               />
             )}
           </div>
-          <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-zinc-950 z-[60]"></span>
+          <span className="absolute bottom-1 right-1 w-4 h-4 bg-accent rounded-pill border-2 border-surface-0 z-[60]"></span>
           {!isOpen && <span className="absolute top-0 left-0 w-full h-full rounded-full bg-emerald-500 opacity-40 animate-ping -z-10 duration-2000"></span>}
         </motion.button>
       </div>

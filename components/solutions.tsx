@@ -149,115 +149,115 @@ export function Solutions() {
             <section id="Solucoes" ref={sectionRef} className="py-24 bg-transparent relative z-10">
 
                 {/* CONTAINER BRANCO PRINCIPAL */}
-                <div className="bg-white rounded-[3rem] shadow-[0_20px_80px_-20px_rgba(0,0,0,0.15)] border border-slate-200 overflow-hidden">
+                <div className="bg-[oklch(0.97_0.004_165)] rounded-panel shadow-[0_20px_80px_-20px_rgba(0,0,0,0.12)] border border-[oklch(0.90_0.005_165)] overflow-hidden">
                     <div className="max-w-7xl mx-auto px-6 py-16 md:py-24 relative">
 
                         {/* HEADER DA SEÇÃO */}
                         <div className="text-center max-w-3xl mx-auto mb-20">
-                            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest mb-6">
-                                <span className="w-2 h-2 rounded-full bg-blue-700 animate-pulse" />
+                            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/70 border border-[oklch(0.90_0.005_165)] text-[oklch(0.45_0.01_165)] text-xs font-bold uppercase tracking-widest mb-6">
+                                <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
                                 Nossa solução
                             </motion.div>
-                            <h2 className="text-4xl md:text-6xl font-bold text-black mb-6 tracking-tight">
-                                Seu Time de IA <br /> <span className="text-blue-600">Nunca Para de Vender.</span>
+                            <h2 className="font-display text-4xl md:text-6xl text-black mb-6 tracking-tight">
+                                Seu Time de IA <br /> <span className="text-accent-dim">Nunca Para de Vender.</span>
                             </h2>
                         </div>
 
                         {/* GRID DE 6 CARDS */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
                             {/* 1. Atendimento via WhatsApp 24/7 */}
-                            <div className="p-8 rounded-3xl bg-slate-50 border border-slate-200 group hover:shadow-xl transition-all">
+                            <div className="p-8 rounded-card bg-white/70 border border-[oklch(0.90_0.005_165)] group hover:shadow-xl transition-all">
                                 <div className="flex justify-between items-start mb-6">
-                                    <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
+                                    <div className="w-12 h-12 bg-accent rounded-card flex items-center justify-center shadow-lg shadow-accent/20">
                                         <MessageCircle className="text-white" />
                                     </div>
-                                    <span className="text-xs font-bold text-blue-600 bg-blue-100 px-3 py-1 rounded-full">24/7 Online</span>
+                                    <span className="text-xs font-bold text-accent-dim bg-accent/10 px-3 py-1 rounded-full">24/7 Online</span>
                                 </div>
                                 <h3 className="text-xl font-bold text-black mb-3">Atendimento via WhatsApp 24/7</h3>
-                                <p className="text-sm text-slate-600">Assistentes inteligentes que respondem dúvidas e qualificam seus pacientes todos os dias, em qualquer horário.</p>
+                                <p className="text-sm text-[oklch(0.45_0.01_165)]">Assistentes inteligentes que respondem dúvidas e qualificam seus pacientes todos os dias, em qualquer horário.</p>
                             </div>
 
                             {/* 2. Processamento de Áudio IA */}
-                            <div className="p-8 rounded-3xl bg-slate-50 border border-slate-200 group hover:shadow-xl transition-all">
+                            <div className="p-8 rounded-card bg-white/70 border border-[oklch(0.90_0.005_165)] group hover:shadow-xl transition-all">
                                 <div className="flex justify-between items-start mb-6">
-                                    <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200">
+                                    <div className="w-12 h-12 bg-accent rounded-card flex items-center justify-center shadow-lg shadow-accent/20">
                                         <Mic className="text-white" />
                                     </div>
-                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full">Voz & Áudio</span>
+                                    <span className="text-xs font-bold text-accent-dim bg-accent/10 px-3 py-1 rounded-full">Voz & Áudio</span>
                                 </div>
                                 <h3 className="text-xl font-bold text-black mb-3">Assistente que Entende Áudios</h3>
-                                <p className="text-sm text-slate-600">IA capaz de processar mensagens de voz dos pacientes, transcrever e responder com naturalidade.</p>
+                                <p className="text-sm text-[oklch(0.45_0.01_165)]">IA capaz de processar mensagens de voz dos pacientes, transcrever e responder com naturalidade.</p>
                             </div>
 
                             {/* 3. Agendamento Inteligente */}
-                            <div className="p-8 rounded-3xl bg-slate-50 border border-slate-200 group hover:shadow-xl transition-all">
+                            <div className="p-8 rounded-card bg-white/70 border border-[oklch(0.90_0.005_165)] group hover:shadow-xl transition-all">
                                 <div className="flex justify-between items-start mb-6">
-                                    <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
+                                    <div className="w-12 h-12 bg-accent rounded-card flex items-center justify-center shadow-lg shadow-accent/20">
                                         <CalendarCheck className="text-white" />
                                     </div>
-                                    <span className="text-xs font-bold text-blue-600 bg-blue-100 px-3 py-1 rounded-full">Automático</span>
+                                    <span className="text-xs font-bold text-accent-dim bg-accent/10 px-3 py-1 rounded-full">Automático</span>
                                 </div>
                                 <h3 className="text-xl font-bold mb-3 text-black">Agendamento Inteligente</h3>
-                                <p className="text-sm text-slate-600 mb-4">Checa disponibilidade e confirma horários sem intervenção humana.</p>
+                                <p className="text-sm text-[oklch(0.45_0.01_165)] mb-4">Checa disponibilidade e confirma horários sem intervenção humana.</p>
                                 <div className="text-xs font-medium text-black flex items-center gap-2">
-                                    <CheckCircle2 size={14} className="text-emerald-600" /> Agendamento confirmado para dia 15, às 14h.
+                                    <CheckCircle2 size={14} className="text-accent-dim" /> Agendamento confirmado para dia 15, às 14h.
                                 </div>
                             </div>
 
                             {/* 4. Automação de E-mails */}
-                            <div className="p-8 rounded-3xl bg-slate-50 border border-slate-200 group hover:shadow-xl transition-all">
+                            <div className="p-8 rounded-card bg-white/70 border border-[oklch(0.90_0.005_165)] group hover:shadow-xl transition-all">
                                 <div className="flex justify-between items-start mb-6">
-                                    <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200">
+                                    <div className="w-12 h-12 bg-accent rounded-card flex items-center justify-center shadow-lg shadow-accent/20">
                                         <Mail className="text-white" />
                                     </div>
-                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full">Notificações</span>
+                                    <span className="text-xs font-bold text-accent-dim bg-accent/10 px-3 py-1 rounded-full">Notificações</span>
                                 </div>
                                 <h3 className="text-xl font-bold text-black mb-3">Automação de E-mails</h3>
                                 <div className="space-y-2">
-                                    <div className="p-2 bg-white rounded-lg border border-slate-200 text-[10px] font-bold text-black flex justify-between items-center">
+                                    <div className="p-2 bg-white rounded-lg border border-[oklch(0.90_0.005_165)] text-[10px] font-bold text-black flex justify-between items-center">
                                         <div className="flex flex-col">
-                                            <span className="text-[9px] text-blue-600 uppercase">Para: Paciente</span>
+                                            <span className="text-[9px] text-accent-dim uppercase">Para: Paciente</span>
                                             Confirmação de Agendamento
                                         </div>
-                                        <span className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded text-[9px]">Enviado ✓</span>
+                                        <span className="bg-accent/10 text-accent-dim px-2 py-0.5 rounded text-[9px]">Enviado ✓</span>
                                     </div>
-                                    <div className="p-2 bg-white rounded-lg border border-slate-200 text-[10px] font-bold text-black flex justify-between items-center">
+                                    <div className="p-2 bg-white rounded-lg border border-[oklch(0.90_0.005_165)] text-[10px] font-bold text-black flex justify-between items-center">
                                         <div className="flex flex-col">
-                                            <span className="text-[9px] text-indigo-600 uppercase">Para: Médico</span>
+                                            <span className="text-[9px] text-accent-dim uppercase">Para: Médico</span>
                                             Novo Paciente na Agenda
                                         </div>
-                                        <span className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded text-[9px]">Notificado ✓</span>
+                                        <span className="bg-accent/10 text-accent-dim px-2 py-0.5 rounded text-[9px]">Notificado ✓</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* 5. Qualificação de Pacientes */}
-                            <div className="p-8 rounded-3xl bg-slate-50 border border-slate-200 group hover:shadow-xl transition-all">
+                            <div className="p-8 rounded-card bg-white/70 border border-[oklch(0.90_0.005_165)] group hover:shadow-xl transition-all">
                                 <div className="flex justify-between items-start mb-6">
-                                    <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
+                                    <div className="w-12 h-12 bg-accent rounded-card flex items-center justify-center shadow-lg shadow-accent/20">
                                         <Zap className="text-white" />
                                     </div>
-                                    <span className="text-xs font-bold text-blue-600 bg-blue-100 px-3 py-1 rounded-full animate-pulse">Atualizando CRM...</span>
+                                    <span className="text-xs font-bold text-accent-dim bg-accent/10 px-3 py-1 rounded-full animate-pulse">Atualizando CRM...</span>
                                 </div>
                                 <h3 className="text-xl font-bold text-black mb-3">Qualificação e CRM ao Vivo</h3>
                                 <div className="space-y-2">
-                                    <div className="p-2 bg-white rounded-lg border border-blue-200 shadow-sm flex items-center justify-between gap-3">
+                                    <div className="p-2 bg-white rounded-lg border border-accent/25 shadow-sm flex items-center justify-between gap-3">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                            <div className="w-2 h-2 rounded-full bg-accent/100"></div>
                                             <span className="text-[10px] font-bold text-black">Novo Paciente Qualificado</span>
                                         </div>
                                     </div>
-                                    <div className="p-3 bg-white/60 rounded-xl border border-dashed border-blue-300">
+                                    <div className="p-3 bg-white/60 rounded-xl border border-dashed border-accent/30">
                                         <div className="flex justify-between items-center mb-1">
-                                            <span className="text-[9px] font-bold text-slate-500">STATUS DO NEGÓCIO</span>
-                                            <span className="text-[9px] font-bold text-blue-600">ETAPA: AGENDADO</span>
+                                            <span className="text-[9px] font-bold text-[oklch(0.55_0.01_165)]">STATUS DO NEGÓCIO</span>
+                                            <span className="text-[9px] font-bold text-accent-dim">ETAPA: AGENDADO</span>
                                         </div>
                                         <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                                             <motion.div
                                                 initial={{ width: "30%" }}
                                                 animate={{ width: "100%" }}
                                                 transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                                                className="h-full bg-blue-600"
+                                                className="h-full bg-accent"
                                             />
                                         </div>
                                     </div>
@@ -265,18 +265,18 @@ export function Solutions() {
                             </div>
 
                             {/* 6. Integração Multiplataforma */}
-                            <div className="p-8 rounded-3xl bg-slate-50 border border-slate-200 group hover:shadow-xl transition-all">
+                            <div className="p-8 rounded-card bg-white/70 border border-[oklch(0.90_0.005_165)] group hover:shadow-xl transition-all">
                                 <div className="flex justify-between items-start mb-6">
-                                    <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200">
+                                    <div className="w-12 h-12 bg-accent rounded-card flex items-center justify-center shadow-lg shadow-accent/20">
                                         <Share2 className="text-white" />
                                     </div>
-                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full">6/6 Conectados</span>
+                                    <span className="text-xs font-bold text-accent-dim bg-accent/10 px-3 py-1 rounded-full">6/6 Conectados</span>
                                 </div>
                                 <h3 className="text-xl font-bold text-black mb-2">Integração Multiplataforma</h3>
-                                <p className="text-xs text-slate-500 font-medium mb-4">Todos os sistemas sincronizados</p>
+                                <p className="text-xs text-[oklch(0.55_0.01_165)] font-medium mb-4">Todos os sistemas sincronizados</p>
                                 <div className="flex flex-wrap gap-2">
                                     {['CRM', 'WhatsApp', 'Agenda', 'Email', 'n8n', 'Banco de dados'].map(tool => (
-                                        <span key={tool} className="px-3 py-1 bg-white rounded-full text-[10px] font-bold text-black shadow-sm border border-slate-200">
+                                        <span key={tool} className="px-3 py-1 bg-white rounded-full text-[10px] font-bold text-black shadow-sm border border-[oklch(0.90_0.005_165)]">
                                             {tool}
                                         </span>
                                     ))}
@@ -287,15 +287,15 @@ export function Solutions() {
                         {/* SEÇÃO DE DEMO: CELULAR */}
                         <div id="demo-celular" className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
                             <div className="w-full lg:w-1/2">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold mb-6">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 text-accent-dim text-xs font-bold mb-6">
                                     Demo do Assistente IA
                                 </div>
                                 <h3 className="text-3xl md:text-4xl font-bold text-black mb-6 leading-tight">
-                                    Veja como a IA gerencia <br /> <span className="text-slate-400">interações reais.</span>
+                                    Veja como a IA gerencia <br /> <span className="text-[oklch(0.62_0.01_165)]">interações reais.</span>
                                 </h3>
-                                <div className="space-y-6 text-slate-600 leading-relaxed">
+                                <div className="space-y-6 text-[oklch(0.45_0.01_165)] leading-relaxed">
                                     <p>Enquanto sua clínica está fechada, sua assistente responde dúvidas, filtra convênios e agenda consultas 24h por dia.</p>
-                                    <div className="p-6 bg-slate-50 rounded-2xl border-l-4 border-blue-600 italic text-black">
+                                    <div className="p-6 bg-slate-50 rounded-card border-l-4 border-accent italic text-black">
                                         "Saímos de 45% de mensagens perdidas, para 100% de contato com nossos pacientes. Nossos agendamentos subiram 50%."
                                         <span className="block mt-2 font-bold not-italic text-black text-sm">— Dr. Arthur Moura, Cliente Nextech</span>
                                     </div>

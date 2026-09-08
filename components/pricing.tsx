@@ -71,7 +71,7 @@ export function Planos() {
   return (
     <section id="Planos" className="py-24 px-4 relative overflow-hidden">
       {/* Brilho Aurora de fundo sutil */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-200 h-100 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-200 h-100 bg-accent/5 blur-[120px] rounded-pill pointer-events-none" />
 
       <div className="max-w-7xl mx-auto relative z-10">
         <motion.div
@@ -80,16 +80,16 @@ export function Planos() {
           transition={{ duration: 0.6 }}
           className="text-center mb-20"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mb-6">
-            <Zap className="w-4 h-4 text-emerald-400 fill-emerald-400" />
-            <span className="text-xs font-bold text-white/80 uppercase tracking-widest">Soluções Customizadas</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-pill glass-effect mb-6">
+            <Zap className="w-4 h-4 text-accent fill-accent" />
+            <span className="text-sm text-ink-2">Soluções customizadas</span>
           </div>
 
-          <h2 className="text-4xl md:text-6xl font-bold text-white mb-6 tracking-tight">
+          <h2 className="font-display text-4xl md:text-6xl text-ink-1 mb-6 tracking-tight">
             Planos feitos para <br />
-            <span className="block mt-2 text-zinc-500 italic">escalar sua clínica.</span>
+            <span className="block mt-2 text-ink-3">escalar sua clínica.</span>
           </h2>
-          <p className="text-zinc-400 max-w-2xl mx-auto">
+          <p className="text-ink-2 max-w-2xl mx-auto">
             Valores adaptados conforme o volume de pacientes e complexidade das integrações. Todos os planos incluem nossa tecnologia proprietária.
           </p>
         </motion.div>
@@ -101,48 +101,46 @@ export function Planos() {
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: index * 0.1 }}
-              className={`relative p-8 rounded-[2.5rem] border flex flex-col transition-all duration-500 ${plan.highlighted
-                ? "bg-white/10 border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl scale-105 z-10 hover:scale-[1.08]"
-                : "bg-white/5 border-white/10 backdrop-blur-md hover:scale-[1.02]"
+              className={`relative p-8 rounded-panel border flex flex-col transition-all duration-500 ${plan.highlighted
+                ? "bg-[var(--glass-bg)] border-hairline shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl scale-105 z-10 hover:scale-[1.08]"
+                : "bg-[var(--glass-bg)] border-hairline backdrop-blur-md hover:scale-[1.02]"
                 }`}
             >
               {plan.highlighted && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-accent text-surface-0 text-xs font-semibold rounded-pill shadow-lg">
                   Recomendado
                 </div>
               )}
 
               <div className="mb-8">
-                <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
-                <p className="text-zinc-400 text-sm leading-relaxed">{plan.description}</p>
+                <h3 className="text-2xl font-bold text-ink-1 mb-2">{plan.name}</h3>
+                <p className="text-ink-2 text-sm leading-relaxed">{plan.description}</p>
               </div>
 
               {/* Status de Valor Centralizado */}
               <div className="mb-10">
-                <div className="inline-block px-5 py-2.5 rounded-xl bg-white/5 border border-white/10">
-                  <span className="text-lg font-bold text-white tracking-tight">Sob consulta</span>
+                <div className="inline-block px-5 py-2.5 rounded-xl bg-[var(--glass-bg)] border border-hairline">
+                  <span className="text-lg font-bold text-ink-1 tracking-tight">Sob consulta</span>
                 </div>
               </div>
 
               {/* Lista de Features */}
               <ul className="space-y-4 mb-12 flex-1">
                 {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3 text-sm text-zinc-300">
-                    <Check className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" strokeWidth={3} />
+                  <li key={feature} className="flex items-start gap-3 text-sm text-ink-2">
+                    <Check className="w-5 h-5 text-accent shrink-0 mt-0.5" strokeWidth={3} />
                     {feature}
                   </li>
                 ))}
               </ul>
 
               <div className="mt-auto h-16 w-full flex items-center justify-center">
-                <a
+                <LiquidMetalButton
+                  label="Falar com Especialista"
+                  ariaLabel={`Falar com especialista sobre o plano ${plan.name}`}
                   href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(plan.whatsappMessage)}`}
                   target="_blank"
-                  rel="noopener noreferrer"
-                  className="cursor-pointer"
-                >
-                  <LiquidMetalButton label="Falar com Especialista" />
-                </a>
+                />
               </div>
             </motion.div>
           ))}

@@ -42,10 +42,10 @@ export function Especialidades() {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="text-center mb-16 px-4"
       >
-        <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 tracking-tight">
+        <h2 className="font-display text-3xl md:text-5xl text-ink-1 mb-4 tracking-tight">
           Soluções sob medida para sua área
         </h2>
-        <p className="text-zinc-500 uppercase tracking-[0.2em] text-xs font-bold">
+        <p className="text-ink-3 text-sm">
           Especialidades que a Nextech já transforma
         </p>
       </motion.div>
@@ -73,7 +73,7 @@ export function Especialidades() {
           {/* Duplicamos os itens para garantir o preenchimento visual no loop */}
           {[...clinicTypes, ...clinicTypes].map((clinic, index) => (
             <SwiperSlide key={index} className="h-auto">
-              <div className="flex items-center gap-4 bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-3xl min-h-[120px] transition-all duration-500 group hover:bg-white/10">
+              <div className="flex items-center gap-4 glass-effect p-6 rounded-card min-h-[120px] transition-all duration-500 group hover:bg-[var(--glass-bg)]">
                 
                 {/* Ícone LiquidMetalFake para manter o brilho metálico sutil */}
                 <div className="shrink-0">
@@ -85,10 +85,10 @@ export function Especialidades() {
                 </div>
                 
                 <div className="flex flex-col">
-                  <span className="text-white font-bold text-lg tracking-tight">
+                  <span className="text-ink-1 font-bold text-lg tracking-tight">
                     {clinic.title}
                   </span>
-                  <span className="text-zinc-500 text-sm whitespace-normal leading-snug">
+                  <span className="text-ink-3 text-sm whitespace-normal leading-snug">
                     {clinic.description}
                   </span>
                 </div>
