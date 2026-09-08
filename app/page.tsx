@@ -1,25 +1,37 @@
+import dynamic from "next/dynamic"
+
 import { SmoothScroll } from "@/components/smooth-scroll"
 import { Navbar } from "@/components/navbar"
 import { Hero } from "@/components/hero"
-import { Especialidades } from "@/components/especialidades"
-import { Problem } from "@/components/problem"
-import { Solutions } from "@/components/solutions"
-import { Depoimentos } from "@/components/depoimentos"
-import { Planos } from "@/components/pricing"
-{/* Calculadora comentada por enquanto, pode ser reativada futuramente. 
-import { CalculatorROI } from "@/components/calculatorROI"
-*/}
-import { FinalCTA } from "@/components/final-cta"
-import { Footer } from "@/components/footer"
 import { Background } from "@/components/background"
-import { Chatbot } from "@/components/chatbot"
+
+/*
+ * Só o topo da página entra no bundle inicial.
+ *
+ * Tudo abaixo da dobra é carregado sob demanda: o Swiper (Especialidades),
+ * o mockup de conversa (Soluções) e o widget de chat somam a maior parte do
+ * JavaScript da página e nenhum deles é necessário para o primeiro paint.
+ * Os placeholders reservam altura para não gerar salto de layout (CLS).
+ */
+const Especialidades = dynamic(() =>
+  import("@/components/especialidades").then((m) => m.Especialidades)
+)
+const Problem = dynamic(() => import("@/components/problem").then((m) => m.Problem))
+const Solutions = dynamic(() => import("@/components/solutions").then((m) => m.Solutions))
+const Depoimentos = dynamic(() =>
+  import("@/components/depoimentos").then((m) => m.Depoimentos)
+)
+const Planos = dynamic(() => import("@/components/pricing").then((m) => m.Planos))
+const FinalCTA = dynamic(() => import("@/components/final-cta").then((m) => m.FinalCTA))
+const Footer = dynamic(() => import("@/components/footer").then((m) => m.Footer))
+
+// Fica fechado até o usuário abrir: nunca deve custar no carregamento inicial.
+const Chatbot = dynamic(() => import("@/components/chatbot").then((m) => m.Chatbot))
 
 export default function Home() {
   return (
     <SmoothScroll>
-      {/* relative z-10 no conteúdo para ficar acima do Background */}
-      <main className="relative min-h-screen bg-zinc-950 overflow-x-hidden">
-        
+      <div className="relative min-h-screen bg-surface-0 overflow-x-hidden">
         {/* Camada fixa ao fundo */}
         <Background />
 
@@ -27,19 +39,18 @@ export default function Home() {
         <div className="relative z-10">
           <Navbar />
           <Chatbot />
-          <Hero />
-          <Especialidades />
-          <Problem />
-          <Solutions />
-          <Depoimentos />
-          <Planos />
-          {/* Calculadora comentada por enquanto, pode ser reativada futuramente. 
-          <CalculatorROI />
-          */}
-          <FinalCTA />
+          <main>
+            <Hero />
+            <Especialidades />
+            <Problem />
+            <Solutions />
+            <Depoimentos />
+            <Planos />
+            <FinalCTA />
+          </main>
           <Footer />
         </div>
-      </main>
+      </div>
     </SmoothScroll>
   )
 }

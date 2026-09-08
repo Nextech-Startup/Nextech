@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Renderer, Program, Mesh, Color, Triangle } from 'ogl';
 
 const VERT = `#version 300 es
@@ -117,10 +117,17 @@ interface AuroraProps {
   speed?: number;
 }
 
+const DEFAULT_STOPS = ['#607585', '#607585', '#607585'];
+
 export default function Aurora(props: AuroraProps) {
-  const { colorStops = ['#607585', '#607585', '#607585'], amplitude = 0.2, blend = 1.5 } = props;
+  const { amplitude = 0.2, blend = 1.5 } = props;
   const propsRef = useRef<AuroraProps>(props);
   propsRef.current = props;
+
+  // O pai passa um array literal, que muda de identidade a cada render.
+  // Sem isto, o efeito recriaria todo o contexto WebGL sem necessidade.
+  const stopsKey = (props.colorStops ?? DEFAULT_STOPS).join('|');
+  const colorStops = useMemo(() => stopsKey.split('|'), [stopsKey]);
 
   const ctnDom = useRef<HTMLDivElement>(null);
 
@@ -128,10 +135,15 @@ export default function Aurora(props: AuroraProps) {
     const ctn = ctnDom.current;
     if (!ctn) return;
 
+    // Respeita a preferência do sistema: sem animação, nada de WebGL.
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     const renderer = new Renderer({
       alpha: true,
       premultipliedAlpha: true,
-      antialias: true
+      antialias: true,
+      // O shader é um degradê suave: acima de 1.5x o custo cresce sem ganho visível.
+      dpr: Math.min(window.devicePixelRatio || 1, 1.5)
     });
     const gl = renderer.gl;
     gl.clearColor(0, 0, 0, 0);
@@ -147,10 +159,21 @@ export default function Aurora(props: AuroraProps) {
       const height = ctn.offsetHeight;
       renderer.setSize(width, height);
       if (program) {
-        program.uniforms.uResolution.value = [width, height];
+        // Reusa o array do uniform em vez de alocar um novo a cada resize.
+        program.uniforms.uResolution.value[0] = width;
+        program.uniforms.uResolution.value[1] = height;
       }
     }
-    window.addEventListener('resize', resize);
+
+    // ResizeObserver reage ao container, e não a cada evento de window;
+    // o rAF agrupa rajadas de resize num único trabalho por frame.
+    let resizeRaf = 0;
+    const scheduleResize = () => {
+      cancelAnimationFrame(resizeRaf);
+      resizeRaf = requestAnimationFrame(resize);
+    };
+    const resizeObserver = new ResizeObserver(scheduleResize);
+    resizeObserver.observe(ctn);
 
     const geometry = new Triangle(gl);
     if (geometry.attributes.uv) {
@@ -178,34 +201,73 @@ export default function Aurora(props: AuroraProps) {
     ctn.appendChild(gl.canvas);
 
     let animateId = 0;
+    // Assinatura das colorStops: só reconstrói o uniform quando as cores mudam,
+    // em vez de alocar 3 Color + 4 arrays a cada frame.
+    let lastStopsKey = colorStops.join('|');
+
     const update = (t: number) => {
       animateId = requestAnimationFrame(update);
+      if (!program) return;
+
       const { time = t * 0.01, speed = 1.0 } = propsRef.current;
-      if (program) {
-        program.uniforms.uTime.value = time * speed * 0.1;
-        program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
-        program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
-        const stops = propsRef.current.colorStops ?? colorStops;
+      program.uniforms.uTime.value = time * speed * 0.1;
+      program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
+      program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
+
+      const stops = propsRef.current.colorStops ?? colorStops;
+      const stopsKey = stops.join('|');
+      if (stopsKey !== lastStopsKey) {
+        lastStopsKey = stopsKey;
         program.uniforms.uColorStops.value = stops.map((hex: string) => {
           const c = new Color(hex);
           return [c.r, c.g, c.b];
         });
-        renderer.render({ scene: mesh });
       }
+
+      renderer.render({ scene: mesh });
     };
-    animateId = requestAnimationFrame(update);
+
+    const start = () => {
+      if (!animateId) animateId = requestAnimationFrame(update);
+    };
+    const stop = () => {
+      cancelAnimationFrame(animateId);
+      animateId = 0;
+    };
+
+    // Não gasta GPU quando a aba está em segundo plano nem quando o
+    // fundo saiu da viewport (o usuário rolou para longe do topo).
+    const onVisibility = () => (document.hidden ? stop() : start());
+    document.addEventListener('visibilitychange', onVisibility);
+
+    const inViewObserver = new IntersectionObserver(
+      ([entry]) => (entry.isIntersecting && !document.hidden ? start() : stop()),
+      { threshold: 0 }
+    );
+    inViewObserver.observe(ctn);
 
     resize();
 
+    if (reduceMotion) {
+      // Renderiza um único quadro estático: mantém o visual, sem loop.
+      program.uniforms.uTime.value = 0;
+      renderer.render({ scene: mesh });
+    } else {
+      start();
+    }
+
     return () => {
-      cancelAnimationFrame(animateId);
-      window.removeEventListener('resize', resize);
+      stop();
+      cancelAnimationFrame(resizeRaf);
+      resizeObserver.disconnect();
+      inViewObserver.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
       if (ctn && gl.canvas.parentNode === ctn) {
         ctn.removeChild(gl.canvas);
       }
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
-  }, [amplitude]);
+  }, [amplitude, blend, colorStops]);
 
   return <div ref={ctnDom} className="w-full h-full" />;
 }
