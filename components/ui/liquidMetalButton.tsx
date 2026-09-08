@@ -1,6 +1,6 @@
 "use client"
 
-import type React from "react"
+import React from "react"
 import { useState, useRef, useEffect, useMemo } from "react"
 import { Sparkles } from "lucide-react"
 
@@ -12,6 +12,14 @@ interface LiquidMetalButtonProps {
   className?: string
   width?: number  // <-- Nova prop
   height?: number // <-- Nova prop
+  /** Quando informado, renderiza <a> em vez de <button>: envolver este
+   *  componente numa âncora produziria um botão dentro de link (HTML
+   *  inválido e navegação por teclado imprevisível). */
+  href?: string
+  target?: string
+  rel?: string
+  /** Rótulo acessível, quando o texto visível não bastar. */
+  ariaLabel?: string
 }
 
 export function LiquidMetalButton({
@@ -22,7 +30,10 @@ export function LiquidMetalButton({
   className = "",
   width,  // <-- Recebe aqui
   height, // <-- Recebe aqui
-  
+  href,
+  target,
+  rel,
+  ariaLabel,
 }: LiquidMetalButtonProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [isPressed, setIsPressed] = useState(false)
@@ -134,10 +145,11 @@ export function LiquidMetalButton({
     shaderMount.current?.setSpeed?.(0.6)
   }
 
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    console.log('🔵 BOTÃO CLICADO!', { onClick: !!onClick })
+  const handleClick = (e: React.MouseEvent<HTMLElement>) => {
     e.stopPropagation()
-    e.preventDefault()
+    // Só bloqueia o comportamento padrão quando é botão de ação: num link
+    // o preventDefault impediria a própria navegação.
+    if (!href) e.preventDefault()
 
     if (shaderMount.current?.setSpeed) {
       shaderMount.current.setSpeed(2.4)
@@ -162,7 +174,6 @@ export function LiquidMetalButton({
       }, 600)
     }
 
-    console.log('🟢 EXECUTANDO onClick')
     onClick?.()
   }
 
@@ -286,28 +297,34 @@ export function LiquidMetalButton({
             </div>
           </div>
 
-          {/* Área Interativa do Botão */}
-          <button
-            ref={buttonRef}
-            onClick={handleClick}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-            onMouseDown={() => setIsPressed(true)}
-            onMouseUp={() => setIsPressed(false)}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: `${dimensions.width}px`,
-              height: `${dimensions.height}px`,
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              zIndex: 40,
-              borderRadius: "100px",
-            }}
-          >
-            {ripples.map((ripple) => (
+          {/* Área Interativa: <a> quando é navegação, <button> quando é ação. */}
+          {React.createElement(
+            href ? "a" : "button",
+            {
+              ref: buttonRef as React.Ref<HTMLButtonElement & HTMLAnchorElement>,
+              onClick: handleClick,
+              onMouseEnter: handleMouseEnter,
+              onMouseLeave: handleMouseLeave,
+              onMouseDown: () => setIsPressed(true),
+              onMouseUp: () => setIsPressed(false),
+              "aria-label": ariaLabel ?? (viewMode === "icon" ? label : undefined),
+              ...(href
+                ? { href, target, rel: rel ?? (target === "_blank" ? "noopener noreferrer" : undefined) }
+                : { type: "button" as const }),
+              style: {
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: `${dimensions.width}px`,
+                height: `${dimensions.height}px`,
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                zIndex: 40,
+                borderRadius: "100px",
+              },
+            },
+            ripples.map((ripple) => (
               <span
                 key={ripple.id}
                 style={{
@@ -321,8 +338,8 @@ export function LiquidMetalButton({
                   animation: "ripple-animation 0.6s ease-out",
                 }}
               />
-            ))}
-          </button>
+            ))
+          )}
         </div>
       </div>
     </div>
