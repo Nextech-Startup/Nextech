@@ -88,7 +88,7 @@ export function Especialidades() {
                   <span className="text-ink-1 font-bold text-lg tracking-tight">
                     {clinic.title}
                   </span>
-                  <span className="text-ink-3 text-sm whitespace-normal leading-snug">
+                  <span className="text-ink-2 text-sm whitespace-normal leading-snug">
                     {clinic.description}
                   </span>
                 </div>

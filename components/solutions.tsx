@@ -171,7 +171,7 @@ export function Solutions() {
                                     <div className="w-12 h-12 bg-accent rounded-card flex items-center justify-center shadow-lg shadow-accent/20">
                                         <MessageCircle className="text-white" />
                                     </div>
-                                    <span className="text-xs font-bold text-accent-dim bg-accent/10 px-3 py-1 rounded-full">24/7 Online</span>
+                                    <span className="text-xs font-bold text-accent-on-light bg-accent/10 px-3 py-1 rounded-full">24/7 Online</span>
                                 </div>
                                 <h3 className="text-xl font-bold text-black mb-3">Atendimento via WhatsApp 24/7</h3>
                                 <p className="text-sm text-[oklch(0.45_0.01_165)]">Assistentes inteligentes que respondem dúvidas e qualificam seus pacientes todos os dias, em qualquer horário.</p>
@@ -183,7 +183,7 @@ export function Solutions() {
                                     <div className="w-12 h-12 bg-accent rounded-card flex items-center justify-center shadow-lg shadow-accent/20">
                                         <Mic className="text-white" />
                                     </div>
-                                    <span className="text-xs font-bold text-accent-dim bg-accent/10 px-3 py-1 rounded-full">Voz & Áudio</span>
+                                    <span className="text-xs font-bold text-accent-on-light bg-accent/10 px-3 py-1 rounded-full">Voz & Áudio</span>
                                 </div>
                                 <h3 className="text-xl font-bold text-black mb-3">Assistente que Entende Áudios</h3>
                                 <p className="text-sm text-[oklch(0.45_0.01_165)]">IA capaz de processar mensagens de voz dos pacientes, transcrever e responder com naturalidade.</p>
@@ -195,7 +195,7 @@ export function Solutions() {
                                     <div className="w-12 h-12 bg-accent rounded-card flex items-center justify-center shadow-lg shadow-accent/20">
                                         <CalendarCheck className="text-white" />
                                     </div>
-                                    <span className="text-xs font-bold text-accent-dim bg-accent/10 px-3 py-1 rounded-full">Automático</span>
+                                    <span className="text-xs font-bold text-accent-on-light bg-accent/10 px-3 py-1 rounded-full">Automático</span>
                                 </div>
                                 <h3 className="text-xl font-bold mb-3 text-black">Agendamento Inteligente</h3>
                                 <p className="text-sm text-[oklch(0.45_0.01_165)] mb-4">Checa disponibilidade e confirma horários sem intervenção humana.</p>
@@ -210,7 +210,7 @@ export function Solutions() {
                                     <div className="w-12 h-12 bg-accent rounded-card flex items-center justify-center shadow-lg shadow-accent/20">
                                         <Mail className="text-white" />
                                     </div>
-                                    <span className="text-xs font-bold text-accent-dim bg-accent/10 px-3 py-1 rounded-full">Notificações</span>
+                                    <span className="text-xs font-bold text-accent-on-light bg-accent/10 px-3 py-1 rounded-full">Notificações</span>
                                 </div>
                                 <h3 className="text-xl font-bold text-black mb-3">Automação de E-mails</h3>
                                 <div className="space-y-2">
@@ -237,7 +237,7 @@ export function Solutions() {
                                     <div className="w-12 h-12 bg-accent rounded-card flex items-center justify-center shadow-lg shadow-accent/20">
                                         <Zap className="text-white" />
                                     </div>
-                                    <span className="text-xs font-bold text-accent-dim bg-accent/10 px-3 py-1 rounded-full animate-pulse">Atualizando CRM...</span>
+                                    <span className="text-xs font-bold text-accent-on-light bg-accent/10 px-3 py-1 rounded-full animate-pulse">Atualizando CRM...</span>
                                 </div>
                                 <h3 className="text-xl font-bold text-black mb-3">Qualificação e CRM ao Vivo</h3>
                                 <div className="space-y-2">
@@ -270,7 +270,7 @@ export function Solutions() {
                                     <div className="w-12 h-12 bg-accent rounded-card flex items-center justify-center shadow-lg shadow-accent/20">
                                         <Share2 className="text-white" />
                                     </div>
-                                    <span className="text-xs font-bold text-accent-dim bg-accent/10 px-3 py-1 rounded-full">6/6 Conectados</span>
+                                    <span className="text-xs font-bold text-accent-on-light bg-accent/10 px-3 py-1 rounded-full">6/6 Conectados</span>
                                 </div>
                                 <h3 className="text-xl font-bold text-black mb-2">Integração Multiplataforma</h3>
                                 <p className="text-xs text-[oklch(0.55_0.01_165)] font-medium mb-4">Todos os sistemas sincronizados</p>

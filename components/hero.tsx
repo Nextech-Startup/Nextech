@@ -117,15 +117,14 @@ export function Hero() {
           </span>
         </h1>
 
-        {/* Subheadline */}
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="text-lg sm:text-xl text-ink-2 max-w-2xl mx-auto mb-10 leading-relaxed"
-        >
+        {/* Subheadline — este parágrafo é o elemento de LCP da página.
+            Com opacity/y do framer ele só aparecia depois da hidratação:
+            o Lighthouse mediu 5.560ms de "atraso na renderização do
+            elemento" no desktop. Renderizado direto no HTML, o LCP passa
+            a depender só do CSS, sem esperar JavaScript. */}
+        <p className="hero-sub text-lg sm:text-xl text-ink-2 max-w-2xl mx-auto mb-10 leading-relaxed">
           Implementamos assistentes IA que automatizam conversas no WhatsApp e vendem 24 horas por dia.
-        </motion.p>
+        </p>
 
         {/* CTAs */}
         <motion.div

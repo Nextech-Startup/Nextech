@@ -349,7 +349,11 @@ export const Chatbot = () => {
               initial={{ opacity: 0, x: 10, scale: 0.9 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="mb-4 bg-surface-2 text-ink-1 px-5 py-3 rounded-2xl rounded-br-none shadow-xl border border-hairline text-sm font-medium origin-bottom-right z-40 max-w-[250px]"
+              /* Largura fixa e altura mínima reservadas: o balão troca os
+                 três pontinhos (~20px) pelo texto completo (~60px), e sem
+                 caixa reservada esse salto respondia por metade do CLS da
+                 página no mobile (0,032 de 0,064). */
+              className="mb-4 flex items-center bg-surface-2 text-ink-1 px-5 py-3 rounded-2xl rounded-br-none shadow-xl border border-hairline text-sm font-medium origin-bottom-right z-40 w-[250px] min-h-[68px]"
             >
               {bubbleState === 'typing' ? (
                 <div className="flex gap-1 py-1">
