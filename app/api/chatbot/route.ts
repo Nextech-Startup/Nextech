@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import axios from "axios"
 
 export async function POST(request: Request) {
   try {
@@ -25,7 +24,7 @@ export async function POST(request: Request) {
     })
 
     // 3. Salvar lead
-    const { data: leadSalvo, error: erroSupabase } = await supabase
+    const { error: erroSupabase } = await supabase
       .from("chatbot_leads")
       .insert([{
         name,
@@ -36,21 +35,10 @@ export async function POST(request: Request) {
         meetings_count,
         origem: "Chatbot Site",
       }])
-      .select()
-      .single()
 
     if (erroSupabase) {
       console.error("Erro Supabase:", erroSupabase)
       throw new Error("Falha ao salvar lead no banco.")
-    }
-
-    // 4. Webhook n8n (opcional)
-    const n8nWebhook = process.env.N8N_WEBHOOK_CHATBOT_URL
-    if (n8nWebhook) {
-      axios.post(n8nWebhook, {
-        ...leadSalvo,
-        data_hora: new Date().toLocaleString("pt-BR"),
-      }).catch((err) => console.error("Erro ao notificar n8n:", err.message))
     }
 
     return NextResponse.json({ success: true }, { status: 200 })

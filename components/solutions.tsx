@@ -275,7 +275,7 @@ export function Solutions() {
                                 <h3 className="text-xl font-bold text-black mb-2">Integração Multiplataforma</h3>
                                 <p className="text-xs text-[oklch(0.55_0.01_165)] font-medium mb-4">Todos os sistemas sincronizados</p>
                                 <div className="flex flex-wrap gap-2">
-                                    {['CRM', 'WhatsApp', 'Agenda', 'Email', 'n8n', 'Banco de dados'].map(tool => (
+                                    {['CRM', 'WhatsApp', 'Agenda', 'Email', 'IA', 'Banco de dados'].map(tool => (
                                         <span key={tool} className="px-3 py-1 bg-white rounded-full text-[10px] font-bold text-black shadow-sm border border-[oklch(0.90_0.005_165)]">
                                             {tool}
                                         </span>
