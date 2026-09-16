@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { createClinic, inviteOwner, setClinicStatus } from "@/lib/admin/mutations"
+import { ehErroDoPostgrest } from "@/lib/supabase/errors"
 
 export type AdminFormState = {
   error: string | null
@@ -14,8 +15,14 @@ const estadoLimpo: AdminFormState = { error: null, success: null }
 
 function mensagemDeErro(erro: unknown): string {
   // Erro de validação e de negócio têm mensagem própria, segura de exibir.
-  // Qualquer outro vira texto genérico: o original pode carregar dado da linha.
-  if (erro instanceof Error && erro.name !== "PostgrestError") {
+  // Qualquer outro vira texto genérico: o original pode carregar dado da
+  // linha. O erro do PostgREST é reconhecido pelo FORMATO — não é
+  // `instanceof Error` e não tem `name`, então filtrá-lo por
+  // `erro.name !== "PostgrestError"` nunca funcionaria.
+  if (ehErroDoPostgrest(erro)) {
+    return "Não foi possível concluir a operação."
+  }
+  if (erro instanceof Error) {
     return erro.message
   }
   return "Não foi possível concluir a operação."
