@@ -121,6 +121,23 @@ A conversa é marcada com `qualified_at` quando o paciente demonstra intenção 
 ## Planos afetados
 O motor é a base do produto — existe em Starter, Pro e HealthTech. O que varia por plano é o limite de atendimentos (`atendimento-billing-v1.md`) e o processamento de áudio, que a landing promete a partir do Pro.
 
+## Instrumentação de custo (requisito de `agent-config-v1`)
+
+Toda mensagem enviada registra, além do que o motor já precisa:
+
+- `category` — `SERVICE` | `MARKETING` | `UTILITY` (a categoria da Meta)
+- `within_24h_window` — se saiu dentro ou fora da janela de atendimento
+- `billable` — derivado dos dois, pela regra vigente na data do envio
+
+Existe porque a Meta passa a cobrar mensagem de serviço dentro da janela de
+24h a partir de 1º/out/2026, e o preço dos planos Starter/Pro/HealthTech
+depende de saber o custo real por atendimento. Estimar antes de ter tráfego
+produziria um número que ninguém conseguiria defender.
+
+`billable` é gravado no envio, e não calculado na leitura, justamente porque a
+regra muda de data: recalcular depois exigiria saber qual regra valia em cada
+mensagem do histórico.
+
 ## Em aberto
 - **Agrupamento de mensagens**: a janela de ~10s é um chute inicial. Precisa de ajuste com conversa real — curta demais responde em duplicidade, longa demais parece lento.
 - **Tamanho do histórico** enviado ao modelo: afeta custo por atendimento e qualidade. Medir antes de fixar.

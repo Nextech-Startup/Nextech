@@ -181,7 +181,10 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 - [ ] **Excluir regra de urgência apaga a trilha de confirmação** — `deleteUrgencyRule` leva junto quem assumiu aquele protocolo. Desativar preserva; excluir não. Entra na spec de auditoria, junto da justificativa de `admin_audit_log`
 - [ ] **`requireClinicContext` usa `.limit(1)` sem ordenação** — quem é membro de duas clínicas recebe uma escolhida pelo Postgres, não-deterministicamente. Não vaza (é sempre clínica dele), mas na tela de perfil significa editar a clínica errada sem perceber. Preexistente; virou incômodo agora que há dado regulatório por trás dessa porta
 - [ ] **`photo_url` aceita qualquer host https** — a URL da foto do profissional vai para um `<img>` do painel, e um host arbitrário recebe o referer. Risco baixo enquanto é a clínica que cola a própria URL; vira allowlist quando houver upload no Supabase Storage
-- [ ] **`TENANT_SECRETS_ENCRYPTION_KEY` não está na Vercel** — foi gerada e
+- [ ] **`TENANT_SECRETS_ENCRYPTION_KEY` não está na Vercel** — decidido em
+  2026-09-16 que o Jhones registra (é segredo de infraestrutura, passa por ele).
+  O valor está no `.env` local, linha 73. Vercel → Settings → Environment
+  Variables → **Production e Preview**, depois redeploy. Segue abaixo o resto. — foi gerada e
   preenchida só no `.env` local. Sem ela no ambiente, conectar o WhatsApp falha
   com erro legível (a função checa antes de cifrar), mas falha. Precisa ser
   registrada em Production e Preview **antes** do primeiro cliente conectar um

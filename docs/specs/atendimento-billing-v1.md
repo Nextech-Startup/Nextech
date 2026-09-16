@@ -3,6 +3,20 @@
 ## Objetivo
 Definir tecnicamente o que conta como "um atendimento" pro limite mensal de cada plano (150 / 500 / 5.000) — sem isso, `plan-limits.ts` (skill `architecture`) não tem o que checar.
 
+> **Dois eixos de limite por plano, não um.** `agent-config-v1` introduziu um
+> segundo: quantos agentes cada plano permite (Starter 1, Pro 3, HealthTech
+> ilimitado), em `clinics.plan` com trigger no banco. Os dois medem coisas
+> diferentes e não se substituem:
+>
+> | | o que limita | natureza |
+> |---|---|---|
+> | **atendimento** | 150 / 500 / 5.000 por mês | consumo — variável, é o que a Meta cobra |
+> | **agente** | 1 / 3 / ilimitado | capacidade instalada — fixa, quantas frentes a clínica opera |
+>
+> Uma clínica Starter com 1 agente pode usar os 150 atendimentos; o limite de
+> agentes não é sobre volume, é sobre operar Odontologia e Estética como
+> frentes separadas. Tratá-los como redundância levaria a remover o errado.
+
 ## Regra definida
 Um atendimento é fechado (contado) quando, dentro de uma sessão de conversa com um paciente, **o agente de IA envia 5 respostas** OU **passam 20 minutos sem nova mensagem do paciente** — o que vier primeiro.
 

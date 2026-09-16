@@ -11,14 +11,14 @@ Este pacote: `CLAUDE.md`, `.claude/skills/*`, `.claude/agents/*`.
 ## Fase 3 — dividida em 3a e 3b (2026-09-16)
 Divisão decidida no documento de arquitetura (`docs/superpowers/specs/2026-09-16-arquitetura-plataforma-design.md`). Motivo: a fase juntava um CRUD com RLS, de risco baixo e teste direto, com o motor de conversa — que é o único subsistema **sem spec escrita** e aparece como dependência em 6 das 8 specs. Mantê-las juntas escondia que metade da fase não estava especificada.
 
-### Fase 3a — Fundação multi-tenant + painel de cadastro 🟡
+### Fase 3a — Fundação multi-tenant + painel de cadastro ✅
 - [x] `Clinic`, `ClinicMember` (`team-access-v1.md`)
 - [x] `lib/auth/context.ts` — porta única de resolução de `clinic_id`, com teste de isolamento **antes de qualquer tela**
 - [x] `Patient` (`patient-v1.md`) — concluída em 2026-09-16
 - [x] Perfil da clínica (`clinic-profile-v1.md`) — concluída em 2026-09-16. Era a maior pendência da fase; com ela, 3b e 5 deixam de estar bloqueadas por dado que não existia
-- [ ] `Agent` em `draft`: CRUD e formulário (`agent-config-v1.md`, sem o preview de conversa) — **última pendência da 3a**
+- [x] `Agent` em `draft`: CRUD e formulário (`agent-config-v1.md`, sem o preview de conversa) — concluída em 2026-09-16. Fecha a 3a
 
-Ao fim de 3a: a clínica existe, tem perfil e equipe, e um agente configurado — que ainda não conversa.
+Ao fim de 3a: a clínica existe, tem perfil e equipe, e um agente configurado — que ainda não conversa. **Fase concluída em 2026-09-16** (PR #6), com 371 testes.
 
 ### Fase 3b — Motor de conversa
 Spec escrita em `docs/specs/conversation-engine-v1.md`. Nada implementado.
@@ -27,9 +27,12 @@ Spec escrita em `docs/specs/conversation-engine-v1.md`. Nada implementado.
 - Orquestração de IA (OpenRouter + Gemini 2.5 Flash)
 - Triagem de urgência em runtime; definição de "lead qualificado"
 - `AttendanceSession` (`atendimento-billing-v1.md`)
-- Preview de conversa do agente
+- Preview de conversa do agente — **herdado de `agent-config-v1`**: a tela do agente já tem o cartão "Testar conversa" como inerte, esperando este motor
+- Instrumentação de custo por mensagem (`category`, `within_24h_window`, `billable`) — requisito de `agent-config-v1`, para decidir o preço dos planos com dado real antes da mudança de cobrança da Meta em out/2026
 
 O que a 3a já deixou pronto para cá: `listActiveUrgencyRules(clinicId)` e `detectarUrgencia()` (que compara sem acento nem maiúscula, e ignora regra não confirmada pela clínica), `getConsentTextForClinic()` e a identificação idempotente de paciente no primeiro contato.
+
+De `agent-config-v1`: `lib/security/tenant-secrets.ts` com `decifrarSegredo()` (para ler o token da clínica antes de chamar a Cloud API) e `comparacaoSegura()` (para validar a assinatura do webhook) — as duas já existem, sem chamador. O agente ativo é encontrado pelo `whatsapp_phone_number_id` que chega no webhook, que é UNIQUE global.
 
 **Bloqueio externo:** credenciais da Meta não existem. Dá para construir e testar com mock.
 

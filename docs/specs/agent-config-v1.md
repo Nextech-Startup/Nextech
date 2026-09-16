@@ -50,7 +50,7 @@ O painel de configuração existe em todos os planos (Starter/Pro/HealthTech) �
 ## Em aberto (decidir antes de codar)
 - ~~**Assunção 1 agente = 1 número WhatsApp**~~ — **confirmada** em 2026-09-16. O `whatsapp_phone_number_id` é coluna de `agents`, com UNIQUE global. Se o caso de N agentes num número aparecer, a migração é extrair `whatsapp_connections` — contida e sem perda de dado.
 - ~~**Limite de agentes por plano**~~ — **decidido**: Starter 1, Pro 3, HealthTech ilimitado, por trigger no banco. Obrigou a criar `clinics.plan`, o primeiro pedaço do modelo de billing. Os números são revisáveis antes do billing v2; a modelagem, não.
-- **Mudança de cobrança da Meta em 1º/out/2026**: mensagem de serviço dentro da janela de 24h deixa de ser gratuita. Precisa entrar no cálculo de custo por atendimento antes de fechar o preço dos planos Starter/Pro/HealthTech.
+- ~~**Mudança de cobrança da Meta em 1º/out/2026**~~ — **encaminhada** em 2026-09-16: é decisão de precificação, não de código, e depende de números da Meta que mudam. O que entra em código é a **instrumentação**: o motor de conversa (3b) registra, por mensagem enviada, a categoria e se estava dentro ou fora da janela de 24h, para que o preço seja decidido com dado real em vez de estimativa. Ver `conversation-engine-v1.md`.
 - **Entidade de conversa/ownership**: coexistência exige rastrear se uma conversa está sendo respondida pela IA ou por um humano (via eco do app). Essa modelagem (provavelmente um `Conversation` por paciente+agente, com campo `handled_by: ai | human`) não é escopo desta spec — pertence à spec do motor de conversa (fase 3 do roadmap) — mas o campo `handoff_enabled` aqui definido depende dela em runtime.
 
 ## Decidido
