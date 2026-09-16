@@ -1,19 +1,66 @@
-import { requireClinicContext } from "@/lib/auth/context"
+import Link from "next/link"
+import { requireClinicContext, ClinicContextError } from "@/lib/auth/context"
+import { logout } from "@/lib/auth/actions"
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  // Resolve o tenant uma vez por requisição. Lança se não houver vínculo —
-  // o middleware já garantiu que existe sessão antes de chegar aqui.
-  const { clinicId } = await requireClinicContext()
+  // O middleware já garantiu que existe sessão. O que pode faltar aqui é
+  // vínculo com uma clínica — caso de quem é só da equipe Nextech.
+  let clinicId: string
+
+  try {
+    const ctx = await requireClinicContext()
+    clinicId = ctx.clinicId
+  } catch (erro) {
+    if (erro instanceof ClinicContextError) {
+      return <SemClinica />
+    }
+    throw erro
+  }
 
   return (
     <div className="min-h-dvh bg-[var(--surface-0)] text-[var(--text-1)]">
       <main className="mx-auto max-w-6xl px-4 py-8" data-clinic-id={clinicId}>
         {children}
       </main>
+    </div>
+  )
+}
+
+/**
+ * Sessão válida, sem clínica vinculada. Acontece com quem é só da equipe
+ * Nextech — antes isso virava erro 500, que não diz nada a quem vê.
+ */
+function SemClinica() {
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-[var(--surface-0)] px-4 text-[var(--text-1)]">
+      <div className="w-full max-w-md text-center">
+        <h1 className="text-xl font-semibold">Nenhuma clínica vinculada</h1>
+        <p className="mt-2 text-sm text-[var(--text-2)]">
+          Esta conta não é responsável por nenhuma clínica. Se você é da equipe
+          Nextech, use o painel interno.
+        </p>
+
+        <div className="mt-6 flex items-center justify-center gap-4">
+          <Link
+            href="/admin"
+            className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-strong)]"
+          >
+            Painel interno
+          </Link>
+          <form action={logout}>
+            <button
+              type="submit"
+              className="text-sm text-[var(--text-2)] transition hover:text-[var(--text-1)]"
+            >
+              Sair
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   )
 }
