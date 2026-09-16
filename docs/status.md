@@ -17,18 +17,30 @@ Isso cobre a fundação inteira: multi-tenant, acesso, paciente, agente, conexã
 ## O que "começar" ainda não inclui
 Fundação ≠ agente conversando de verdade. O motor de conversa (como a IA decide o que responder, quando qualificar um lead, quando escalonar) nunca foi desenhado em detalhe — só mencionado como "fase 3 do roadmap" em várias specs. É o próximo desenho depois da fundação, não parte dela.
 
-## Pré-requisitos da fase 3 (atualizado em 2026-09-16)
-- [x] Repositório confirmado: `github.com/Nextech-Startup/Nextech`, Next.js 16 + React 19 + Tailwind 4, landing já em produção
-- [x] Setup do Claude Code na raiz: `CLAUDE.md`, `.claude/skills/` (7), `.claude/agents/` (2), `docs/`
-- [x] ~~Criar o projeto Supabase~~ — **já existia**. A landing usa Supabase em produção (`app/api/chatbot/route.ts`, tabela `chatbot_leads`). O registro de 2026-09-14 estava errado
-- [x] Branch `staging` — existe no GitHub e na Vercel (confirmado pelo Jhones em 2026-09-16)
-- [x] `.env.example` versionado na raiz, com toda chave do produto. `.env` local criado a partir dele
-- [ ] **Preencher o `.env` local** com as chaves do Supabase — único item que ainda separa da fase 3
-- [ ] Resto do `docs/infra-setup.md` (OpenRouter, Resend, Zoho, Google Calendar, Meta) — WhatsApp real pode vir depois, a aprovação da Meta leva tempo e não trava o resto
+## Fase 3a — CONCLUÍDA (2026-09-16)
+A fundação multi-tenant está implementada e testada na branch `staging` (7 commits, `2dfd286..3f06bdc`).
 
-### Fica pra primeira spec da fase 3
-- `supabase init` + `supabase db pull`, pra que as migrations partam do schema que já existe em produção, não de um banco vazio
-- Auditar RLS da tabela `chatbot_leads`: ela guarda nome, e-mail e WhatsApp de lead, e é PII mesmo sem ser dado de saúde
+**Entregue:**
+- [x] Next 16.3.5 — `npm audit` de 6 vulnerabilidades (1 crítica, RCE não autenticado) para **0**
+- [x] Vitest 5 como runner; 30 testes passando em 6 arquivos
+- [x] Migration `clinics` + `clinic_members` com RLS, aplicada no projeto remoto
+- [x] `requireClinicContext()` — porta única de resolução de tenant
+- [x] Teste de fronteira arquitetural: só `lib/supabase/server.ts` e `middleware.ts` instanciam client
+- [x] Landing movida para `app/(marketing)/`, com histórico preservado; `/` continua estática
+- [x] Middleware de sessão em `/dashboard` e `/admin`
+- [x] `lib/clinics/` — primeira fatia vertical (schema Zod strict, queries, mutations)
+
+**Descobertas que corrigiram registros anteriores:**
+- `chatbot_leads` **já tinha RLS ativa**. O receio anterior de PII exposta estava errado — anon key recebe `42501` em leitura e escrita.
+- O projeto Supabase já existia (a landing usa em produção).
+- Existe uma tabela `projetoAtivo` no banco que nenhum código do repositório referencia. **Decisão pendente do Jhones:** resíduo a remover ou algo em uso por fora?
+
+## Próximos passos
+- [ ] PR de `staging` → `main`, revisado pelo Jhones
+- [ ] Spec do **motor de conversa** (fase 3b) — bloqueia a implementação; é dependência de 6 das 8 specs
+- [ ] Restante da fase 3a: perfil da clínica, `Patient`, `Agent` em draft, painel `(admin)` de onboarding
+- [ ] `supabase db pull` e `supabase start` exigem Docker Desktop rodando (hoje instalado, mas parado)
+- [ ] Resto do `docs/infra-setup.md` (OpenRouter, Resend, Zoho, Google Calendar, Meta)
 
 ## Fluxo de trabalho acordado
 Uma spec por sessão · commit livre em `staging` · `main` só por PR aprovado pelo Jhones · cobertura ampla de teste. Detalhe em `CLAUDE.md`.
