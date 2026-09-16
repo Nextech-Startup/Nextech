@@ -63,7 +63,7 @@ export const DASHBOARD_NAV: readonly NavGroup[] = [
       {
         label: "Perfil da clínica",
         href: "/dashboard/settings",
-        status: "em-breve",
+        status: "pronto",
         roles: ["owner"],
       },
       {

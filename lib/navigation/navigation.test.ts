@@ -116,7 +116,10 @@ describe("itens de tela não construída", () => {
     const prontos = DASHBOARD_NAV.flatMap((g) =>
       g.items.filter((i) => i.status === "pronto").map((i) => i.href),
     )
-    expect(prontos).toEqual(["/dashboard"])
+    // Inventário deliberado: cada tela entregue entra aqui junto com a
+    // spec que a construiu. O teste falhando ao adicionar uma rota é o
+    // ponto — obriga a decidir se ela está mesmo pronta.
+    expect(prontos).toEqual(["/dashboard", "/dashboard/settings"])
   })
 
   it("item em breve nunca é marcado como ativo, mesmo na própria rota", () => {

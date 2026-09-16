@@ -8,12 +8,12 @@
 |---|---|
 | 1 — Specs do MVP | ✅ concluída — 9 specs |
 | 2 — Repo, CLAUDE.md, skills | ✅ concluída |
-| **3a — Fundação multi-tenant** | 🟡 ~75% |
+| **3a — Fundação multi-tenant** | 🟡 ~90% |
 | **3b — Motor de conversa** | ⬜ spec pronta, nada implementado |
 | **3c — Shell de navegação** | ✅ concluída |
 | 4 a 10 | ⬜ não iniciadas |
 
-**140 testes passando** · 6 migrations aplicadas · em produção em `app.nextech.ia.br`
+**269 testes passando** · 7 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 ---
 
@@ -32,11 +32,29 @@
 - [x] **Trilha de auditoria** — imutável: sem policy de insert, update ou delete para usuário autenticado
 - [x] **`lib/clinics/`** — primeira fatia vertical (schema Zod strict, queries, mutations)
 - [x] **`patient-v1`** — `patients` com RLS por `clinic_id`, normalização E.164 (o que impede cadastro duplicado do mesmo número), identificação idempotente no primeiro contato, consentimento e opt-out. 47 testes
+- [x] **`clinic-profile-v1`** — os sete blocos da spec em `/dashboard/settings`, com 7 abas. 129 testes
 
 ### Falta
 
-- [ ] **`clinic-profile-v1`** — identidade regulatória, equipe, convênios, procedimentos, política de agendamento, triagem de urgência, consentimento. A maior spec pendente, e a que alimenta o motor de conversa e o de agendamento
 - [ ] **`agent-config-v1`** — agente em `draft` com formulário (o preview de conversa é 3b)
+
+### `clinic-profile-v1` — o que a entrega decidiu
+
+Os sete blocos em `/dashboard/settings`, como **7 abas de uma tela só** (não 7 itens de menu): são o cadastro de uma coisa só, e no menu cada um teria o peso de "Conversas" ou "Agenda". A aba escolhida vai para a query string, então o link é compartilhável e salvar não joga de volta para a primeira.
+
+- **Conselho é campo do profissional**, não da clínica — `professionals.council` com o mesmo enum usado pelo responsável técnico. Clínica multi-especialidade tem CRM, CRO e CREFITO na mesma equipe
+- **Regra de urgência não ativa sem confirmação**, garantido por CHECK constraint (`active = false or confirmed_at is not null`), não só pela aplicação: PostgREST e `service_role` também escrevem nessa tabela. A trilha guarda quem confirmou, quando, e um hash do texto confirmado — **editar o protocolo ou acrescentar palavra-chave derruba a confirmação e tira a regra do ar**, senão bastaria confirmar um texto adequado e trocá-lo depois
+- **`retention_years` é por clínica e prevalece** sobre o default genérico, através de `prazoDeRetencao()` — função única, para nenhum módulo futuro decidir essa precedência sozinho. O risco é apagar prontuário antes do prazo do conselho (o CFM exige 20 anos)
+- **Vínculo de convênio usa FK composta** `(x_id, clinic_id)`, não `uuid[]` nem FK simples: uma FK para `insurances(id)` garantiria que o convênio existe, mas não que é da mesma clínica
+- **Escrita só do owner**; leitura de qualquer membro, porque o profissional precisa ver convênio e procedimento para conversar com o paciente
+- **Desativa em vez de apagar** (convênio, profissional, procedimento): apagar reescreveria o histórico de quem foi atendido
+
+Dois defeitos foram achados por teste contra o banco real, não por leitura:
+
+- `array_length(keywords, 1) >= 1` **não recusa array vazio** — para `{}` a função devolve NULL, e `NULL >= 1` é NULL, que o CHECK aceita. Trocado por `cardinality`
+- Os triggers falhavam com `permission denied for schema private`: o schema tem `usage` revogado, e função de trigger roda com o privilégio de quem faz o UPDATE. Resolvido com `SECURITY DEFINER` — nenhuma das funções lê tabela além do que o chamador já escreveria
+
+A revisão de segurança achou um terceiro: as seis tabelas com `updated_at` **não tinham o trigger `touch_updated_at`**, então a coluna congelava no valor de criação. Como `updated_at` está fora de todo grant de update, nem a aplicação poderia corrigi-la — e um job de expurgo por prazo de retenção confiaria nela.
 
 ---
 
@@ -92,8 +110,11 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 ### Dívida técnica conhecida
 
 - [ ] **Staging escreve no banco de produção** — há um único projeto Supabase. Aceitável até o primeiro cliente real, não depois
-- [ ] **`patients.insurance_id` sem FK** — aponta para `insurances`, que só nasce em `clinic-profile-v1`. Vira um `alter table ... add constraint` de uma linha quando a tabela existir
+- [x] ~~**`patients.insurance_id` sem FK**~~ — fechada em `clinic-profile-v1`, com `on delete set null`: perder o convênio nunca leva junto o paciente
 - [ ] **`professional` vê todos os pacientes da clínica** — a policy de `patients` não estreita por profissional porque o vínculo paciente ↔ profissional não existe na v1. Apertar depois é seguro; afrouxar não seria
+- [ ] **Excluir regra de urgência apaga a trilha de confirmação** — `deleteUrgencyRule` leva junto quem assumiu aquele protocolo. Desativar preserva; excluir não. Entra na spec de auditoria, junto da justificativa de `admin_audit_log`
+- [ ] **`requireClinicContext` usa `.limit(1)` sem ordenação** — quem é membro de duas clínicas recebe uma escolhida pelo Postgres, não-deterministicamente. Não vaza (é sempre clínica dele), mas na tela de perfil significa editar a clínica errada sem perceber. Preexistente; virou incômodo agora que há dado regulatório por trás dessa porta
+- [ ] **`photo_url` aceita qualquer host https** — a URL da foto do profissional vai para um `<img>` do painel, e um host arbitrário recebe o referer. Risco baixo enquanto é a clínica que cola a própria URL; vira allowlist quando houver upload no Supabase Storage
 - [ ] **Tabela `projetoAtivo`** — existe no banco, nenhum código a referencia. Resíduo ou uso externo? Mantida na baseline com nota
 - [ ] **Convite mostra senha na tela** — o `(admin)` exibe a senha provisória porque o Resend não está configurado. Vira convite por e-mail quando estiver
 - [ ] **`admin_audit_log` precisa de justificativa** — a fase 3c decidiu que ver conversa de paciente exige motivo registrado. Estende a tabela com `conversation.view` e campo de justificativa
