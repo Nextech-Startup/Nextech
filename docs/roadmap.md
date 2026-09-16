@@ -15,19 +15,23 @@ Divisão decidida no documento de arquitetura (`docs/superpowers/specs/2026-09-1
 - [x] `Clinic`, `ClinicMember` (`team-access-v1.md`)
 - [x] `lib/auth/context.ts` — porta única de resolução de `clinic_id`, com teste de isolamento **antes de qualquer tela**
 - [x] `Patient` (`patient-v1.md`) — concluída em 2026-09-16
-- [ ] Perfil da clínica (`clinic-profile-v1.md`) — **a maior pendência da fase**, e o que alimenta 3b e 5
-- [ ] `Agent` em `draft`: CRUD e formulário (`agent-config-v1.md`, sem o preview de conversa)
+- [x] Perfil da clínica (`clinic-profile-v1.md`) — concluída em 2026-09-16. Era a maior pendência da fase; com ela, 3b e 5 deixam de estar bloqueadas por dado que não existia
+- [ ] `Agent` em `draft`: CRUD e formulário (`agent-config-v1.md`, sem o preview de conversa) — **última pendência da 3a**
 
 Ao fim de 3a: a clínica existe, tem perfil e equipe, e um agente configurado — que ainda não conversa.
 
 ### Fase 3b — Motor de conversa
-**Bloqueada até ter spec própria** (fluxo da skill `product-spec`).
+Spec escrita em `docs/specs/conversation-engine-v1.md`. Nada implementado.
 - Webhook nativo de WhatsApp
 - `Conversation` com ownership ai/human (detecção de eco da coexistência)
 - Orquestração de IA (OpenRouter + Gemini 2.5 Flash)
 - Triagem de urgência em runtime; definição de "lead qualificado"
 - `AttendanceSession` (`atendimento-billing-v1.md`)
 - Preview de conversa do agente
+
+O que a 3a já deixou pronto para cá: `listActiveUrgencyRules(clinicId)` e `detectarUrgencia()` (que compara sem acento nem maiúscula, e ignora regra não confirmada pela clínica), `getConsentTextForClinic()` e a identificação idempotente de paciente no primeiro contato.
+
+**Bloqueio externo:** credenciais da Meta não existem. Dá para construir e testar com mock.
 
 ### Fase 3c — Shell de navegação ✅
 Concluída em 2026-09-16. Criada no mesmo dia, a partir de uma lacuna real: o roadmap organiza por domínio e nunca definiu **quais telas o produto tem nem como se navega entre elas**. Na prática, `/dashboard` e `/admin` existiam sem link entre si.
@@ -52,7 +56,8 @@ Depende de 3a (o `role` vem de `requireClinicContext()`).
 
 ## Fase 5 — Motor de agendamento
 - Algoritmo de disponibilidade/conflito, integração Google Calendar
-- Consome `duration_minutes` de `Procedure` (`clinic-profile-v1.md`)
+- Consome `duration_minutes` de `Procedure` (`clinic-profile-v1.md`) — **já disponível** desde 2026-09-16, via `getDuracaoDoProcedimento()`, que cai na duração padrão da política quando o procedimento não tem a própria
+- `scheduling_policies` (antecedência mínima, prazo de cancelamento, política de falta) e `professionals.google_calendar_id` — cada profissional pode ter o próprio calendário — também já existem
 
 ## Fase 6 — Primeiro CRM adapter
 - Implementação da interface `CrmAdapter` (skill `integrations`) pro provider mais pedido pelos clientes atuais da NextTech
