@@ -11,12 +11,12 @@ Este pacote: `CLAUDE.md`, `.claude/skills/*`, `.claude/agents/*`.
 ## Fase 3 — dividida em 3a e 3b (2026-09-16)
 Divisão decidida no documento de arquitetura (`docs/superpowers/specs/2026-09-16-arquitetura-plataforma-design.md`). Motivo: a fase juntava um CRUD com RLS, de risco baixo e teste direto, com o motor de conversa — que é o único subsistema **sem spec escrita** e aparece como dependência em 6 das 8 specs. Mantê-las juntas escondia que metade da fase não estava especificada.
 
-### Fase 3a — Fundação multi-tenant + painel de cadastro
-- `Clinic`, `ClinicMember` (`team-access-v1.md`)
-- `lib/auth/context.ts` — porta única de resolução de `clinic_id`, com teste de isolamento **antes de qualquer tela**
-- Perfil da clínica (`clinic-profile-v1.md`)
-- `Patient` (`patient-v1.md`)
-- `Agent` em `draft`: CRUD e formulário (`agent-config-v1.md`, sem o preview de conversa)
+### Fase 3a — Fundação multi-tenant + painel de cadastro 🟡
+- [x] `Clinic`, `ClinicMember` (`team-access-v1.md`)
+- [x] `lib/auth/context.ts` — porta única de resolução de `clinic_id`, com teste de isolamento **antes de qualquer tela**
+- [x] `Patient` (`patient-v1.md`) — concluída em 2026-09-16
+- [ ] Perfil da clínica (`clinic-profile-v1.md`) — **a maior pendência da fase**, e o que alimenta 3b e 5
+- [ ] `Agent` em `draft`: CRUD e formulário (`agent-config-v1.md`, sem o preview de conversa)
 
 Ao fim de 3a: a clínica existe, tem perfil e equipe, e um agente configurado — que ainda não conversa.
 
@@ -29,17 +29,20 @@ Ao fim de 3a: a clínica existe, tem perfil e equipe, e um agente configurado �
 - `AttendanceSession` (`atendimento-billing-v1.md`)
 - Preview de conversa do agente
 
-### Fase 3c — Shell de navegação
-Criada em 2026-09-16, a partir de uma lacuna real: o roadmap organiza por domínio e nunca definiu **quais telas o produto tem nem como se navega entre elas**. Na prática, `/dashboard` e `/admin` existiam sem link entre si.
+### Fase 3c — Shell de navegação ✅
+Concluída em 2026-09-16. Criada no mesmo dia, a partir de uma lacuna real: o roadmap organiza por domínio e nunca definiu **quais telas o produto tem nem como se navega entre elas**. Na prática, `/dashboard` e `/admin` existiam sem link entre si.
 
 Desenho completo em `docs/superpowers/specs/2026-09-16-navegacao-e-rotas-design.md`.
 
-- Sidebar do `(dashboard)` em três grupos — Operação, Automação, Configuração — filtrado por papel (`owner` / `staff` / `professional`)
-- Sidebar do `(admin)`: Clínicas, Consumo, Conexões, Saúde, Conversas, Auditoria
-- Cabeçalho com usuário, papel e "Sair" nos dois painéis
-- Item de tela ainda não construída aparece desabilitado, marcado "em breve" — nunca link que leva a tela vazia
+- [x] Sidebar do `(dashboard)` em três grupos — Operação, Automação, Configuração — filtrado por papel (`owner` / `staff` / `professional`)
+- [x] Sidebar do `(admin)`: Clínicas, Consumo, Conexões, Saúde, Conversas, Auditoria
+- [x] Cabeçalho com usuário, papel e "Sair" nos dois painéis
+- [x] Item de tela ainda não construída aparece desabilitado, marcado "em breve" — nunca link que leva a tela vazia
+- [x] Link entre os painéis para quem é `platform_admin` e também tem clínica
 
-Depende de 3a (o `role` vem de `requireClinicContext()`). Cada spec seguinte preenche a própria rota e tira o "em breve" do próprio item.
+O mapa das rotas virou dado em `lib/navigation/`, separado do markup: cada spec seguinte tira o "em breve" do próprio item alterando uma linha.
+
+Depende de 3a (o `role` vem de `requireClinicContext()`).
 
 **Consequência para a fase 3b e seguintes:** a tela de conversa do `(admin)` lê dado de saúde e exige justificativa obrigatória antes de abrir, registrada na trilha. Isso estende `admin_audit_log` com a ação `conversation.view` e um campo de justificativa.
 
