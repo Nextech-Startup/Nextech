@@ -1,7 +1,8 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
 import { requireAdminContext, AdminContextError } from "@/lib/admin/context"
-import { logout } from "@/lib/auth/actions"
+import { hasClinic } from "@/lib/auth/context"
+import { PanelShell } from "@/components/shell/panel-shell"
+import { SidebarNav } from "@/components/shell/sidebar-nav"
 
 export default async function AdminLayout({
   children,
@@ -22,34 +23,21 @@ export default async function AdminLayout({
     throw erro
   }
 
+  // Volta ao painel da clínica só para quem também responde por uma.
+  const temClinica = await hasClinic()
+
   return (
-    <div className="min-h-dvh bg-[var(--surface-0)] text-[var(--text-1)]">
-      <header className="border-b border-[var(--hairline)] bg-[var(--surface-1)]">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Link href="/admin" className="font-semibold">
-              Nextech
-            </Link>
-            <span className="rounded-full bg-[var(--accent)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--accent-on-light)] dark:text-[var(--accent-dim)]">
-              Interno
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-[var(--text-2)]">{nome ?? "Equipe"}</span>
-            <form action={logout}>
-              <button
-                type="submit"
-                className="text-[var(--text-2)] transition hover:text-[var(--text-1)]"
-              >
-                Sair
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
-    </div>
+    <PanelShell
+      marca="/admin"
+      selo="Interno"
+      nome={nome ?? "Equipe Nextech"}
+      papel="Equipe Nextech"
+      atalho={
+        temClinica ? { href: "/dashboard", label: "Painel da clínica" } : undefined
+      }
+      nav={<SidebarNav painel="interno" />}
+    >
+      {children}
+    </PanelShell>
   )
 }
