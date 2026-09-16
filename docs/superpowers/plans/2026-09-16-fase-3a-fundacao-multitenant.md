@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Estado: concluído em 2026-09-16.** As 8 tasks deste plano foram entregues e commitadas em `staging`. Os checkboxes foram marcados retroativamente — o trabalho saiu antes de o documento acompanhar. Para o que ainda falta da fase 3a, ver `docs/status.md`.
+
 **Goal:** Estabelecer a fundação multi-tenant do SaaS — clínica, papéis, isolamento por RLS e a porta única de resolução de tenant — com teste de isolamento provando que uma clínica não acessa dado de outra.
 
 **Architecture:** Módulos verticais em `lib/<dominio>/`, com `lib/auth/context.ts` como único ponto que resolve `clinic_id` a partir da sessão. Defesa em duas camadas: RLS no Postgres e a fachada de contexto. Leitura por Server Component, escrita por Server Action.
@@ -57,7 +59,7 @@ Sem teste próprio: é preparação de ambiente. Valida-se por build verde e pel
 - Modify: `package.json`, `package-lock.json`
 - Create: nenhum
 
-- [ ] **Step 1: Criar e ir para a branch `staging`**
+- [x] **Step 1: Criar e ir para a branch `staging`**
 
 ```bash
 git fetch origin
@@ -67,7 +69,7 @@ git status
 
 Esperado: branch `staging`, espelhando `origin/staging`.
 
-- [ ] **Step 2: Commitar a organização pendente**
+- [x] **Step 2: Commitar a organização pendente**
 
 O repositório tem arquivos não rastreados de sessões anteriores (`CLAUDE.md`, `.claude/`, `docs/`, `.env.example`) e a limpeza do n8n.
 
@@ -86,7 +88,7 @@ git commit -m "chore: configura Claude Code, remove n8n e fixa npm como gerencia
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
 
-- [ ] **Step 3: Atualizar o Next.js (vulnerabilidade crítica)**
+- [x] **Step 3: Atualizar o Next.js (vulnerabilidade crítica)**
 
 A 16.1.6 está na faixa afetada por RCE não autenticado. Correção: 16.3.5.
 
@@ -97,7 +99,7 @@ npm audit
 
 Esperado: a entrada crítica de `next` desaparece do audit.
 
-- [ ] **Step 4: Verificar que o build continua passando**
+- [x] **Step 4: Verificar que o build continua passando**
 
 ```bash
 npx tsc --noEmit
@@ -106,7 +108,7 @@ npx next build
 
 Esperado: ambos sem erro. Se o build falhar, **parar** e reportar antes de seguir — é regressão de framework, não tarefa deste plano.
 
-- [ ] **Step 5: Instalar dependências da fundação**
+- [x] **Step 5: Instalar dependências da fundação**
 
 ```bash
 npm install @supabase/ssr
@@ -115,7 +117,7 @@ npm install -D vitest @vitejs/plugin-react vite-tsconfig-paths dotenv
 
 `@supabase/ssr` é o pacote que gerencia sessão em Server Components — `@supabase/supabase-js` sozinho não faz isso.
 
-- [ ] **Step 6: Instalar a Supabase CLI**
+- [x] **Step 6: Instalar a Supabase CLI**
 
 A CLI não pode ser instalada com `npm install -g` (a própria Supabase bloqueia). No Windows, via Scoop:
 
@@ -127,7 +129,7 @@ supabase --version
 
 Se não houver Scoop, baixar o binário de https://github.com/supabase/cli/releases e pôr no PATH.
 
-- [ ] **Step 7: Inicializar o Supabase e importar o schema existente**
+- [x] **Step 7: Inicializar o Supabase e importar o schema existente**
 
 O banco **já tem** a tabela `chatbot_leads`, da landing. Importar antes de criar qualquer tabela, senão as migrations partem de um estado falso.
 
@@ -139,7 +141,7 @@ supabase db pull
 
 Esperado: uma migration inicial em `supabase/migrations/` contendo `chatbot_leads`.
 
-- [ ] **Step 8: Commitar**
+- [x] **Step 8: Commitar**
 
 ```bash
 git add package.json package-lock.json supabase/
@@ -161,7 +163,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 **Interfaces:**
 - Produces: comando `npm test`; carregamento de `.env` nos testes.
 
-- [ ] **Step 1: Escrever o teste que falha**
+- [x] **Step 1: Escrever o teste que falha**
 
 `tests/sanity.test.ts`:
 
@@ -176,7 +178,7 @@ describe("ambiente de teste", () => {
 })
 ```
 
-- [ ] **Step 2: Rodar e ver falhar**
+- [x] **Step 2: Rodar e ver falhar**
 
 ```bash
 npx vitest run tests/sanity.test.ts
@@ -184,7 +186,7 @@ npx vitest run tests/sanity.test.ts
 
 Esperado: FALHA — não há `vitest.config.ts`.
 
-- [ ] **Step 3: Configurar o runner**
+- [x] **Step 3: Configurar o runner**
 
 `vitest.config.ts`:
 
@@ -220,7 +222,7 @@ Em `package.json`, adicionar ao bloco `scripts`:
 "test:watch": "vitest"
 ```
 
-- [ ] **Step 4: Rodar e ver passar**
+- [x] **Step 4: Rodar e ver passar**
 
 ```bash
 npm test
@@ -228,7 +230,7 @@ npm test
 
 Esperado: 1 teste passando.
 
-- [ ] **Step 5: Commitar**
+- [x] **Step 5: Commitar**
 
 ```bash
 git add vitest.config.ts tests/ package.json package-lock.json
@@ -252,7 +254,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - `clinics`: `id`, `legal_name`, `cnpj`, `status` (`draft` | `active`), timestamps
 - `clinic_members`: `id`, `clinic_id`, `user_id`, `role` (`owner` | `staff` | `professional`)
 
-- [ ] **Step 1: Escrever o teste de isolamento que falha**
+- [x] **Step 1: Escrever o teste de isolamento que falha**
 
 `tests/rls/clinics.test.ts`:
 
@@ -355,7 +357,7 @@ describe("RLS de clinics", () => {
 })
 ```
 
-- [ ] **Step 2: Rodar e ver falhar**
+- [x] **Step 2: Rodar e ver falhar**
 
 ```bash
 npx vitest run tests/rls/clinics.test.ts
@@ -363,7 +365,7 @@ npx vitest run tests/rls/clinics.test.ts
 
 Esperado: FALHA — a tabela `clinics` não existe.
 
-- [ ] **Step 3: Escrever a migration**
+- [x] **Step 3: Escrever a migration**
 
 ```bash
 supabase migration new multitenant_foundation
@@ -443,7 +445,7 @@ create policy "owner gerencia os membros da própria clínica"
 
 Nota: não há policy de `insert` em `clinics`. Isso é deliberado — o onboarding é consultivo (`team-access-v1.md`), e a criação passa pelo `(admin)` com `service_role`.
 
-- [ ] **Step 4: Aplicar e rodar o teste**
+- [x] **Step 4: Aplicar e rodar o teste**
 
 ```bash
 supabase db push
@@ -452,7 +454,7 @@ npx vitest run tests/rls/clinics.test.ts
 
 Esperado: 3 testes passando.
 
-- [ ] **Step 5: Commitar**
+- [x] **Step 5: Commitar**
 
 ```bash
 git add supabase/migrations/ tests/rls/
@@ -474,7 +476,7 @@ A tabela da landing guarda nome, e-mail e WhatsApp de lead — PII sob LGPD, com
 - Create: `supabase/migrations/<timestamp>_secure_chatbot_leads.sql`
 - Test: `tests/rls/chatbot-leads.test.ts`
 
-- [ ] **Step 1: Verificar o estado atual da RLS**
+- [x] **Step 1: Verificar o estado atual da RLS**
 
 ```bash
 supabase inspect db table-stats 2>/dev/null | grep -i chatbot || true
@@ -490,7 +492,7 @@ where relname = 'chatbot_leads';
 
 Registrar o resultado. Se `relrowsecurity` for `false`, a tabela está exposta a quem tiver a anon key — que é pública por natureza, embutida no JS da landing.
 
-- [ ] **Step 2: Escrever o teste que falha**
+- [x] **Step 2: Escrever o teste que falha**
 
 `tests/rls/chatbot-leads.test.ts`:
 
@@ -515,7 +517,7 @@ describe("RLS de chatbot_leads", () => {
 })
 ```
 
-- [ ] **Step 3: Rodar e ver o resultado**
+- [x] **Step 3: Rodar e ver o resultado**
 
 ```bash
 npx vitest run tests/rls/chatbot-leads.test.ts
@@ -523,7 +525,7 @@ npx vitest run tests/rls/chatbot-leads.test.ts
 
 Se **falhar**, a tabela está exposta — a migration do Step 4 é correção de vulnerabilidade real. Se passar, a migration apenas torna a proteção explícita e versionada.
 
-- [ ] **Step 4: Escrever a migration**
+- [x] **Step 4: Escrever a migration**
 
 ```bash
 supabase migration new secure_chatbot_leads
@@ -538,7 +540,7 @@ supabase migration new secure_chatbot_leads
 alter table public.chatbot_leads enable row level security;
 ```
 
-- [ ] **Step 5: Aplicar e verificar**
+- [x] **Step 5: Aplicar e verificar**
 
 ```bash
 supabase db push
@@ -547,7 +549,7 @@ npx vitest run tests/rls/chatbot-leads.test.ts
 
 Esperado: teste passando.
 
-- [ ] **Step 6: Confirmar que a landing continua funcionando**
+- [x] **Step 6: Confirmar que a landing continua funcionando**
 
 ```bash
 npx next build
@@ -555,7 +557,7 @@ npx next build
 
 Depois, com `npm run dev`, enviar o formulário do chatbot e confirmar que o lead grava. A rota usa `service_role`, que ignora RLS — deve continuar normal.
 
-- [ ] **Step 7: Commitar**
+- [x] **Step 7: Commitar**
 
 ```bash
 git add supabase/migrations/ tests/rls/
@@ -587,7 +589,7 @@ O coração da arquitetura. Depois desta task, nenhum outro código cria client.
   - `requireClinicContext(): Promise<{ clinicId: string; userId: string; role: ClinicRole; supabase: SupabaseClient }>`
   - `ClinicContextError` — erro lançado quando não há sessão ou vínculo
 
-- [ ] **Step 1: Escrever o teste que falha**
+- [x] **Step 1: Escrever o teste que falha**
 
 `tests/auth/context.test.ts`:
 
@@ -673,7 +675,7 @@ describe("requireClinicContext", () => {
 })
 ```
 
-- [ ] **Step 2: Rodar e ver falhar**
+- [x] **Step 2: Rodar e ver falhar**
 
 ```bash
 npx vitest run tests/auth/context.test.ts
@@ -681,7 +683,7 @@ npx vitest run tests/auth/context.test.ts
 
 Esperado: FALHA — os módulos não existem.
 
-- [ ] **Step 3: Implementar os clients**
+- [x] **Step 3: Implementar os clients**
 
 `lib/supabase/server.ts`:
 
@@ -802,7 +804,7 @@ export function serviceContext() {
 }
 ```
 
-- [ ] **Step 4: Rodar e ver passar**
+- [x] **Step 4: Rodar e ver passar**
 
 ```bash
 npx vitest run tests/auth/context.test.ts
@@ -810,7 +812,7 @@ npx vitest run tests/auth/context.test.ts
 
 Esperado: 3 testes passando.
 
-- [ ] **Step 5: Commitar**
+- [x] **Step 5: Commitar**
 
 ```bash
 git add lib/supabase/ lib/auth/ tests/auth/
@@ -832,7 +834,7 @@ Uma convenção que depende de disciplina humana é violada mais cedo ou mais ta
 **Files:**
 - Test: `tests/architecture/boundaries.test.ts`
 
-- [ ] **Step 1: Escrever o teste**
+- [x] **Step 1: Escrever o teste**
 
 ```typescript
 import { describe, it, expect } from "vitest"
@@ -875,7 +877,7 @@ describe("fronteiras de arquitetura", () => {
 })
 ```
 
-- [ ] **Step 2: Rodar**
+- [x] **Step 2: Rodar**
 
 ```bash
 npx vitest run tests/architecture/boundaries.test.ts
@@ -883,7 +885,7 @@ npx vitest run tests/architecture/boundaries.test.ts
 
 Esperado: FALHA no primeiro teste — `app/api/chatbot/route.ts` ainda cria client próprio. É dívida real da landing, e o teste acabou de encontrá-la.
 
-- [ ] **Step 3: Migrar a rota do chatbot para a fachada**
+- [x] **Step 3: Migrar a rota do chatbot para a fachada**
 
 Em `app/api/chatbot/route.ts`, trocar a criação manual:
 
@@ -931,7 +933,7 @@ export async function POST(request: Request) {
 }
 ```
 
-- [ ] **Step 4: Rodar e ver passar**
+- [x] **Step 4: Rodar e ver passar**
 
 ```bash
 npx vitest run tests/architecture/boundaries.test.ts
@@ -940,7 +942,7 @@ npx next build
 
 Esperado: ambos verdes.
 
-- [ ] **Step 5: Commitar**
+- [x] **Step 5: Commitar**
 
 ```bash
 git add tests/architecture/ app/api/chatbot/route.ts
@@ -964,14 +966,14 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Create: `app/(dashboard)/page.tsx`
 - Modify: `app/layout.tsx` (enxugado para raiz mínima)
 
-- [ ] **Step 1: Mover a landing, preservando o histórico**
+- [x] **Step 1: Mover a landing, preservando o histórico**
 
 ```bash
 mkdir -p "app/(marketing)"
 git mv app/page.tsx "app/(marketing)/page.tsx"
 ```
 
-- [ ] **Step 2: Verificar que a landing continua idêntica**
+- [x] **Step 2: Verificar que a landing continua idêntica**
 
 ```bash
 npx next build
@@ -981,7 +983,7 @@ Esperado: rota `/` continua estática. Route group não muda URL.
 
 Subir `npm run dev` e conferir visualmente que a landing está intacta — mesmo layout, mesmas fontes, tema claro/escuro funcionando.
 
-- [ ] **Step 3: Criar o middleware de sessão**
+- [x] **Step 3: Criar o middleware de sessão**
 
 `middleware.ts`:
 
@@ -1032,7 +1034,7 @@ export const config = {
 }
 ```
 
-- [ ] **Step 4: Criar o shell do painel**
+- [x] **Step 4: Criar o shell do painel**
 
 `app/(dashboard)/layout.tsx`:
 
@@ -1057,7 +1059,7 @@ export default async function DashboardLayout({
 }
 ```
 
-- [ ] **Step 5: Verificar o build**
+- [x] **Step 5: Verificar o build**
 
 ```bash
 npx tsc --noEmit
@@ -1067,7 +1069,7 @@ npm test
 
 Esperado: tudo verde; a landing continua estática e o painel aparece como dinâmico.
 
-- [ ] **Step 6: Commitar**
+- [x] **Step 6: Commitar**
 
 ```bash
 git add middleware.ts "app/(marketing)/" "app/(dashboard)/" app/layout.tsx
@@ -1090,7 +1092,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Consumes: `requireClinicContext()` da Task 4
 - Produces: `clinicSchema`, `getCurrentClinic()`, `updateClinic(input)`
 
-- [ ] **Step 1: Escrever o teste de validação**
+- [x] **Step 1: Escrever o teste de validação**
 
 `lib/clinics/clinics.test.ts`:
 
@@ -1133,7 +1135,7 @@ describe("clinicUpdateSchema", () => {
 })
 ```
 
-- [ ] **Step 2: Rodar e ver falhar**
+- [x] **Step 2: Rodar e ver falhar**
 
 ```bash
 npx vitest run lib/clinics/clinics.test.ts
@@ -1141,7 +1143,7 @@ npx vitest run lib/clinics/clinics.test.ts
 
 Esperado: FALHA — o módulo não existe.
 
-- [ ] **Step 3: Implementar o schema**
+- [x] **Step 3: Implementar o schema**
 
 `lib/clinics/schema.ts`:
 
@@ -1186,7 +1188,7 @@ export type ClinicUpdateInput = z.infer<typeof clinicUpdateSchema>
 
 Nota sobre `.strict()`: faz o Zod rejeitar chave desconhecida. É a barreira que impede um `clinic_id` malicioso de entrar pelo formulário.
 
-- [ ] **Step 4: Implementar queries e mutations**
+- [x] **Step 4: Implementar queries e mutations**
 
 `lib/clinics/queries.ts`:
 
@@ -1235,7 +1237,7 @@ export async function updateClinic(input: ClinicUpdateInput) {
 }
 ```
 
-- [ ] **Step 5: Rodar e ver passar**
+- [x] **Step 5: Rodar e ver passar**
 
 ```bash
 npx vitest run lib/clinics/
@@ -1244,7 +1246,7 @@ npm test
 
 Esperado: toda a suíte verde.
 
-- [ ] **Step 6: Commitar**
+- [x] **Step 6: Commitar**
 
 ```bash
 git add lib/clinics/
@@ -1265,5 +1267,15 @@ Estado esperado:
 - Painel com shell autenticado, ainda sem telas de cadastro
 
 Fora do escopo deste plano, na ordem: perfil da clínica (`clinic-profile-v1`), `Patient`, `Agent` em draft, e o painel `(admin)` de onboarding. Cada um vira seu próprio plano, no ritmo de uma spec por sessão.
+
+### O que aconteceu depois (2026-09-16)
+
+Entregue além deste plano, na mesma data:
+
+- **Painel `(admin)`** com trilha de auditoria imutável e `platform_admins`
+- **Fase 3c** — shell de navegação dos dois painéis (`docs/superpowers/specs/2026-09-16-navegacao-e-rotas-design.md`)
+- **`patient-v1`** — `patients` com RLS, normalização E.164, opt-out e consentimento
+
+Ainda pendente da fase 3a: `clinic-profile-v1` e `agent-config-v1`.
 
 O PR de `staging` → `main` é decisão do Jhones. Este plano nunca faz merge.

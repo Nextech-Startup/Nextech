@@ -1,6 +1,10 @@
 import Link from "next/link"
 import { requireClinicContext, ClinicContextError } from "@/lib/auth/context"
+import { isPlatformAdmin } from "@/lib/admin/context"
 import { logout } from "@/lib/auth/actions"
+import { PanelShell } from "@/components/shell/panel-shell"
+import { SidebarNav } from "@/components/shell/sidebar-nav"
+import { ROTULO_DO_PAPEL, primeiraRotaVisivel } from "@/lib/navigation/landing"
 
 export default async function DashboardLayout({
   children,
@@ -9,11 +13,10 @@ export default async function DashboardLayout({
 }) {
   // O middleware já garantiu que existe sessão. O que pode faltar aqui é
   // vínculo com uma clínica — caso de quem é só da equipe Nextech.
-  let clinicId: string
+  let ctx: Awaited<ReturnType<typeof requireClinicContext>>
 
   try {
-    const ctx = await requireClinicContext()
-    clinicId = ctx.clinicId
+    ctx = await requireClinicContext()
   } catch (erro) {
     if (erro instanceof ClinicContextError) {
       return <SemClinica />
@@ -21,12 +24,20 @@ export default async function DashboardLayout({
     throw erro
   }
 
+  // Atalho entre os painéis: só para quem é das duas coisas. Antes da fase
+  // 3c não havia caminho nenhum — navegava-se digitando a URL.
+  const daEquipe = await isPlatformAdmin()
+
   return (
-    <div className="min-h-dvh bg-[var(--surface-0)] text-[var(--text-1)]">
-      <main className="mx-auto max-w-6xl px-4 py-8" data-clinic-id={clinicId}>
-        {children}
-      </main>
-    </div>
+    <PanelShell
+      marca={primeiraRotaVisivel(ctx.role) ?? "/dashboard"}
+      nome={ctx.email ?? "Minha conta"}
+      papel={ROTULO_DO_PAPEL[ctx.role]}
+      atalho={daEquipe ? { href: "/admin", label: "Painel interno" } : undefined}
+      nav={<SidebarNav painel="clinica" role={ctx.role} />}
+    >
+      <div data-clinic-id={ctx.clinicId}>{children}</div>
+    </PanelShell>
   )
 }
 

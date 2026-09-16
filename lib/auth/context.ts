@@ -13,6 +13,8 @@ export type ClinicContext = {
   clinicId: string
   role: ClinicRole
   userId: string
+  /** E-mail da sessão. Vem do mesmo getUser() — não custa consulta extra. */
+  email: string | null
   supabase: Awaited<ReturnType<typeof createServerClient>>
 }
 
@@ -58,6 +60,25 @@ export async function requireClinicContext(): Promise<ClinicContext> {
     clinicId: membership.clinic_id as string,
     role: membership.role as ClinicRole,
     userId: user.id,
+    email: user.email ?? null,
     supabase,
+  }
+}
+
+/**
+ * "Esta pessoa também responde por uma clínica?" — sem lançar.
+ *
+ * Contraparte de `isPlatformAdmin()`: o painel interno usa para decidir se
+ * mostra o atalho de volta ao painel da clínica (fase 3c). Pergunta de
+ * interface; o acesso real continua sendo resolvido por
+ * `requireClinicContext()` e pela RLS.
+ */
+export async function hasClinic(): Promise<boolean> {
+  try {
+    await requireClinicContext()
+    return true
+  } catch (erro) {
+    if (erro instanceof ClinicContextError) return false
+    throw erro
   }
 }

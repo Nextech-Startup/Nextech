@@ -55,11 +55,18 @@ Reaproveita `name`/`persona_instructions` já definidos em `agent-config-v1.md` 
 - Prazo de retenção de prontuário definido aqui prevalece sobre o default genérico já configurado em `lgpd-security` (regra 5) quando informado.
 
 ## Critério de aceite
-- [ ] Clínica consegue preencher identidade regulatória, equipe, convênios, procedimentos, política de agendamento, triagem de urgência e consentimento.
-- [ ] Duração de procedimento fica disponível pro motor de agendamento.
-- [ ] Regra de urgência não fica ativa sem confirmação explícita da clínica.
-- [ ] RLS isola todos os campos acima por `clinic_id`.
+- [x] Clínica consegue preencher identidade regulatória, equipe, convênios, procedimentos, política de agendamento, triagem de urgência e consentimento. — `/dashboard/settings`, 7 abas
+- [x] Duração de procedimento fica disponível pro motor de agendamento. — `getDuracaoDoProcedimento()`, que cai na duração padrão da política quando o procedimento não tem a própria
+- [x] Regra de urgência não fica ativa sem confirmação explícita da clínica. — CHECK constraint, não só validação de aplicação; editar o texto ou as palavras-chave derruba a confirmação
+- [x] RLS isola todos os campos acima por `clinic_id`. — 8 tabelas com `enable` + `force`, e FK composta nos vínculos de convênio
+
+> Implementada em 2026-09-16. Ver `docs/status.md` para as decisões que a
+> implementação tomou e as dívidas que deixou.
 
 ## Em aberto
+Os dois continuam abertos depois da v1 — nenhum é bloqueio de código, ambos dependem de decisão externa.
+
 - Validar texto/keywords padrão de triagem de urgência com alguém da área clínica antes de oferecer qualquer "modelo pronto" — risco de responsabilidade se o Nextech sugerir um protocolo insuficiente.
+  **Na v1 não há modelo pronto nenhum**: nenhum campo nasce preenchido e a UI diz, na aba, que o conteúdo é da clínica. Oferecer sugestão é a decisão que depende dessa validação.
 - Decidir se o prazo de retenção deve sugerir automaticamente por conselho (ex: 20 anos se `technical_responsible_council = CRM`) ou ficar livre pra clínica preencher.
+  **A v1 deixou livre.** O campo aceita 1 a 100 anos e, em branco, cai no default genérico. Sugerir por conselho é aditivo depois — o contrário (ter sugerido errado) não seria.

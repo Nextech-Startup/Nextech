@@ -57,3 +57,32 @@ export async function requireAdminContext(): Promise<AdminContext> {
     supabase: createServiceClient(),
   }
 }
+
+/**
+ * "Esta pessoa também é da equipe Nextech?" — sem lançar e sem criar
+ * client de service_role.
+ *
+ * Existe para o painel da clínica decidir se mostra o atalho para o painel
+ * interno (fase 3c). É pergunta de interface, não de autorização: quem
+ * entrar em `/admin` passa por `requireAdminContext()` de qualquer jeito.
+ *
+ * Usa a mesma policy de `platform_admins`, que devolve só o próprio
+ * registro do usuário da sessão.
+ */
+export async function isPlatformAdmin(): Promise<boolean> {
+  const sessionClient = await createServerClient()
+
+  const {
+    data: { user },
+  } = await sessionClient.auth.getUser()
+
+  if (!user) return false
+
+  const { data: registro } = await sessionClient
+    .from("platform_admins")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle()
+
+  return registro !== null
+}
