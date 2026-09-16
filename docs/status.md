@@ -10,10 +10,10 @@
 | 2 — Repo, CLAUDE.md, skills | ✅ concluída |
 | **3a — Fundação multi-tenant** | 🟡 ~60% |
 | **3b — Motor de conversa** | ⬜ spec pronta, nada implementado |
-| **3c — Shell de navegação** | ⬜ desenho pronto, nada implementado |
+| **3c — Shell de navegação** | ✅ concluída |
 | 4 a 10 | ⬜ não iniciadas |
 
-**64 testes passando** · 5 migrations aplicadas · em produção em `app.nextech.ia.br`
+**93 testes passando** · 5 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 ---
 
@@ -52,9 +52,21 @@ Decisões já tomadas: retomada da IA por inatividade de 24h; urgência responde
 
 ## Fase 3c — Shell de navegação
 
-Desenho em `docs/superpowers/specs/2026-09-16-navegacao-e-rotas-design.md`. Nada implementado.
+Desenho em `docs/superpowers/specs/2026-09-16-navegacao-e-rotas-design.md`. **Implementada** — 29 testes.
 
-Sidebar do painel da clínica em três grupos (Operação, Automação, Configuração), filtrado por papel; sidebar do painel interno com seis itens; cabeçalho com usuário e "Sair" nos dois.
+- [x] **`lib/navigation/`** — o mapa das rotas como dado, separado do markup: quais itens existem, quem vê cada um e o que já foi construído. Testável sem renderizar React
+- [x] **Sidebar do painel da clínica** — três grupos, filtrados pelo `role` que `requireClinicContext()` já devolve, sem consulta nova
+- [x] **Itens "em breve"** — telas desenhadas e não construídas aparecem inertes: não são link, não recebem foco de teclado, nunca acendem como rota atual
+- [x] **Sidebar do painel interno** — seis itens, mesmo tratamento
+- [x] **Cabeçalho nos dois painéis** — identificação, papel e "Sair"
+- [x] **Atalho entre os painéis** — `isPlatformAdmin()` e `hasClinic()`, checagens de interface que não lançam e não criam client de `service_role`
+
+Duas coisas que o desenho não previa, resolvidas na implementação:
+
+- `professional` não vê "Visão geral", que é a raiz do painel. `primeiraRotaVisivel()` responde para onde cada papel entra, e `/dashboard` mostra estado próprio ao profissional em vez de KPIs que o menu nega
+- `ClinicContext` passa a expor o `email`, que vinha do mesmo `getUser()` e estava sendo descartado
+
+Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho deixou mobile em aberto à espera de uso real.
 
 ---
 
