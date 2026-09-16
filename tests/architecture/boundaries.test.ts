@@ -77,3 +77,25 @@ describe("fronteiras de arquitetura", () => {
     expect(infratores).toEqual([])
   })
 })
+
+describe("LGPD: log nunca carrega objeto de erro inteiro", () => {
+  // Regra 3 do CLAUDE.md: logar só metadado. O PostgrestError do Supabase
+  // traz `message` e `details` com o valor da linha rejeitada — que em rota
+  // de lead ou de paciente é PII. Achado da revisão de segurança 2026-09-16.
+  it("nenhum console.error recebe a variável de erro crua", () => {
+    const arquivos = [...walk("app"), ...walk("lib"), ...walk("services")]
+
+    const infratores: string[] = []
+    for (const f of arquivos) {
+      const linhas = readFileSync(f, "utf8").split("\n")
+      linhas.forEach((linha, i) => {
+        // console.error("...", error) / (..., erroSupabase) / (..., err)
+        if (/console\.(error|log|warn)\([^)]*,\s*(error|err|erro\w*)\s*\)/.test(linha)) {
+          infratores.push(`${normalizar(f)}:${i + 1}`)
+        }
+      })
+    }
+
+    expect(infratores).toEqual([])
+  })
+})

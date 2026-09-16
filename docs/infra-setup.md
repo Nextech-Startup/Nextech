@@ -2,6 +2,23 @@
 
 Contas e configuração fora do código. Nada disso o Claude Code resolve sozinho — é setup manual em cada plataforma, antes ou durante a implementação das specs correspondentes.
 
+## Domínios e ambientes (definido em 2026-09-16)
+
+| Ambiente | Domínio | O que serve |
+|---|---|---|
+| Landing (produção) | `https://www.nextech.ia.br` | Site público, route group `(marketing)` |
+| Painel (produção) | `https://app.nextech.ia.br` | `(dashboard)` e `(admin)` |
+| Painel (staging) | `https://staging.nextech.ia.br` | Mesma build, branch `staging` |
+
+Os três saem do **mesmo projeto Vercel e do mesmo repositório** — são domínios apontando para a mesma aplicação, não deploys separados. O route group decide o que responde em cada caminho.
+
+Pendências que decorrem disso:
+- [ ] Apontar `app` e `staging` como domínios do projeto na Vercel (`staging` fixado na branch `staging`).
+- [ ] `NEXT_PUBLIC_SITE_URL` por ambiente: `www` em Production, `staging` em Preview. Sem isso, link absoluto e metadata de OG do painel apontam para o domínio errado.
+- [ ] **Staging precisa de banco próprio.** Hoje existe um único projeto Supabase, compartilhado com a landing em produção. Enquanto for assim, `staging.nextech.ia.br` escreve no banco de produção — aceitável só enquanto não houver clínica real cadastrada.
+- [ ] Decidir a redirect URL de OAuth do Supabase Auth por ambiente (o login precisa voltar para o domínio de origem, não sempre para produção).
+- [ ] DNS: `app` e `staging` como CNAME para a Vercel, sem colidir com o MX do Zoho nem com o subdomínio de envio do Resend.
+
 ## Variáveis de ambiente
 O template versionado é o `.env.example` na raiz — lista toda chave que o produto usa, sem nenhum valor real. Fluxo: copiar para `.env` e preencher localmente; na Vercel, configurar as mesmas chaves por ambiente (Production / Preview / Development).
 

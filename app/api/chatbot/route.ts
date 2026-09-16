@@ -30,13 +30,22 @@ export async function POST(request: Request) {
       }])
 
     if (erroSupabase) {
-      console.error("Erro Supabase:", erroSupabase)
+      // Só metadado: `message` e `details` do PostgrestError carregam o valor
+      // da linha rejeitada, que aqui é PII do lead (regra 3 do CLAUDE.md).
+      console.error("Falha ao salvar lead", {
+        code: erroSupabase.code,
+        hint: erroSupabase.hint,
+      })
       throw new Error("Falha ao salvar lead no banco.")
     }
 
     return NextResponse.json({ success: true }, { status: 200 })
   } catch (error) {
-    console.error("Erro API Chatbot:", error)
+    // Nunca o objeto inteiro: se algo lançou com o body anexado, o payload
+    // do lead iria junto para o log.
+    console.error("Erro na rota do chatbot", {
+      name: error instanceof Error ? error.name : "unknown",
+    })
     return NextResponse.json({ error: "Erro interno no servidor." }, { status: 500 })
   }
 }

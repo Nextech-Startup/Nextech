@@ -33,7 +33,7 @@ const instrumentSans = localFont({
   fallback: ["system-ui", "sans-serif"],
 })
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://nextech.ia.br"
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://www.nextech.ia.br"
 const DESCRIPTION =
   "Assistentes de WhatsApp com IA que automatizam conversas de clínicas, recuperam consultas perdidas e oferecem atendimento 24/7. Desenvolvido para todas as clínicas e consultórios do Brasil."
 
