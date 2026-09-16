@@ -16,21 +16,28 @@ function walk(dir: string, files: string[] = []): string[] {
 
 const normalizar = (f: string) => f.replace(/\\/g, "/")
 
-// Único arquivo autorizado a instanciar client do Supabase.
+// Arquivos autorizados a instanciar client do Supabase.
 // Todo o resto obtém o client por lib/auth/context.ts.
-const FABRICA_AUTORIZADA = "lib/supabase/server.ts"
+//
+// middleware.ts é exceção justificada: roda no edge, antes do React, e não
+// tem acesso ao cookies() do Next — precisa montar o client com os cookies
+// da própria request. Ele não lê dado de clínica, só renova a sessão.
+const FABRICAS_AUTORIZADAS = ["lib/supabase/server.ts", "middleware.ts"]
 
 describe("fronteiras de arquitetura", () => {
   it("apenas lib/supabase/server.ts instancia client do Supabase", () => {
     // O sinal é importar a biblioteca, não chamar a fábrica: quem só chama
     // createServerClient() de lib/supabase/server está usando a fachada,
     // que é justamente o comportamento correto.
-    const infratores = [...walk("app"), ...walk("lib"), ...walk("components")]
+    const arquivos = [...walk("app"), ...walk("lib"), ...walk("components")]
+    if (existsSync("middleware.ts")) arquivos.push("middleware.ts")
+
+    const infratores = arquivos
       .filter((f) =>
         /from\s+["']@supabase\/(supabase-js|ssr)["']/.test(readFileSync(f, "utf8")),
       )
       .map(normalizar)
-      .filter((f) => !f.endsWith(FABRICA_AUTORIZADA))
+      .filter((f) => !FABRICAS_AUTORIZADAS.some((ok) => f.endsWith(ok)))
 
     expect(infratores).toEqual([])
   })
