@@ -1275,7 +1275,8 @@ Entregue além deste plano, na mesma data:
 - **Painel `(admin)`** com trilha de auditoria imutável e `platform_admins`
 - **Fase 3c** — shell de navegação dos dois painéis (`docs/superpowers/specs/2026-09-16-navegacao-e-rotas-design.md`)
 - **`patient-v1`** — `patients` com RLS, normalização E.164, opt-out e consentimento
+- **`clinic-profile-v1`** — os sete blocos do perfil em `/dashboard/settings`, com 7 abas. Fechou a dívida da FK de `patients.insurance_id` e passou o item do sidebar de "em breve" para "pronto". 129 testes
 
-Ainda pendente da fase 3a: `clinic-profile-v1` e `agent-config-v1`.
+**Ainda pendente da fase 3a: só `agent-config-v1`.**
 
-O PR de `staging` → `main` é decisão do Jhones. Este plano nunca faz merge.
+Tudo isso foi mergeado em `main` pelo PR #4, com autorização explícita do Jhones (commit de merge `80f2423`). Este plano continua não fazendo merge por conta própria — a autorização foi dada caso a caso.

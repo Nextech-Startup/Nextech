@@ -8,7 +8,7 @@
 |---|---|
 | 1 — Specs do MVP | ✅ concluída — 9 specs |
 | 2 — Repo, CLAUDE.md, skills | ✅ concluída |
-| **3a — Fundação multi-tenant** | 🟡 ~90% |
+| **3a — Fundação multi-tenant** | 🟡 ~90% — só falta `agent-config-v1` |
 | **3b — Motor de conversa** | ⬜ spec pronta, nada implementado |
 | **3c — Shell de navegação** | ✅ concluída |
 | 4 a 10 | ⬜ não iniciadas |
@@ -105,7 +105,7 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 - [ ] **Proteção de deployment do `staging`** — hoje exige login da Vercel (302 para SSO). Desativar em Settings → Deployment Protection, se quiser acesso direto
 - [ ] **Credenciais da Meta** — iniciar o processo, que leva tempo e não trava código
 
-- [ ] **Revisar o PR #4** — fase 3c, shell de navegação. Aberto, Vercel verde, aguardando aprovação
+- [x] ~~**Revisar o PR #4**~~ — mergeado em 2026-09-16 (commit `80f2423`), com fase 3c, `patient-v1` e `clinic-profile-v1`. `main` e `staging` estão no mesmo ponto
 
 ### Dívida técnica conhecida
 
