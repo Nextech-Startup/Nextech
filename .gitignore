@@ -18,6 +18,8 @@ yarn-error.log*
 
 # env files
 .env*
+# exceção: template sem valor real, versionado de propósito
+!.env.example
 
 # vercel
 .vercel
@@ -25,7 +27,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-# ferramentas de agente de IA (configuração local, não do produto)
+# ferramentas de agente de IA
+# .claude/skills e .claude/agents SÃO versionados: carregam a regra de negócio
+# do produto (RLS por clinic_id, LGPD, contrato de CRM adapter).
+# Só configuração pessoal fica de fora.
 /.agents/
-/.claude/
-skills-lock.json
+/.claude/settings.local.json

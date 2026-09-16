@@ -23,7 +23,12 @@ export const chatbotService = {
 
       return await response.json()
     } catch (error) {
-      console.error("Erro no chatbotService:", error)
+      // Só o nome do erro: o objeto pode carregar o payload do lead.
+      // Aqui roda no browser, com o dado do próprio usuário, mas o módulo é
+      // compartilhável — o padrão vale em qualquer contexto (regra 3).
+      console.error("Erro ao enviar lead", {
+        name: error instanceof Error ? error.name : "unknown",
+      })
       throw error
     }
   },

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-import axios from "axios"
+import { serviceContext } from "@/lib/auth/service-context"
 
 export async function POST(request: Request) {
   try {
@@ -13,19 +12,12 @@ export async function POST(request: Request) {
     }
 
     // 2. Supabase
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error("Variáveis de ambiente do Supabase não configuradas.")
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    })
+    // Lead da landing chega sem sessão, então a escrita usa service_role,
+    // que ignora a RLS de chatbot_leads. É o único caminho possível aqui.
+    const { supabase } = serviceContext()
 
     // 3. Salvar lead
-    const { data: leadSalvo, error: erroSupabase } = await supabase
+    const { error: erroSupabase } = await supabase
       .from("chatbot_leads")
       .insert([{
         name,
@@ -36,26 +28,24 @@ export async function POST(request: Request) {
         meetings_count,
         origem: "Chatbot Site",
       }])
-      .select()
-      .single()
 
     if (erroSupabase) {
-      console.error("Erro Supabase:", erroSupabase)
+      // Só metadado: `message` e `details` do PostgrestError carregam o valor
+      // da linha rejeitada, que aqui é PII do lead (regra 3 do CLAUDE.md).
+      console.error("Falha ao salvar lead", {
+        code: erroSupabase.code,
+        hint: erroSupabase.hint,
+      })
       throw new Error("Falha ao salvar lead no banco.")
-    }
-
-    // 4. Webhook n8n (opcional)
-    const n8nWebhook = process.env.N8N_WEBHOOK_CHATBOT_URL
-    if (n8nWebhook) {
-      axios.post(n8nWebhook, {
-        ...leadSalvo,
-        data_hora: new Date().toLocaleString("pt-BR"),
-      }).catch((err) => console.error("Erro ao notificar n8n:", err.message))
     }
 
     return NextResponse.json({ success: true }, { status: 200 })
   } catch (error) {
-    console.error("Erro API Chatbot:", error)
+    // Nunca o objeto inteiro: se algo lançou com o body anexado, o payload
+    // do lead iria junto para o log.
+    console.error("Erro na rota do chatbot", {
+      name: error instanceof Error ? error.name : "unknown",
+    })
     return NextResponse.json({ error: "Erro interno no servidor." }, { status: 500 })
   }
 }
