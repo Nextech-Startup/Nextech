@@ -119,17 +119,21 @@ describe("itens de tela não construída", () => {
     // Inventário deliberado: cada tela entregue entra aqui junto com a
     // spec que a construiu. O teste falhando ao adicionar uma rota é o
     // ponto — obriga a decidir se ela está mesmo pronta.
-    expect(prontos).toEqual(["/dashboard", "/dashboard/settings"])
+    expect(prontos).toEqual([
+      "/dashboard",
+      "/dashboard/agents",
+      "/dashboard/settings",
+    ])
   })
 
   it("item em breve nunca é marcado como ativo, mesmo na própria rota", () => {
-    const grupos = resolveDashboardNav("owner", "/dashboard/agents")
-    const agentes = grupos
+    const grupos = resolveDashboardNav("owner", "/dashboard/sequences")
+    const sequencias = grupos
       .flatMap((g) => g.items)
-      .find((i) => i.label === "Agentes")!
+      .find((i) => i.label === "Sequências")!
 
-    expect(agentes.status).toBe("em-breve")
-    expect(agentes.active).toBe(false)
+    expect(sequencias.status).toBe("em-breve")
+    expect(sequencias.active).toBe(false)
   })
 })
 

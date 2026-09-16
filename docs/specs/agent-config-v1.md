@@ -35,18 +35,21 @@ Fora do escopo v1 (fica pra depois): perguntas de qualificação estruturadas, b
 - Editar um agente `active` só vale depois de publicar de novo — não em tempo real, pra não quebrar conversa em andamento. Aceito como risco documentado na v1.
 
 ## Critério de aceite
-- [ ] Clínica autenticada consegue criar, editar, testar e publicar um agente.
-- [ ] RLS garante que uma clínica não lista/edita agente de outra.
-- [ ] Preview roda uma conversa simulada de pelo menos 3 turnos coerente com a persona configurada.
-- [ ] Publicar sem WhatsApp conectado é bloqueado com mensagem clara.
-- [ ] Teste automatizado cobre: isolamento entre clínicas, bloqueio de publish sem instância conectada.
+- [x] Clínica autenticada consegue criar, editar e publicar um agente.
+- [x] RLS garante que uma clínica não lista/edita agente de outra.
+- [ ] ~~Preview roda uma conversa simulada de pelo menos 3 turnos~~ — **adiado para a fase 3b**: depende do motor de IA, que não existe. A tela mostra o cartão "Testar conversa" como inerte em vez de esconder o que esta spec promete.
+- [x] Publicar sem WhatsApp conectado é bloqueado com mensagem clara — por trigger no banco, não só pela aplicação.
+- [x] Teste automatizado cobre: isolamento entre clínicas, bloqueio de publish sem instância conectada.
+
+> **Entregue em 2026-09-16** (branch `staging`), menos o preview. 92 testes:
+> 21 de criptografia, 34 de schema, 37 de RLS contra o banco real.
 
 ## Planos afetados
 O painel de configuração existe em todos os planos (Starter/Pro/HealthTech) — é a base do produto, não diferencial de plano superior.
 
 ## Em aberto (decidir antes de codar)
-- **Assunção 1 agente = 1 número WhatsApp**: confirmar se corresponde ao setup real dos clientes multi-especialidade, ou se existe caso de vários agentes num único número (nesse caso precisa de roteamento de intenção, que não está neste escopo).
-- **Limite de agentes por plano**: o site não especifica isso hoje (diferencia por atendimentos/mês e integrações). Decidir se entra como limite antes do billing v2.
+- ~~**Assunção 1 agente = 1 número WhatsApp**~~ — **confirmada** em 2026-09-16. O `whatsapp_phone_number_id` é coluna de `agents`, com UNIQUE global. Se o caso de N agentes num número aparecer, a migração é extrair `whatsapp_connections` — contida e sem perda de dado.
+- ~~**Limite de agentes por plano**~~ — **decidido**: Starter 1, Pro 3, HealthTech ilimitado, por trigger no banco. Obrigou a criar `clinics.plan`, o primeiro pedaço do modelo de billing. Os números são revisáveis antes do billing v2; a modelagem, não.
 - **Mudança de cobrança da Meta em 1º/out/2026**: mensagem de serviço dentro da janela de 24h deixa de ser gratuita. Precisa entrar no cálculo de custo por atendimento antes de fechar o preço dos planos Starter/Pro/HealthTech.
 - **Entidade de conversa/ownership**: coexistência exige rastrear se uma conversa está sendo respondida pela IA ou por um humano (via eco do app). Essa modelagem (provavelmente um `Conversation` por paciente+agente, com campo `handled_by: ai | human`) não é escopo desta spec — pertence à spec do motor de conversa (fase 3 do roadmap) — mas o campo `handoff_enabled` aqui definido depende dela em runtime.
 

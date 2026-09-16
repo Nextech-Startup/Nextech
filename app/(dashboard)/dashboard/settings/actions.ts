@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { ZodError } from "zod"
+import { ehErroDoPostgrest } from "@/lib/supabase/errors"
 import {
   confirmUrgencyRule,
   createInsurance,
@@ -42,7 +43,13 @@ function mensagemDeErro(erro: unknown): string {
   if (erro instanceof ZodError) {
     return erro.issues[0]?.message ?? "Confira os campos preenchidos."
   }
-  if (erro instanceof Error && erro.name !== "PostgrestError") {
+  // Barrado pelo FORMATO: o erro do PostgREST não é `instanceof Error` e
+  // não tem `name` — um filtro por `erro.name !== "PostgrestError"` nunca
+  // dispararia, e o `details` traz o valor rejeitado (aqui, PII).
+  if (ehErroDoPostgrest(erro)) {
+    return "Não foi possível salvar. Confira os dados e tente de novo."
+  }
+  if (erro instanceof Error) {
     return erro.message
   }
   return "Não foi possível salvar. Confira os dados e tente de novo."
