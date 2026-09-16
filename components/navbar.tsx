@@ -26,6 +26,10 @@ const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
   WHATSAPP_MESSAGE
 )}`
 
+// Painel da clínica. Fica em env para que preview e staging apontem para o
+// próprio ambiente, em vez de jogar o usuário na produção.
+const PAINEL_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.nextech.ia.br"
+
 export function Navbar() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -105,6 +109,14 @@ export function Navbar() {
         {/* Botão CTA Principal Desktop */}
         <div className="hidden md:flex items-center gap-3">
           <ThemeToggle />
+          {/* Entrada de quem já é cliente. Discreto de propósito: o CTA de
+              vendas continua sendo o botão principal ao lado. */}
+          <a
+            href={PAINEL_URL}
+            className="px-4 py-2 text-sm font-medium text-ink-2 hover:text-ink-1 hover:bg-[var(--glass-bg)] rounded-pill transition-colors"
+          >
+            Login
+          </a>
           <LiquidMetalButton label="Agendar reunião" href={whatsappUrl} target="_blank" />
         </div>
 
@@ -146,6 +158,12 @@ export function Navbar() {
                 </button>
               ))}
               <div className="h-px bg-hairline my-4" />
+              <a
+                href={PAINEL_URL}
+                className="px-4 py-4 text-left text-lg font-medium text-ink-2 hover:text-ink-1 hover:bg-[var(--glass-bg)] rounded-card transition-all"
+              >
+                Login
+              </a>
               <div className="flex justify-center">
                 <LiquidMetalButton label="Agendar Reunião" href={whatsappUrl} target="_blank" />
               </div>
