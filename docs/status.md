@@ -8,12 +8,12 @@
 |---|---|
 | 1 — Specs do MVP | ✅ concluída — 9 specs |
 | 2 — Repo, CLAUDE.md, skills | ✅ concluída |
-| **3a — Fundação multi-tenant** | 🟡 ~60% |
+| **3a — Fundação multi-tenant** | 🟡 ~75% |
 | **3b — Motor de conversa** | ⬜ spec pronta, nada implementado |
 | **3c — Shell de navegação** | ✅ concluída |
 | 4 a 10 | ⬜ não iniciadas |
 
-**93 testes passando** · 5 migrations aplicadas · em produção em `app.nextech.ia.br`
+**140 testes passando** · 6 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 ---
 
@@ -22,7 +22,7 @@
 ### Concluído
 
 - [x] **Infra**: Next 16.3.5 (`npm audit` de 6 vulnerabilidades, 1 crítica, para 0), Vitest 5, Supabase CLI, branch `staging`
-- [x] **Migrations**: baseline das tabelas da landing, `clinics` + `clinic_members` com RLS, restrição de coluna, `platform_admins`, `admin_audit_log`
+- [x] **Migrations**: baseline das tabelas da landing, `clinics` + `clinic_members` com RLS, restrição de coluna, `platform_admins`, `admin_audit_log`, `patients`
 - [x] **`requireClinicContext()`** — porta única de resolução de tenant, sem argumento: não há como pedir o contexto de outra clínica
 - [x] **Guarda arquitetural** — teste que falha se alguém instanciar client Supabase fora da fachada, ou logar objeto de erro cru
 - [x] **Route groups** — landing em `(marketing)`, painel em `(dashboard)` e `(admin)`, com roteamento por hostname
@@ -31,11 +31,11 @@
 - [x] **Painel `(admin)`** — listar clínicas, criar, convidar responsável
 - [x] **Trilha de auditoria** — imutável: sem policy de insert, update ou delete para usuário autenticado
 - [x] **`lib/clinics/`** — primeira fatia vertical (schema Zod strict, queries, mutations)
+- [x] **`patient-v1`** — `patients` com RLS por `clinic_id`, normalização E.164 (o que impede cadastro duplicado do mesmo número), identificação idempotente no primeiro contato, consentimento e opt-out. 47 testes
 
 ### Falta
 
 - [ ] **`clinic-profile-v1`** — identidade regulatória, equipe, convênios, procedimentos, política de agendamento, triagem de urgência, consentimento. A maior spec pendente, e a que alimenta o motor de conversa e o de agendamento
-- [ ] **`patient-v1`** — modelo mínimo de paciente. Pequena, mas pré-requisito da 3b
 - [ ] **`agent-config-v1`** — agente em `draft` com formulário (o preview de conversa é 3b)
 
 ---
@@ -83,14 +83,17 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 
 ### Precisam de ação do Jhones
 
-- [ ] **Merge do PR #3** — corrige erro 500 no `/dashboard` da conta admin (sem clínica vinculada). Enquanto não fecha, `admin@nextech.ia.br` quebra ao abrir `/dashboard`
 - [ ] **DNS de `nextech.ia.br` sem `www`** — não resolve. Precisa de registro `A` para `76.76.21.21` ou o ALIAS que a Vercel indicar; CNAME não funciona em domínio raiz
 - [ ] **Proteção de deployment do `staging`** — hoje exige login da Vercel (302 para SSO). Desativar em Settings → Deployment Protection, se quiser acesso direto
 - [ ] **Credenciais da Meta** — iniciar o processo, que leva tempo e não trava código
 
+- [ ] **Revisar o PR #4** — fase 3c, shell de navegação. Aberto, Vercel verde, aguardando aprovação
+
 ### Dívida técnica conhecida
 
 - [ ] **Staging escreve no banco de produção** — há um único projeto Supabase. Aceitável até o primeiro cliente real, não depois
+- [ ] **`patients.insurance_id` sem FK** — aponta para `insurances`, que só nasce em `clinic-profile-v1`. Vira um `alter table ... add constraint` de uma linha quando a tabela existir
+- [ ] **`professional` vê todos os pacientes da clínica** — a policy de `patients` não estreita por profissional porque o vínculo paciente ↔ profissional não existe na v1. Apertar depois é seguro; afrouxar não seria
 - [ ] **Tabela `projetoAtivo`** — existe no banco, nenhum código a referencia. Resíduo ou uso externo? Mantida na baseline com nota
 - [ ] **Convite mostra senha na tela** — o `(admin)` exibe a senha provisória porque o Resend não está configurado. Vira convite por e-mail quando estiver
 - [ ] **`admin_audit_log` precisa de justificativa** — a fase 3c decidiu que ver conversa de paciente exige motivo registrado. Estende a tabela com `conversation.view` e campo de justificativa
