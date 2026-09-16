@@ -29,6 +29,20 @@ Ao fim de 3a: a clínica existe, tem perfil e equipe, e um agente configurado �
 - `AttendanceSession` (`atendimento-billing-v1.md`)
 - Preview de conversa do agente
 
+### Fase 3c — Shell de navegação
+Criada em 2026-09-16, a partir de uma lacuna real: o roadmap organiza por domínio e nunca definiu **quais telas o produto tem nem como se navega entre elas**. Na prática, `/dashboard` e `/admin` existiam sem link entre si.
+
+Desenho completo em `docs/superpowers/specs/2026-09-16-navegacao-e-rotas-design.md`.
+
+- Sidebar do `(dashboard)` em três grupos — Operação, Automação, Configuração — filtrado por papel (`owner` / `staff` / `professional`)
+- Sidebar do `(admin)`: Clínicas, Consumo, Conexões, Saúde, Conversas, Auditoria
+- Cabeçalho com usuário, papel e "Sair" nos dois painéis
+- Item de tela ainda não construída aparece desabilitado, marcado "em breve" — nunca link que leva a tela vazia
+
+Depende de 3a (o `role` vem de `requireClinicContext()`). Cada spec seguinte preenche a própria rota e tira o "em breve" do próprio item.
+
+**Consequência para a fase 3b e seguintes:** a tela de conversa do `(admin)` lê dado de saúde e exige justificativa obrigatória antes de abrir, registrada na trilha. Isso estende `admin_audit_log` com a ação `conversation.view` e um campo de justificativa.
+
 ## Fase 4 — Templates e sequências
 - `whatsapp-templates-v1.md`, `message-sequences-v1.md`
 - Depende da fase 3b (precisa do agente e do paciente conversando)
