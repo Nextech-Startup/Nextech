@@ -1,14 +1,38 @@
+import type { Metadata } from "next"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
-import { DataList, DataRow, WorkspacePage, WorkspaceToolbar } from "@/components/patterns/workspace-page"
+import { TabelaDePacientes } from "@/components/patients/tabela-de-pacientes"
+import { contarSegmentos, filtrarPacientes, lerSegmento } from "@/components/patients/segmentos"
+import { AGORA } from "../../_fixtures/agora"
+import { PACIENTES } from "../../_fixtures/pacientes"
 
-export default function PatientsPage() {
-  return <div className="flex flex-col gap-8"><AvisoDePrototipo entrega="tela de pacientes (os dados já existem)" /><WorkspacePage title="Pacientes" description="Centralize os contatos e o histórico de relacionamento da sua clínica." action={{ label: "Cadastrar paciente" }}>
-    <WorkspaceToolbar placeholder="Buscar por nome ou telefone" filters={["Todos", "Ativos", "Inativos"]} />
-    <DataList>
-      <DataRow title="Mariana Alves" detail="(81) 90000-0001 · Último contato hoje" meta="642 interações" status="success" />
-      <DataRow title="Rafael Mendes" detail="(81) 90000-0002 · Último contato ontem" meta="18 interações" status="success" />
-      <DataRow title="Camila Duarte" detail="(81) 90000-0003 · Último contato há 12 dias" meta="8 interações" status="warning" />
-      <DataRow title="Lucas Ferreira" detail="(81) 90000-0004 · Primeiro contato" meta="1 interação" status="neutral" />
-    </DataList>
-  </WorkspacePage></div>
+export const metadata: Metadata = {
+  title: "Protótipo: Pacientes",
+  robots: { index: false, follow: false },
+}
+
+function texto(v: string | string[] | undefined): string | undefined {
+  return typeof v === "string" ? v : undefined
+}
+
+export default async function PacientesPrototipo({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
+  const filtro = { segmento: lerSegmento(texto(params.segmento)), busca: texto(params.q) ?? "" }
+
+  return (
+    <div className="grid gap-6">
+      <AvisoDePrototipo entrega="tela de pacientes (o dado já existe desde patient-v1)" />
+      <TabelaDePacientes
+        pacientes={filtrarPacientes(PACIENTES, filtro, AGORA)}
+        contagens={contarSegmentos(PACIENTES, AGORA)}
+        filtro={filtro}
+        agora={AGORA}
+        caminho="/admin/design-system/telas/pacientes"
+        acaoDesabilitada="Protótipo: a ação ainda não existe"
+      />
+    </div>
+  )
 }
