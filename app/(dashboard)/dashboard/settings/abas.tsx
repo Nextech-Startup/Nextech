@@ -46,7 +46,7 @@ export function Abas({
           <Tabs.Trigger
             key={s.id}
             value={s.id}
-            className="-mb-px shrink-0 border-b-2 border-transparent px-3 py-2.5 text-sm font-medium text-[var(--text-2)] transition hover:text-[var(--text-1)] data-[state=active]:border-[var(--accent)] data-[state=active]:text-[var(--text-1)]"
+            className="-mb-px shrink-0 border-b-2 border-transparent px-3 py-2.5 text-sm font-medium text-[var(--text-2)] transition hover:text-[var(--text-1)] data-[state=active]:border-[var(--brand)] data-[state=active]:text-[var(--text-1)]"
           >
             {s.label}
           </Tabs.Trigger>

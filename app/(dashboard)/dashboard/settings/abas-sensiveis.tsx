@@ -234,7 +234,7 @@ function LinhaRegra({ regra }: { regra: UrgencyRule }) {
           <button
             type="button"
             onClick={() => setEditando(true)}
-            className="text-sm text-[var(--accent-on-light)] transition hover:underline dark:text-[var(--accent-dim)]"
+            className="text-sm text-[var(--brand-on-light)] transition hover:underline dark:text-[var(--brand-dim)]"
           >
             Editar
           </button>
@@ -298,7 +298,7 @@ function LinhaRegra({ regra }: { regra: UrgencyRule }) {
               type="checkbox"
               name="responsabilidade"
               required
-              className="mt-0.5 size-4 shrink-0 accent-[var(--accent)]"
+              className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]"
             />
             <span>
               Confirmo que este texto foi definido pela nossa equipe clínica e

@@ -31,7 +31,7 @@ export default async function AdminPage() {
             <div className="text-[var(--text-3)]">total</div>
           </div>
           <div>
-            <div className="text-2xl font-semibold tabular-nums text-[var(--accent-on-light)] dark:text-[var(--accent-dim)]">
+            <div className="text-2xl font-semibold tabular-nums text-[var(--brand-on-light)] dark:text-[var(--brand-dim)]">
               {stats.ativas}
             </div>
             <div className="text-[var(--text-3)]">ativas</div>

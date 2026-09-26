@@ -239,7 +239,7 @@ function LinhaConvenio({ convenio }: { convenio: Insurance }) {
           <button
             type="button"
             onClick={() => setEditando(true)}
-            className="text-sm text-[var(--accent-on-light)] transition hover:underline dark:text-[var(--accent-dim)]"
+            className="text-sm text-[var(--brand-on-light)] transition hover:underline dark:text-[var(--brand-dim)]"
           >
             Editar
           </button>
@@ -279,7 +279,7 @@ function LinhaConvenio({ convenio }: { convenio: Insurance }) {
             type="checkbox"
             name="active"
             defaultChecked={convenio.active}
-            className="size-4 accent-[var(--accent)]"
+            className="size-4 accent-[var(--brand)]"
           />
           Ativo
         </label>
@@ -462,7 +462,7 @@ function LinhaProfissional({
             <button
               type="button"
               onClick={() => setEditando(true)}
-              className="text-sm text-[var(--accent-on-light)] transition hover:underline dark:text-[var(--accent-dim)]"
+              className="text-sm text-[var(--brand-on-light)] transition hover:underline dark:text-[var(--brand-dim)]"
             >
               Editar
             </button>
@@ -502,7 +502,7 @@ function LinhaProfissional({
           type="checkbox"
           name="active"
           defaultChecked={profissional.active}
-          className="size-4 accent-[var(--accent)]"
+          className="size-4 accent-[var(--brand)]"
         />
         Ativo na equipe
       </label>
@@ -685,7 +685,7 @@ function LinhaProcedimento({
             <button
               type="button"
               onClick={() => setEditando(true)}
-              className="text-sm text-[var(--accent-on-light)] transition hover:underline dark:text-[var(--accent-dim)]"
+              className="text-sm text-[var(--brand-on-light)] transition hover:underline dark:text-[var(--brand-dim)]"
             >
               Editar
             </button>
@@ -725,7 +725,7 @@ function LinhaProcedimento({
           type="checkbox"
           name="active"
           defaultChecked={procedimento.active}
-          className="size-4 accent-[var(--accent)]"
+          className="size-4 accent-[var(--brand)]"
         />
         Oferecido pela clínica
       </label>
