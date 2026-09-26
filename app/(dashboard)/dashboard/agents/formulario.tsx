@@ -10,17 +10,9 @@ import {
   publicarAgenteAction,
   salvarAgenteAction,
 } from "./actions"
-import {
-  Aviso,
-  Botao,
-  Campo,
-  Cartao,
-  Input,
-  Select,
-  SeloDeStatus,
-  Textarea,
-  estadoInicial,
-} from "./ui"
+import { Aviso, Botao, Campo, Input, Select, Textarea, estadoInicial } from "@/components/patterns/formulario"
+import { Cartao } from "@/components/patterns/cartao"
+import { StatusDoAgente } from "@/components/agents/status-do-agente"
 import {
   DIAS,
   ESPECIALIDADES,
@@ -53,7 +45,7 @@ export function FormularioDeAgente({ agente }: { agente: Agent }) {
             {ROTULO_DA_ESPECIALIDADE[agente.specialty]}
           </p>
         </div>
-        <SeloDeStatus status={agente.status} />
+        <StatusDoAgente status={agente.status} />
       </header>
 
       <Publicacao
@@ -113,7 +105,7 @@ function Publicacao({
             faria as duas camadas discordarem sobre o que "publicar"
             exige. */}
         {bloqueado && !ativo && (
-          <div className="rounded-xl border border-warn/30 bg-warn/8 px-4 py-3 text-sm">
+          <div className="rounded-xl border border-warning-border bg-warning-bg px-4 py-3 text-sm text-warning-fg">
             <p className="font-medium">Falta para publicar:</p>
             <ul className="mt-1.5 list-inside list-disc text-ink-2">
               {pendencias.map((p) => (

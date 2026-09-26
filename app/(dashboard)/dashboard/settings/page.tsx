@@ -20,7 +20,7 @@ import {
   AbaProcedimentos,
 } from "./abas-cadastro"
 import { AbaConsentimento, AbaUrgencia } from "./abas-sensiveis"
-import { Selo } from "./ui"
+import { StatusBadge } from "@/components/patterns/status-badge"
 
 export const metadata: Metadata = {
   title: "Perfil da clínica",
@@ -107,15 +107,15 @@ export default async function SettingsPage() {
 
         <div className="flex items-center gap-2">
           {clinic.status === "active" ? (
-            <Selo tom="ativo">ativa</Selo>
+            <StatusBadge tone="success">ativa</StatusBadge>
           ) : (
-            <Selo>rascunho</Selo>
+            <StatusBadge>rascunho</StatusBadge>
           )}
           {pendencias.length > 0 && (
-            <Selo tom="alerta">
+            <StatusBadge tone="warning">
               {pendencias.length}{" "}
               {pendencias.length === 1 ? "pendência" : "pendências"}
-            </Selo>
+            </StatusBadge>
           )}
         </div>
       </header>

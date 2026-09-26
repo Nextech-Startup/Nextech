@@ -1,8 +1,10 @@
+import type { ReactNode } from "react"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
-type StatusTone = "success" | "warning" | "danger" | "info" | "neutral"
+export type StatusTone = "success" | "warning" | "danger" | "info" | "neutral"
 
-const toneClasses: Record<StatusTone, string> = {
+const TOM: Record<StatusTone, string> = {
   success: "border-success-border bg-success-bg text-success-fg",
   warning: "border-warning-border bg-warning-bg text-warning-fg",
   danger: "border-danger-border bg-danger-bg text-danger-fg",
@@ -10,21 +12,24 @@ const toneClasses: Record<StatusTone, string> = {
   neutral: "border-neutral-border bg-neutral-bg text-neutral-fg",
 }
 
-export function StatusBadge({ label, tone, className, children, status }: { label?: string; tone?: StatusTone; className?: string; children?: React.ReactNode; status?: string }) {
-  const resolvedLabel = label ?? children
-  const resolvedTone = tone ?? (status === "success" || status === "Ativo" || status === "Concluído" ? "success" : status === "warning" || status === "Rascunho" ? "warning" : status === "info" || status === "Publicado" ? "info" : "neutral")
+/**
+ * Estado de qualquer coisa do produto: agente, conversa, template, clínica.
+ * O domínio escolhe o tom; o texto sempre diz o estado — cor nunca é a
+ * única pista. O ponto é o badge em pílula do hero da landing.
+ */
+export function StatusBadge({
+  tone = "neutral",
+  children,
+  className,
+}: {
+  tone?: StatusTone
+  children: ReactNode
+  className?: string
+}) {
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-xs font-medium", toneClasses[resolvedTone], className)}>
+    <Badge variant="outline" className={cn("gap-1.5 px-2.5", TOM[tone], className)}>
       <span aria-hidden="true" className="size-1.5 rounded-pill bg-current" />
-      {resolvedLabel}
-    </span>
+      {children}
+    </Badge>
   )
 }
-
-export function StatusDot({ tone = "neutral", className }: { tone?: StatusTone; className?: string }) {
-  return <span aria-hidden="true" className={cn("size-2 rounded-pill", toneClasses[tone], className)} />
-}
-
-export type { StatusTone }
-
-// StatusBadge é a superfície única para estados; cada domínio escolhe o tom e o rótulo.

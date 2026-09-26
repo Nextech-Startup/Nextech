@@ -57,7 +57,7 @@ export function EmptyWorkspace({ title, description, action }: { title: string; 
 }
 
 export function DataRow({ title, detail, status = "neutral", meta }: { title: string; detail: string; status?: "success" | "warning" | "info" | "neutral"; meta: string }) {
-  return <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4"><div className="min-w-0"><p className="truncate text-sm font-medium text-ink-1">{title}</p><p className="mt-1 truncate text-xs text-ink-2">{detail}</p></div><div className="flex items-center gap-4"><span className="hidden text-xs text-ink-3 sm:inline">{meta}</span><StatusBadge status={status}>{status === "success" ? "Ativo" : status === "warning" ? "Pendente" : status === "info" ? "Em análise" : "Rascunho"}</StatusBadge><ArrowUpRight aria-hidden="true" className="size-4 text-ink-3" /></div></div>
+  return <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4"><div className="min-w-0"><p className="truncate text-sm font-medium text-ink-1">{title}</p><p className="mt-1 truncate text-xs text-ink-2">{detail}</p></div><div className="flex items-center gap-4"><span className="hidden text-xs text-ink-3 sm:inline">{meta}</span><StatusBadge tone={status}>{status === "success" ? "Ativo" : status === "warning" ? "Pendente" : status === "info" ? "Em análise" : "Rascunho"}</StatusBadge><ArrowUpRight aria-hidden="true" className="size-4 text-ink-3" /></div></div>
 }
 
 export function DataList({ children }: { children: ReactNode }) {

@@ -14,18 +14,11 @@ import {
   salvarProcedimentoAction,
   salvarProfissionalAction,
 } from "./actions"
-import {
-  Aviso,
-  Botao,
-  Campo,
-  Cartao,
-  EscolhaDeConvenios,
-  Input,
-  Select,
-  Selo,
-  Vazio,
-  estadoInicial,
-} from "./ui"
+import { Aviso, Botao, Campo, Input, Select, estadoInicial } from "@/components/patterns/formulario"
+import { Cartao } from "@/components/patterns/cartao"
+import { Vazio } from "@/components/patterns/vazio"
+import { StatusBadge } from "@/components/patterns/status-badge"
+import { EscolhaDeConvenios } from "./escolha-de-convenios"
 import {
   CONSELHOS,
   NO_SHOW_POLICIES,
@@ -90,7 +83,7 @@ export function AbaIdentidade({
   return (
     <div className="space-y-5">
       {pendencias.length > 0 && (
-        <div className="rounded-2xl border border-warn/30 bg-warn/8 p-5">
+        <div className="rounded-card border border-warning-border bg-warning-bg p-5 text-warning-fg">
           <p className="text-sm font-medium">
             Falta preencher para a clínica sair do rascunho
           </p>
@@ -233,7 +226,7 @@ function LinhaConvenio({ convenio }: { convenio: Insurance }) {
     return (
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-hairline bg-surface-1 px-4 py-3">
         <span className="font-medium">{convenio.name}</span>
-        {!convenio.active && <Selo>inativo</Selo>}
+        {!convenio.active && <StatusBadge>inativo</StatusBadge>}
 
         <div className="ml-auto flex items-center gap-3">
           <button
@@ -452,11 +445,11 @@ function LinhaProfissional({
         <div className="flex flex-wrap items-center gap-3">
           <span className="font-medium">{profissional.name}</span>
           {profissional.council && (
-            <Selo>
+            <StatusBadge>
               {profissional.council} {profissional.registration_number}
-            </Selo>
+            </StatusBadge>
           )}
-          {!profissional.active && <Selo tom="alerta">inativo</Selo>}
+          {!profissional.active && <StatusBadge tone="warning">inativo</StatusBadge>}
 
           <div className="ml-auto flex items-center gap-3">
             <button
@@ -670,16 +663,16 @@ function LinhaProcedimento({
       <div className="rounded-xl border border-hairline bg-surface-1 px-4 py-3">
         <div className="flex flex-wrap items-center gap-3">
           <span className="font-medium">{procedimento.name}</span>
-          <Selo>{procedimento.duration_minutes} min</Selo>
+          <StatusBadge>{procedimento.duration_minutes} min</StatusBadge>
           {procedimento.price !== null && (
-            <Selo>
+            <StatusBadge>
               {procedimento.price.toLocaleString("pt-BR", {
                 style: "currency",
                 currency: "BRL",
               })}
-            </Selo>
+            </StatusBadge>
           )}
-          {!procedimento.active && <Selo tom="alerta">inativo</Selo>}
+          {!procedimento.active && <StatusBadge tone="warning">inativo</StatusBadge>}
 
           <div className="ml-auto flex items-center gap-3">
             <button

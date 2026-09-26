@@ -3,17 +3,10 @@
 import Link from "next/link"
 import { useActionState, useState } from "react"
 import { criarAgenteAction } from "./actions"
-import {
-  Aviso,
-  Botao,
-  Campo,
-  Cartao,
-  Input,
-  Select,
-  SeloDeStatus,
-  Vazio,
-  estadoInicial,
-} from "./ui"
+import { Aviso, Botao, Campo, Input, Select, estadoInicial } from "@/components/patterns/formulario"
+import { Cartao } from "@/components/patterns/cartao"
+import { Vazio } from "@/components/patterns/vazio"
+import { StatusDoAgente } from "@/components/agents/status-do-agente"
 import {
   ESPECIALIDADES,
   LIMITE_DE_AGENTES,
@@ -163,7 +156,7 @@ export function ListaDeAgentes({
                         sem WhatsApp
                       </span>
                     )}
-                    <SeloDeStatus status={a.status} />
+                    <StatusDoAgente status={a.status} />
                   </div>
                 </div>
               </Link>

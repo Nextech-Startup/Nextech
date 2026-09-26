@@ -9,17 +9,10 @@ import {
   salvarConsentimentoAction,
   salvarRegraUrgenciaAction,
 } from "./actions"
-import {
-  Aviso,
-  Botao,
-  Campo,
-  Cartao,
-  Input,
-  Selo,
-  Textarea,
-  Vazio,
-  estadoInicial,
-} from "./ui"
+import { Aviso, Botao, Campo, Input, Textarea, estadoInicial } from "@/components/patterns/formulario"
+import { Cartao } from "@/components/patterns/cartao"
+import { Vazio } from "@/components/patterns/vazio"
+import { StatusBadge } from "@/components/patterns/status-badge"
 import {
   RETENCAO_PADRAO_ANOS,
   type ConsentText,
@@ -43,7 +36,7 @@ import {
  */
 function AvisoDeResponsabilidade() {
   return (
-    <div className="rounded-2xl border border-warn/30 bg-warn/8 p-5">
+    <div className="rounded-card border border-warning-border bg-warning-bg p-5 text-warning-fg">
       <p className="text-sm font-medium">
         O conteúdo desta aba é de responsabilidade da clínica
       </p>
@@ -197,7 +190,7 @@ function LinhaRegra({ regra }: { regra: UrgencyRule }) {
         <input type="hidden" name="id" value={regra.id} />
         <CamposDaRegra regra={regra} />
 
-        <p className="rounded-xl border border-warn/30 bg-warn/8 px-4 py-3 text-sm">
+        <p className="rounded-xl border border-warning-border bg-warning-bg px-4 py-3 text-sm text-warning-fg">
           Salvar uma alteração derruba a confirmação e tira a regra do ar. É
           preciso confirmar o novo texto para reativá-la.
         </p>
@@ -225,9 +218,9 @@ function LinhaRegra({ regra }: { regra: UrgencyRule }) {
       <div className="flex flex-wrap items-center gap-3">
         <span className="font-medium">{regra.label}</span>
         {regra.active ? (
-          <Selo tom="ativo">no ar</Selo>
+          <StatusBadge tone="success">no ar</StatusBadge>
         ) : (
-          <Selo tom="alerta">aguardando confirmação</Selo>
+          <StatusBadge tone="warning">aguardando confirmação</StatusBadge>
         )}
 
         <div className="ml-auto flex items-center gap-3">
@@ -253,7 +246,7 @@ function LinhaRegra({ regra }: { regra: UrgencyRule }) {
 
       <div className="flex flex-wrap gap-1.5">
         {regra.keywords.map((k) => (
-          <Selo key={k}>{k}</Selo>
+          <StatusBadge key={k}>{k}</StatusBadge>
         ))}
       </div>
 
@@ -332,7 +325,7 @@ export function AbaConsentimento({ consent }: { consent: ConsentText | null }) {
       <Cartao
         titulo="Termo de consentimento"
         descricao="O texto que o paciente aceita antes de a clínica tratar o dado de saúde dele."
-        acao={consent && <Selo>versão {consent.version}</Selo>}
+        acao={consent && <StatusBadge>versão {consent.version}</StatusBadge>}
       >
         <form action={action} className="space-y-5">
           <Campo label="Texto do termo">
