@@ -10,11 +10,13 @@ const toneClasses: Record<StatusTone, string> = {
   neutral: "border-neutral-border bg-neutral-bg text-neutral-fg",
 }
 
-export function StatusBadge({ label, tone = "neutral", className }: { label: string; tone?: StatusTone; className?: string }) {
+export function StatusBadge({ label, tone, className, children, status }: { label?: string; tone?: StatusTone; className?: string; children?: React.ReactNode; status?: string }) {
+  const resolvedLabel = label ?? children
+  const resolvedTone = tone ?? (status === "success" || status === "Ativo" || status === "Concluído" ? "success" : status === "warning" || status === "Rascunho" ? "warning" : status === "info" || status === "Publicado" ? "info" : "neutral")
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-xs font-medium", toneClasses[tone], className)}>
+    <span className={cn("inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-xs font-medium", toneClasses[resolvedTone], className)}>
       <span aria-hidden="true" className="size-1.5 rounded-pill bg-current" />
-      {label}
+      {resolvedLabel}
     </span>
   )
 }
