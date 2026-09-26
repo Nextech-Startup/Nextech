@@ -33,7 +33,13 @@ export async function PanelShell({
   const aberto = (await cookies()).get("sidebar_state")?.value !== "false"
 
   return (
-    <SidebarProvider defaultOpen={aberto} className="painel-glow">
+    // No desktop o menu fica transparente para o brilho aparecer atrás
+    // dele; no celular a gaveta é um portal fora deste wrapper e mantém
+    // o fundo opaco.
+    <SidebarProvider
+      defaultOpen={aberto}
+      className="painel-glow md:[&_[data-sidebar=sidebar]]:bg-transparent"
+    >
       <AppSidebar painel={painel} marca={marca} espaco={espaco} usuario={usuario} />
       <SidebarInset>
         <ShellHeader painel={painel} />

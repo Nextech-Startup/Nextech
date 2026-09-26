@@ -146,7 +146,7 @@ function ItemEmBreve({ item }: { item: ResolvedNavItem }) {
       >
         <Icone className="size-4 shrink-0" aria-hidden="true" />
         <span className="truncate group-data-[collapsible=icon]:hidden">{item.label}</span>
-        <span className="ml-auto rounded-pill border border-hairline px-1.5 py-px text-[0.625rem] text-ink-3 group-data-[collapsible=icon]:hidden">
+        <span className="ml-auto text-[0.6875rem] text-ink-3/80 group-data-[collapsible=icon]:hidden">
           em breve
         </span>
       </div>
