@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { normalizarTexto } from "@/lib/formatters/texto"
 
 /**
  * Conselhos de classe reconhecidos. Espelha o enum
@@ -378,12 +379,7 @@ export const POLITICA_PADRAO: Omit<SchedulingPolicy, "clinic_id"> = {
  * justamente no caso em que não pode falhar.
  */
 export function normalizarTermo(valor: string): string {
-  return valor
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim()
+  return normalizarTexto(valor)
 }
 
 /**

@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useTheme } from "next-themes"
 import { ArrowLeftRight, ChevronsUpDown, LogOut, Moon, Sun, UserRound } from "lucide-react"
 import { logout } from "@/lib/auth/actions"
+import { iniciais } from "@/lib/formatters/texto"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,15 +14,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar"
-
-/** Duas letras para o avatar: iniciais do nome, ou o começo do e-mail. */
-export function iniciais(nome: string): string {
-  const base = nome.includes("@") ? nome.split("@")[0] : nome
-  const partes = base.split(/[\s._-]+/).filter(Boolean)
-  const letras =
-    partes.length >= 2 ? partes[0][0] + partes[partes.length - 1][0] : base.slice(0, 2)
-  return letras.toUpperCase()
-}
 
 /**
  * Quem está logado, no pé do sidebar: identidade, papel, tema, o atalho
