@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import { useActionState, useState } from "react"
 import {
   conectarWhatsappAction,
@@ -13,6 +12,9 @@ import {
 import { Aviso, Botao, Campo, Input, Select, Textarea, estadoInicial } from "@/components/patterns/formulario"
 import { Cartao } from "@/components/patterns/cartao"
 import { StatusDoAgente } from "@/components/agents/status-do-agente"
+import { PreviewDeConversa } from "@/components/agents/preview-de-conversa"
+import { PageHeader } from "@/components/patterns/page-header"
+import { StatusBadge } from "@/components/patterns/status-badge"
 import {
   DIAS,
   ESPECIALIDADES,
@@ -31,32 +33,26 @@ export function FormularioDeAgente({ agente }: { agente: Agent }) {
   const conectado = estaConectado(agente)
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <Link
-            href="/dashboard/agents"
-            className="text-sm text-ink-2 transition hover:text-ink-1"
-          >
-            ← Agentes
-          </Link>
-          <h1 className="mt-1 text-2xl font-semibold">{agente.name}</h1>
-          <p className="mt-1 text-sm text-ink-2">
-            {ROTULO_DA_ESPECIALIDADE[agente.specialty]}
-          </p>
-        </div>
-        <StatusDoAgente status={agente.status} />
-      </header>
-
-      <Publicacao
-        agente={agente}
-        pendencias={pendencias}
-        recomendacoes={recomendacoes}
+    <div className="grid gap-8">
+      <PageHeader
+        title={agente.name}
+        description={ROTULO_DA_ESPECIALIDADE[agente.specialty]}
+        status={<StatusDoAgente status={agente.status} />}
       />
-      <Configuracao agente={agente} />
-      <ConexaoWhatsapp agente={agente} conectado={conectado} />
-      <PreviewPendente />
-      <ZonaDeRisco agente={agente} />
+
+      {/* Formulário e prévia lado a lado (skill ui-ux): a clínica vê o
+          efeito da saudação antes de publicar. No celular a prévia desce. */}
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="grid min-w-0 gap-6">
+          <Publicacao agente={agente} pendencias={pendencias} recomendacoes={recomendacoes} />
+          <Configuracao agente={agente} />
+          <ConexaoWhatsapp agente={agente} conectado={conectado} />
+          <ZonaDeRisco agente={agente} />
+        </div>
+        <aside className="lg:sticky lg:top-20">
+          <PreviewDeConversa nome={agente.name} saudacao={agente.greeting_message} />
+        </aside>
+      </div>
     </div>
   )
 }
@@ -107,7 +103,7 @@ function Publicacao({
         {bloqueado && !ativo && (
           <div className="rounded-xl border border-warning-border bg-warning-bg px-4 py-3 text-sm text-warning-fg">
             <p className="font-medium">Falta para publicar:</p>
-            <ul className="mt-1.5 list-inside list-disc text-ink-2">
+            <ul className="mt-1.5 list-inside list-disc">
               {pendencias.map((p) => (
                 <li key={p}>{p}</li>
               ))}
@@ -137,7 +133,7 @@ function Publicacao({
           ) : (
             <form action={publicar}>
               <input type="hidden" name="agent_id" value={agente.id} />
-              <Botao type="submit" disabled={publicando || bloqueado}>
+              <Botao type="submit" variante="marca" disabled={publicando || bloqueado}>
                 {publicando ? "Publicando…" : "Publicar agente"}
               </Botao>
             </form>
@@ -194,7 +190,7 @@ function Configuracao({ agente }: { agente: Agent }) {
 
         <Campo
           label="Saudação"
-          hint="— a primeira mensagem que o paciente recebe"
+          hint="(a primeira mensagem que o paciente recebe)"
         >
           <Textarea
             name="greeting_message"
@@ -207,7 +203,7 @@ function Configuracao({ agente }: { agente: Agent }) {
 
         <Campo
           label="Persona"
-          hint="— tom, limites e comportamento na conversa"
+          hint="(tom, limites e comportamento na conversa)"
         >
           <Textarea
             name="persona_instructions"
@@ -229,7 +225,7 @@ function Configuracao({ agente }: { agente: Agent }) {
 
           <div className="space-y-2">
             {DIAS.map((dia) => (
-              <div key={dia} className="flex flex-wrap items-center gap-3">
+              <div key={dia} className="flex flex-wrap items-center gap-x-3 gap-y-2">
                 <label className="flex w-32 items-center gap-2 text-sm text-ink-2">
                   <input
                     type="checkbox"
@@ -240,21 +236,25 @@ function Configuracao({ agente }: { agente: Agent }) {
                   {ROTULO_DO_DIA[dia]}
                 </label>
 
-                <input
-                  type="time"
-                  name={`${dia}_start`}
-                  defaultValue={horario[dia]?.start}
-                  aria-label={`${ROTULO_DO_DIA[dia]}: início`}
-                  className="rounded-lg border border-hairline bg-surface-0 px-2.5 py-1.5 text-sm"
-                />
-                <span className="text-sm text-ink-3">às</span>
-                <input
-                  type="time"
-                  name={`${dia}_end`}
-                  defaultValue={horario[dia]?.end}
-                  aria-label={`${ROTULO_DO_DIA[dia]}: fim`}
-                  className="rounded-lg border border-hairline bg-surface-0 px-2.5 py-1.5 text-sm"
-                />
+                {/* Início e fim quebram juntos: separados, a tela estreita
+                    deixava "08:00 às" numa linha e "18:00" na outra. */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="time"
+                    name={`${dia}_start`}
+                    defaultValue={horario[dia]?.start}
+                    aria-label={`${ROTULO_DO_DIA[dia]}: início`}
+                    className="h-9 rounded-control border border-hairline bg-surface-0/60 px-2.5 text-sm text-ink-1 [color-scheme:light] dark:[color-scheme:dark]"
+                  />
+                  <span className="text-sm text-ink-3">às</span>
+                  <input
+                    type="time"
+                    name={`${dia}_end`}
+                    defaultValue={horario[dia]?.end}
+                    aria-label={`${ROTULO_DO_DIA[dia]}: fim`}
+                    className="h-9 rounded-control border border-hairline bg-surface-0/60 px-2.5 text-sm text-ink-1 [color-scheme:light] dark:[color-scheme:dark]"
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -339,9 +339,7 @@ function ConexaoWhatsapp({
       descricao="Credenciais da Cloud API da Meta. Um número atende um agente só."
       acao={
         conectado ? (
-          <span className="rounded-full bg-brand/12 px-2.5 py-0.5 text-xs font-medium text-brand-on-light dark:text-brand-dim">
-            conectado
-          </span>
+          <StatusBadge tone="success">conectado</StatusBadge>
         ) : undefined
       }
     >
@@ -393,7 +391,7 @@ function ConexaoWhatsapp({
             <input type="hidden" name="agent_id" value={agente.id} />
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Campo label="Phone Number ID" hint="— só dígitos">
+              <Campo label="Phone Number ID" hint="(só dígitos)">
                 <Input
                   name="whatsapp_phone_number_id"
                   required
@@ -403,7 +401,7 @@ function ConexaoWhatsapp({
                 />
               </Campo>
 
-              <Campo label="WABA ID" hint="— só dígitos">
+              <Campo label="WABA ID" hint="(só dígitos)">
                 <Input
                   name="whatsapp_waba_id"
                   required
@@ -416,7 +414,7 @@ function ConexaoWhatsapp({
 
             <Campo
               label="Token de acesso"
-              hint="— guardado criptografado; não será exibido de novo"
+              hint="(guardado criptografado; não será exibido de novo)"
             >
               {/* type="password" e autoComplete="off": o token não deve
                   ficar visível no ombro de ninguém nem no gerenciador de
@@ -447,35 +445,6 @@ function ConexaoWhatsapp({
             </div>
           </form>
         )}
-      </div>
-    </Cartao>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Preview — fase 3b
-// ---------------------------------------------------------------------------
-
-/**
- * O preview de conversa é o comportamento 3 e o critério de aceite 3 da
- * spec, e não foi entregue nesta fatia: ele roda uma conversa de verdade,
- * e o motor de IA é a fase 3b.
- *
- * Aparece como cartão inerte, e não escondido, pelo mesmo motivo dos itens
- * "em breve" da sidebar: a tela conta o que ainda não existe em vez de
- * deixar a clínica procurar um botão que a spec promete.
- */
-function PreviewPendente() {
-  return (
-    <Cartao
-      titulo="Testar conversa"
-      descricao="Simula o atendimento com a persona configurada, sem falar com pacientes reais."
-    >
-      <div className="rounded-xl border border-dashed border-hairline p-6 text-center text-sm text-ink-2">
-        <p>Disponível quando o motor de conversa entrar no ar.</p>
-        <p className="mt-1 text-xs text-ink-3">
-          Você já pode configurar e publicar o agente normalmente.
-        </p>
       </div>
     </Cartao>
   )
