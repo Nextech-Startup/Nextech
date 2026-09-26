@@ -44,12 +44,12 @@ export function FormularioDeAgente({ agente }: { agente: Agent }) {
         <div>
           <Link
             href="/dashboard/agents"
-            className="text-sm text-[var(--text-2)] transition hover:text-[var(--text-1)]"
+            className="text-sm text-ink-2 transition hover:text-ink-1"
           >
             ← Agentes
           </Link>
           <h1 className="mt-1 text-2xl font-semibold">{agente.name}</h1>
-          <p className="mt-1 text-sm text-[var(--text-2)]">
+          <p className="mt-1 text-sm text-ink-2">
             {ROTULO_DA_ESPECIALIDADE[agente.specialty]}
           </p>
         </div>
@@ -113,9 +113,9 @@ function Publicacao({
             faria as duas camadas discordarem sobre o que "publicar"
             exige. */}
         {bloqueado && !ativo && (
-          <div className="rounded-xl border border-[var(--warn)]/30 bg-[var(--warn)]/8 px-4 py-3 text-sm">
+          <div className="rounded-xl border border-warn/30 bg-warn/8 px-4 py-3 text-sm">
             <p className="font-medium">Falta para publicar:</p>
-            <ul className="mt-1.5 list-inside list-disc text-[var(--text-2)]">
+            <ul className="mt-1.5 list-inside list-disc text-ink-2">
               {pendencias.map((p) => (
                 <li key={p}>{p}</li>
               ))}
@@ -124,9 +124,9 @@ function Publicacao({
         )}
 
         {recomendacoes.length > 0 && !ativo && (
-          <div className="rounded-xl border border-[var(--hairline)] px-4 py-3 text-sm">
+          <div className="rounded-xl border border-hairline px-4 py-3 text-sm">
             <p className="font-medium">Dá para publicar, mas considere antes:</p>
-            <ul className="mt-1.5 list-inside list-disc text-[var(--text-2)]">
+            <ul className="mt-1.5 list-inside list-disc text-ink-2">
               {recomendacoes.map((r) => (
                 <li key={r}>{r}</li>
               ))}
@@ -153,7 +153,7 @@ function Publicacao({
         </div>
 
         {agente.first_published_at && (
-          <p className="text-xs text-[var(--text-3)]">
+          <p className="text-xs text-ink-3">
             Publicado pela primeira vez em{" "}
             {new Date(agente.first_published_at).toLocaleDateString("pt-BR")}.
           </p>
@@ -227,10 +227,10 @@ function Configuracao({ agente }: { agente: Agent }) {
         </Campo>
 
         <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-[var(--text-2)]">
+          <legend className="text-sm font-medium text-ink-2">
             Horário de atendimento humano
           </legend>
-          <p className="text-sm text-[var(--text-3)]">
+          <p className="text-sm text-ink-3">
             Fora dessa janela a IA informa quando a equipe retorna, em vez de
             oferecer transferência.
           </p>
@@ -238,12 +238,12 @@ function Configuracao({ agente }: { agente: Agent }) {
           <div className="space-y-2">
             {DIAS.map((dia) => (
               <div key={dia} className="flex flex-wrap items-center gap-3">
-                <label className="flex w-32 items-center gap-2 text-sm text-[var(--text-2)]">
+                <label className="flex w-32 items-center gap-2 text-sm text-ink-2">
                   <input
                     type="checkbox"
                     name={`${dia}_open`}
                     defaultChecked={horario[dia]?.open}
-                    className="size-4 accent-[var(--brand)]"
+                    className="size-4 accent-brand"
                   />
                   {ROTULO_DO_DIA[dia]}
                 </label>
@@ -253,15 +253,15 @@ function Configuracao({ agente }: { agente: Agent }) {
                   name={`${dia}_start`}
                   defaultValue={horario[dia]?.start}
                   aria-label={`${ROTULO_DO_DIA[dia]}: início`}
-                  className="rounded-lg border border-[var(--hairline)] bg-[var(--surface-0)] px-2.5 py-1.5 text-sm"
+                  className="rounded-lg border border-hairline bg-surface-0 px-2.5 py-1.5 text-sm"
                 />
-                <span className="text-sm text-[var(--text-3)]">às</span>
+                <span className="text-sm text-ink-3">às</span>
                 <input
                   type="time"
                   name={`${dia}_end`}
                   defaultValue={horario[dia]?.end}
                   aria-label={`${ROTULO_DO_DIA[dia]}: fim`}
-                  className="rounded-lg border border-[var(--hairline)] bg-[var(--surface-0)] px-2.5 py-1.5 text-sm"
+                  className="rounded-lg border border-hairline bg-surface-0 px-2.5 py-1.5 text-sm"
                 />
               </div>
             ))}
@@ -269,17 +269,17 @@ function Configuracao({ agente }: { agente: Agent }) {
         </fieldset>
 
         <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-[var(--text-2)]">
+          <legend className="text-sm font-medium text-ink-2">
             Transferência para atendente
           </legend>
 
-          <label className="flex items-center gap-2 text-sm text-[var(--text-2)]">
+          <label className="flex items-center gap-2 text-sm text-ink-2">
             <input
               type="checkbox"
               name="handoff_enabled"
               defaultChecked={agente.handoff_enabled}
               onChange={(e) => setHandoff(e.currentTarget.checked)}
-              className="size-4 accent-[var(--brand)]"
+              className="size-4 accent-brand"
             />
             A IA pode transferir a conversa para uma pessoa da equipe
           </label>
@@ -347,7 +347,7 @@ function ConexaoWhatsapp({
       descricao="Credenciais da Cloud API da Meta. Um número atende um agente só."
       acao={
         conectado ? (
-          <span className="rounded-full bg-[var(--brand)]/12 px-2.5 py-0.5 text-xs font-medium text-[var(--brand-on-light)] dark:text-[var(--brand-dim)]">
+          <span className="rounded-full bg-brand/12 px-2.5 py-0.5 text-xs font-medium text-brand-on-light dark:text-brand-dim">
             conectado
           </span>
         ) : undefined
@@ -361,20 +361,20 @@ function ConexaoWhatsapp({
           <>
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-[var(--text-3)]">Phone Number ID</dt>
-                <dd className="mt-0.5 font-mono text-[var(--text-1)]">
+                <dt className="text-ink-3">Phone Number ID</dt>
+                <dd className="mt-0.5 font-mono text-ink-1">
                   {agente.whatsapp_phone_number_id}
                 </dd>
               </div>
               <div>
-                <dt className="text-[var(--text-3)]">WABA ID</dt>
-                <dd className="mt-0.5 font-mono text-[var(--text-1)]">
+                <dt className="text-ink-3">WABA ID</dt>
+                <dd className="mt-0.5 font-mono text-ink-1">
                   {agente.whatsapp_waba_id}
                 </dd>
               </div>
             </dl>
 
-            <p className="text-xs text-[var(--text-3)]">
+            <p className="text-xs text-ink-3">
               O token de acesso fica criptografado e não é exibido de volta —
               nem para você. Para trocá-lo, informe as credenciais de novo.
             </p>
@@ -479,9 +479,9 @@ function PreviewPendente() {
       titulo="Testar conversa"
       descricao="Simula o atendimento com a persona configurada, sem falar com pacientes reais."
     >
-      <div className="rounded-xl border border-dashed border-[var(--hairline)] p-6 text-center text-sm text-[var(--text-2)]">
+      <div className="rounded-xl border border-dashed border-hairline p-6 text-center text-sm text-ink-2">
         <p>Disponível quando o motor de conversa entrar no ar.</p>
-        <p className="mt-1 text-xs text-[var(--text-3)]">
+        <p className="mt-1 text-xs text-ink-3">
           Você já pode configurar e publicar o agente normalmente.
         </p>
       </div>
@@ -510,7 +510,7 @@ function ZonaDeRisco({ agente }: { agente: Agent }) {
         <Aviso state={state} />
 
         {jaAtendeu ? (
-          <p className="text-sm text-[var(--text-2)]">
+          <p className="text-sm text-ink-2">
             Este agente já atendeu pacientes e não pode ser excluído — o
             histórico das conversas depende dele. Pause-o para que pare de
             responder.
@@ -518,7 +518,7 @@ function ZonaDeRisco({ agente }: { agente: Agent }) {
         ) : confirmando ? (
           <form action={excluir} className="space-y-3">
             <input type="hidden" name="agent_id" value={agente.id} />
-            <p className="text-sm text-[var(--text-2)]">
+            <p className="text-sm text-ink-2">
               Excluir <strong>{agente.name}</strong>? A configuração é perdida.
             </p>
             <div className="flex gap-2">

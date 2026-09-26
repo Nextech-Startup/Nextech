@@ -46,14 +46,14 @@ export function ListaDeAgentes({
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Agentes</h1>
-          <p className="mt-1 text-sm text-[var(--text-2)]">
+          <p className="mt-1 text-sm text-ink-2">
             Um agente por especialidade ou unidade, cada um com o próprio
             número de WhatsApp.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-sm text-[var(--text-3)]">
+          <span className="text-sm text-ink-3">
             {agentes.length}
             {limite !== null ? ` de ${limite}` : ""} · plano{" "}
             {ROTULO_DO_PLANO[plano]}
@@ -77,7 +77,7 @@ export function ListaDeAgentes({
       </header>
 
       {!cabeMais && (
-        <p className="rounded-xl border border-[var(--hairline)] bg-[var(--surface-1)] px-4 py-3 text-sm text-[var(--text-2)]">
+        <p className="rounded-xl border border-hairline bg-surface-1 px-4 py-3 text-sm text-ink-2">
           O plano {ROTULO_DO_PLANO[plano]} permite {limite}{" "}
           {limite === 1 ? "agente" : "agentes"}. Para criar mais, fale com a
           equipe Nextech sobre um upgrade.
@@ -143,23 +143,23 @@ export function ListaDeAgentes({
             <li key={a.id}>
               <Link
                 href={`/dashboard/agents/${a.id}`}
-                className="block rounded-2xl border border-[var(--hairline)] bg-[var(--surface-1)] p-5 transition hover:border-[var(--brand)]/40"
+                className="block rounded-2xl border border-hairline bg-surface-1 p-5 transition hover:border-brand/40"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="font-medium">{a.name}</p>
-                    <p className="mt-0.5 text-sm text-[var(--text-2)]">
+                    <p className="mt-0.5 text-sm text-ink-2">
                       {ROTULO_DA_ESPECIALIDADE[a.specialty]}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2">
                     {estaConectado(a) ? (
-                      <span className="text-xs text-[var(--text-3)]">
+                      <span className="text-xs text-ink-3">
                         WhatsApp conectado
                       </span>
                     ) : (
-                      <span className="text-xs text-[var(--text-3)]">
+                      <span className="text-xs text-ink-3">
                         sem WhatsApp
                       </span>
                     )}

@@ -40,13 +40,13 @@ export function Abas({
     >
       <Tabs.List
         aria-label="Seções do perfil da clínica"
-        className="mb-6 flex gap-1 overflow-x-auto border-b border-[var(--hairline)]"
+        className="mb-6 flex gap-1 overflow-x-auto border-b border-hairline"
       >
         {secoes.map((s) => (
           <Tabs.Trigger
             key={s.id}
             value={s.id}
-            className="-mb-px shrink-0 border-b-2 border-transparent px-3 py-2.5 text-sm font-medium text-[var(--text-2)] transition hover:text-[var(--text-1)] data-[state=active]:border-[var(--brand)] data-[state=active]:text-[var(--text-1)]"
+            className="-mb-px shrink-0 border-b-2 border-transparent px-3 py-2.5 text-sm font-medium text-ink-2 transition hover:text-ink-1 data-[state=active]:border-brand data-[state=active]:text-ink-1"
           >
             {s.label}
           </Tabs.Trigger>

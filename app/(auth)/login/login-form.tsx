@@ -18,7 +18,7 @@ export function LoginForm() {
       <div className="space-y-1.5">
         <label
           htmlFor="email"
-          className="block text-sm font-medium text-[var(--text-2)]"
+          className="block text-sm font-medium text-ink-2"
         >
           E-mail
         </label>
@@ -29,14 +29,14 @@ export function LoginForm() {
           required
           autoComplete="email"
           autoFocus
-          className="w-full rounded-xl border border-[var(--hairline)] bg-[var(--surface-1)] px-4 py-3 text-[var(--text-1)] outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
+          className="w-full rounded-xl border border-hairline bg-surface-1 px-4 py-3 text-ink-1 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
       </div>
 
       <div className="space-y-1.5">
         <label
           htmlFor="password"
-          className="block text-sm font-medium text-[var(--text-2)]"
+          className="block text-sm font-medium text-ink-2"
         >
           Senha
         </label>
@@ -46,14 +46,14 @@ export function LoginForm() {
           type="password"
           required
           autoComplete="current-password"
-          className="w-full rounded-xl border border-[var(--hairline)] bg-[var(--surface-1)] px-4 py-3 text-[var(--text-1)] outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
+          className="w-full rounded-xl border border-hairline bg-surface-1 px-4 py-3 text-ink-1 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
       </div>
 
       {state.error && (
         <p
           role="alert"
-          className="rounded-xl border border-[var(--warn)]/30 bg-[var(--warn)]/10 px-4 py-3 text-sm text-[var(--text-1)]"
+          className="rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-sm text-ink-1"
         >
           {state.error}
         </p>
@@ -62,7 +62,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-xl bg-[var(--brand)] px-4 py-3 font-medium text-white transition hover:bg-[var(--brand-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/40 disabled:opacity-60"
+        className="w-full rounded-xl bg-brand px-4 py-3 font-medium text-white transition hover:bg-brand-strong focus:outline-none focus:ring-2 focus:ring-brand/40 disabled:opacity-60"
       >
         {pending ? "Entrando..." : "Entrar"}
       </button>

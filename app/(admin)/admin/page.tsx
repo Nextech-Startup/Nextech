@@ -19,7 +19,7 @@ export default async function AdminPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Clínicas</h1>
-          <p className="mt-1 text-sm text-[var(--text-2)]">
+          <p className="mt-1 text-sm text-ink-2">
             Onboarding consultivo: a equipe cria a clínica e convida o primeiro
             responsável.
           </p>
@@ -28,17 +28,17 @@ export default async function AdminPage() {
         <div className="flex gap-6 text-sm">
           <div>
             <div className="text-2xl font-semibold tabular-nums">{stats.total}</div>
-            <div className="text-[var(--text-3)]">total</div>
+            <div className="text-ink-3">total</div>
           </div>
           <div>
-            <div className="text-2xl font-semibold tabular-nums text-[var(--brand-on-light)] dark:text-[var(--brand-dim)]">
+            <div className="text-2xl font-semibold tabular-nums text-brand-on-light dark:text-brand-dim">
               {stats.ativas}
             </div>
-            <div className="text-[var(--text-3)]">ativas</div>
+            <div className="text-ink-3">ativas</div>
           </div>
           <div>
             <div className="text-2xl font-semibold tabular-nums">{stats.rascunho}</div>
-            <div className="text-[var(--text-3)]">rascunho</div>
+            <div className="text-ink-3">rascunho</div>
           </div>
         </div>
       </div>
@@ -46,16 +46,16 @@ export default async function AdminPage() {
       <NovaClinicaForm />
 
       {clinicas.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[var(--hairline)] p-10 text-center">
-          <p className="text-[var(--text-2)]">Nenhuma clínica cadastrada ainda.</p>
-          <p className="mt-1 text-sm text-[var(--text-3)]">
+        <div className="rounded-2xl border border-dashed border-hairline p-10 text-center">
+          <p className="text-ink-2">Nenhuma clínica cadastrada ainda.</p>
+          <p className="mt-1 text-sm text-ink-3">
             Crie a primeira no formulário acima.
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-[var(--hairline)]">
+        <div className="overflow-hidden rounded-2xl border border-hairline">
           <table className="w-full text-left text-sm">
-            <thead className="bg-[var(--surface-2)] text-[var(--text-2)]">
+            <thead className="bg-surface-2 text-ink-2">
               <tr>
                 <th className="px-4 py-3 font-medium">Razão social</th>
                 <th className="px-4 py-3 font-medium">CNPJ</th>

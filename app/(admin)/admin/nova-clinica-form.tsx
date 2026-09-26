@@ -18,12 +18,12 @@ export function NovaClinicaForm() {
         <button
           type="button"
           onClick={() => setAberto(true)}
-          className="rounded-xl bg-[var(--brand)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--brand-strong)]"
+          className="rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-strong"
         >
           Nova clínica
         </button>
         {state.success && (
-          <p className="text-sm text-[var(--brand-on-light)] dark:text-[var(--brand-dim)]">
+          <p className="text-sm text-brand-on-light dark:text-brand-dim">
             {state.success}
           </p>
         )}
@@ -34,7 +34,7 @@ export function NovaClinicaForm() {
   return (
     <form
       action={formAction}
-      className="rounded-2xl border border-[var(--hairline)] bg-[var(--surface-1)] p-6"
+      className="rounded-2xl border border-hairline bg-surface-1 p-6"
     >
       <h2 className="mb-4 font-medium">Nova clínica</h2>
 
@@ -42,7 +42,7 @@ export function NovaClinicaForm() {
         <div className="space-y-1.5">
           <label
             htmlFor="legal_name"
-            className="block text-sm font-medium text-[var(--text-2)]"
+            className="block text-sm font-medium text-ink-2"
           >
             Razão social
           </label>
@@ -52,19 +52,19 @@ export function NovaClinicaForm() {
             required
             autoFocus
             placeholder="Clínica Exemplo Ltda"
-            className="w-full rounded-xl border border-[var(--hairline)] bg-[var(--surface-0)] px-3 py-2.5 text-[var(--text-1)] outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
+            className="w-full rounded-xl border border-hairline bg-surface-0 px-3 py-2.5 text-ink-1 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="cnpj" className="block text-sm font-medium text-[var(--text-2)]">
-            CNPJ <span className="text-[var(--text-3)]">(opcional agora)</span>
+          <label htmlFor="cnpj" className="block text-sm font-medium text-ink-2">
+            CNPJ <span className="text-ink-3">(opcional agora)</span>
           </label>
           <input
             id="cnpj"
             name="cnpj"
             placeholder="00.000.000/0000-00"
-            className="w-full rounded-xl border border-[var(--hairline)] bg-[var(--surface-0)] px-3 py-2.5 text-[var(--text-1)] outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
+            className="w-full rounded-xl border border-hairline bg-surface-0 px-3 py-2.5 text-ink-1 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
         </div>
       </div>
@@ -72,7 +72,7 @@ export function NovaClinicaForm() {
       {state.error && (
         <p
           role="alert"
-          className="mt-4 rounded-xl border border-[var(--warn)]/30 bg-[var(--warn)]/10 px-4 py-3 text-sm"
+          className="mt-4 rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-sm"
         >
           {state.error}
         </p>
@@ -82,18 +82,18 @@ export function NovaClinicaForm() {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-xl bg-[var(--brand)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--brand-strong)] disabled:opacity-60"
+          className="rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-strong disabled:opacity-60"
         >
           {pending ? "Criando..." : "Criar clínica"}
         </button>
         <button
           type="button"
           onClick={() => setAberto(false)}
-          className="text-sm text-[var(--text-2)] transition hover:text-[var(--text-1)]"
+          className="text-sm text-ink-2 transition hover:text-ink-1"
         >
           Cancelar
         </button>
-        <p className="ml-auto text-xs text-[var(--text-3)]">
+        <p className="ml-auto text-xs text-ink-3">
           A clínica nasce em rascunho.
         </p>
       </div>

@@ -30,7 +30,7 @@ function SemPermissao() {
   return (
     <div className="max-w-md space-y-2">
       <h1 className="text-2xl font-semibold">Agentes</h1>
-      <p className="text-[var(--text-2)]">
+      <p className="text-ink-2">
         Só o responsável pela clínica configura os agentes. Fale com quem
         administra a conta se precisar alterar algo aqui.
       </p>

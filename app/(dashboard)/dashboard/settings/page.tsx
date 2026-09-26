@@ -100,7 +100,7 @@ export default async function SettingsPage() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Perfil da clínica</h1>
-          <p className="mt-1 text-sm text-[var(--text-2)]">
+          <p className="mt-1 text-sm text-ink-2">
             {clinic.legal_name}
           </p>
         </div>
@@ -133,7 +133,7 @@ function SemPermissao() {
   return (
     <div className="max-w-md space-y-2">
       <h1 className="text-2xl font-semibold">Perfil da clínica</h1>
-      <p className="text-[var(--text-2)]">
+      <p className="text-ink-2">
         Só o responsável pela clínica edita o perfil. Fale com quem administra a
         conta se precisar alterar algum dado aqui.
       </p>

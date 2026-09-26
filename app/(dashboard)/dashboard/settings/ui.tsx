@@ -13,7 +13,7 @@ import type { ProfileFormState } from "./actions"
 export const estadoInicial: ProfileFormState = { error: null, success: null }
 
 const CLASSE_CAMPO =
-  "w-full rounded-xl border border-[var(--hairline)] bg-[var(--surface-0)] px-3 py-2.5 text-[var(--text-1)] outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
+  "w-full rounded-xl border border-hairline bg-surface-0 px-3 py-2.5 text-ink-1 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
 
 export function Campo({
   label,
@@ -26,9 +26,9 @@ export function Campo({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-[var(--text-2)]">
+      <label className="block text-sm font-medium text-ink-2">
         {label}
-        {hint && <span className="ml-1 font-normal text-[var(--text-3)]">{hint}</span>}
+        {hint && <span className="ml-1 font-normal text-ink-3">{hint}</span>}
       </label>
       {children}
     </div>
@@ -57,11 +57,11 @@ export function Botao({
 }) {
   const estilo = {
     primario:
-      "bg-[var(--brand)] text-white hover:bg-[var(--brand-strong)] disabled:opacity-60",
+      "bg-brand text-white hover:bg-brand-strong disabled:opacity-60",
     secundario:
-      "border border-[var(--hairline)] text-[var(--text-2)] hover:text-[var(--text-1)] disabled:opacity-60",
+      "border border-hairline text-ink-2 hover:text-ink-1 disabled:opacity-60",
     perigo:
-      "border border-[var(--warn)]/40 text-[var(--warn)] hover:bg-[var(--warn)]/10 disabled:opacity-60",
+      "border border-warn/40 text-warn hover:bg-warn/10 disabled:opacity-60",
   }[variante]
 
   return (
@@ -83,7 +83,7 @@ export function Aviso({ state }: { state: ProfileFormState }) {
     return (
       <p
         role="alert"
-        className="rounded-xl border border-[var(--warn)]/30 bg-[var(--warn)]/10 px-4 py-3 text-sm"
+        className="rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-sm"
       >
         {state.error}
       </p>
@@ -93,7 +93,7 @@ export function Aviso({ state }: { state: ProfileFormState }) {
     return (
       <p
         role="status"
-        className="rounded-xl border border-[var(--brand)]/25 bg-[var(--brand)]/8 px-4 py-3 text-sm text-[var(--brand-on-light)] dark:text-[var(--brand-dim)]"
+        className="rounded-xl border border-brand/25 bg-brand/8 px-4 py-3 text-sm text-brand-on-light dark:text-brand-dim"
       >
         {state.success}
       </p>
@@ -114,13 +114,13 @@ export function Cartao({
   children: React.ReactNode
 }) {
   return (
-    <section className="rounded-2xl border border-[var(--hairline)] bg-[var(--surface-1)] p-6">
+    <section className="rounded-2xl border border-hairline bg-surface-1 p-6">
       {(titulo || acao) && (
         <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div>
             {titulo && <h2 className="font-medium">{titulo}</h2>}
             {descricao && (
-              <p className="mt-1 text-sm text-[var(--text-2)]">{descricao}</p>
+              <p className="mt-1 text-sm text-ink-2">{descricao}</p>
             )}
           </div>
           {acao}
@@ -133,7 +133,7 @@ export function Cartao({
 
 export function Vazio({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-dashed border-[var(--hairline)] p-8 text-center text-sm text-[var(--text-2)]">
+    <div className="rounded-xl border border-dashed border-hairline p-8 text-center text-sm text-ink-2">
       {children}
     </div>
   )
@@ -147,10 +147,10 @@ export function Selo({
   children: React.ReactNode
 }) {
   const estilo = {
-    neutro: "bg-[var(--surface-2)] text-[var(--text-2)]",
+    neutro: "bg-surface-2 text-ink-2",
     ativo:
-      "bg-[var(--brand)]/12 text-[var(--brand-on-light)] dark:text-[var(--brand-dim)]",
-    alerta: "bg-[var(--warn)]/12 text-[var(--warn)]",
+      "bg-brand/12 text-brand-on-light dark:text-brand-dim",
+    alerta: "bg-warn/12 text-warn",
   }[tom]
 
   return (
@@ -176,7 +176,7 @@ export function EscolhaDeConvenios({
 }) {
   if (convenios.length === 0) {
     return (
-      <p className="text-sm text-[var(--text-3)]">
+      <p className="text-sm text-ink-3">
         Nenhum convênio cadastrado ainda — use a aba Convênios primeiro.
       </p>
     )
@@ -187,17 +187,17 @@ export function EscolhaDeConvenios({
       {convenios.map((c) => (
         <label
           key={c.id}
-          className="flex items-center gap-2 text-sm text-[var(--text-2)]"
+          className="flex items-center gap-2 text-sm text-ink-2"
         >
           <input
             type="checkbox"
             name="insurance_ids"
             value={c.id}
             defaultChecked={marcados.includes(c.id)}
-            className="size-4 accent-[var(--brand)]"
+            className="size-4 accent-brand"
           />
           {c.name}
-          {!c.active && <span className="text-[var(--text-3)]">(inativo)</span>}
+          {!c.active && <span className="text-ink-3">(inativo)</span>}
         </label>
       ))}
     </div>

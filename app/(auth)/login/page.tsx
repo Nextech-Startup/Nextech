@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[var(--surface-0)] px-4 py-12">
+    <main className="flex min-h-dvh items-center justify-center bg-surface-0 px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <Image
@@ -24,23 +24,23 @@ export default function LoginPage() {
             priority
             className="h-10 w-auto"
           />
-          <p className="text-sm text-[var(--text-2)]">
+          <p className="text-sm text-ink-2">
             Acesse o painel da sua clínica
           </p>
         </div>
 
-        <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--surface-1)] p-6 shadow-sm sm:p-8">
+        <div className="rounded-2xl border border-hairline bg-surface-1 p-6 shadow-sm sm:p-8">
           {/* useSearchParams exige Suspense: sem ele a rota inteira vira dinâmica. */}
           <Suspense fallback={<div className="h-64" />}>
             <LoginForm />
           </Suspense>
         </div>
 
-        <p className="mt-6 text-center text-sm text-[var(--text-3)]">
+        <p className="mt-6 text-center text-sm text-ink-3">
           Ainda não é cliente?{" "}
           <Link
             href="https://www.nextech.ia.br"
-            className="text-[var(--brand-on-light)] underline underline-offset-4 transition hover:text-[var(--brand-strong)] dark:text-[var(--brand-dim)]"
+            className="text-brand-on-light underline underline-offset-4 transition hover:text-brand-strong dark:text-brand-dim"
           >
             Conheça o Nextech
           </Link>

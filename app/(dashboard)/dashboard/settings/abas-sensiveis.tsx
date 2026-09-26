@@ -43,17 +43,17 @@ import {
  */
 function AvisoDeResponsabilidade() {
   return (
-    <div className="rounded-2xl border border-[var(--warn)]/30 bg-[var(--warn)]/8 p-5">
+    <div className="rounded-2xl border border-warn/30 bg-warn/8 p-5">
       <p className="text-sm font-medium">
         O conteúdo desta aba é de responsabilidade da clínica
       </p>
-      <p className="mt-2 text-sm text-[var(--text-2)]">
+      <p className="mt-2 text-sm text-ink-2">
         O Nextech não sugere palavras-chave nem redige protocolo de urgência.
         Quem define o que é urgência e o que o paciente deve ouvir é a equipe
         clínica — um protocolo insuficiente é risco assistencial, não erro de
         sistema.
       </p>
-      <p className="mt-2 text-sm text-[var(--text-2)]">
+      <p className="mt-2 text-sm text-ink-2">
         Nenhuma regra entra no ar sem alguém da clínica confirmar o texto.
       </p>
     </div>
@@ -98,13 +98,13 @@ export function AbaUrgencia({ regras }: { regras: UrgencyRule[] }) {
                 Cancelar
               </Botao>
             </div>
-            <p className="text-sm text-[var(--text-3)]">
+            <p className="text-sm text-ink-3">
               A regra nasce inativa. Depois de criada, revise o texto e confirme
               para colocá-la no ar.
             </p>
           </form>
         ) : (
-          <p className="text-sm text-[var(--text-2)]">
+          <p className="text-sm text-ink-2">
             Exemplos do que costuma entrar aqui: sinais que exigem atendimento
             imediato e a orientação que a clínica quer dar nesse caso. O texto é
             seu — escreva o que a sua equipe assina embaixo.
@@ -162,7 +162,7 @@ function CamposDaRegra({ regra }: { regra?: UrgencyRule }) {
         />
       </Campo>
 
-      <p className="text-sm text-[var(--text-3)]">
+      <p className="text-sm text-ink-3">
         As palavras-chave são comparadas sem diferenciar maiúscula ou acento.
       </p>
     </>
@@ -192,12 +192,12 @@ function LinhaRegra({ regra }: { regra: UrgencyRule }) {
     return (
       <form
         action={salvarAction}
-        className="space-y-5 rounded-xl border border-[var(--hairline)] bg-[var(--surface-1)] p-4"
+        className="space-y-5 rounded-xl border border-hairline bg-surface-1 p-4"
       >
         <input type="hidden" name="id" value={regra.id} />
         <CamposDaRegra regra={regra} />
 
-        <p className="rounded-xl border border-[var(--warn)]/30 bg-[var(--warn)]/8 px-4 py-3 text-sm">
+        <p className="rounded-xl border border-warn/30 bg-warn/8 px-4 py-3 text-sm">
           Salvar uma alteração derruba a confirmação e tira a regra do ar. É
           preciso confirmar o novo texto para reativá-la.
         </p>
@@ -221,7 +221,7 @@ function LinhaRegra({ regra }: { regra: UrgencyRule }) {
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-[var(--hairline)] bg-[var(--surface-1)] p-4">
+    <div className="space-y-4 rounded-xl border border-hairline bg-surface-1 p-4">
       <div className="flex flex-wrap items-center gap-3">
         <span className="font-medium">{regra.label}</span>
         {regra.active ? (
@@ -234,7 +234,7 @@ function LinhaRegra({ regra }: { regra: UrgencyRule }) {
           <button
             type="button"
             onClick={() => setEditando(true)}
-            className="text-sm text-[var(--brand-on-light)] transition hover:underline dark:text-[var(--brand-dim)]"
+            className="text-sm text-brand-on-light transition hover:underline dark:text-brand-dim"
           >
             Editar
           </button>
@@ -243,7 +243,7 @@ function LinhaRegra({ regra }: { regra: UrgencyRule }) {
             <button
               type="submit"
               disabled={excluirPending}
-              className="text-sm text-[var(--text-2)] transition hover:text-[var(--warn)] disabled:opacity-60"
+              className="text-sm text-ink-2 transition hover:text-warn disabled:opacity-60"
             >
               Excluir
             </button>
@@ -257,7 +257,7 @@ function LinhaRegra({ regra }: { regra: UrgencyRule }) {
         ))}
       </div>
 
-      <p className="whitespace-pre-wrap rounded-xl bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-2)]">
+      <p className="whitespace-pre-wrap rounded-xl bg-surface-2 px-4 py-3 text-sm text-ink-2">
         {regra.protocol_message}
       </p>
 
@@ -267,7 +267,7 @@ function LinhaRegra({ regra }: { regra: UrgencyRule }) {
           className="flex flex-wrap items-center gap-3"
         >
           <input type="hidden" name="id" value={regra.id} />
-          <p className="text-sm text-[var(--text-2)]">
+          <p className="text-sm text-ink-2">
             Confirmada em{" "}
             {regra.confirmed_at
               ? new Date(regra.confirmed_at).toLocaleDateString("pt-BR", {
@@ -293,12 +293,12 @@ function LinhaRegra({ regra }: { regra: UrgencyRule }) {
 
           {/* A caixa é obrigatória também na server action: `required` aqui é
               conveniência do navegador, não garantia. */}
-          <label className="flex items-start gap-2.5 text-sm text-[var(--text-2)]">
+          <label className="flex items-start gap-2.5 text-sm text-ink-2">
             <input
               type="checkbox"
               name="responsabilidade"
               required
-              className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]"
+              className="mt-0.5 size-4 shrink-0 accent-brand"
             />
             <span>
               Confirmo que este texto foi definido pela nossa equipe clínica e
@@ -345,7 +345,7 @@ export function AbaConsentimento({ consent }: { consent: ConsentText | null }) {
             />
           </Campo>
 
-          <p className="text-sm text-[var(--text-3)]">
+          <p className="text-sm text-ink-3">
             Alterar o texto sobe a versão automaticamente. O aceite de cada
             paciente fica registrado sobre a versão vigente no momento.
           </p>
@@ -363,7 +363,7 @@ export function AbaConsentimento({ consent }: { consent: ConsentText | null }) {
             </Campo>
           </div>
 
-          <p className="text-sm text-[var(--text-3)]">
+          <p className="text-sm text-ink-3">
             Cada conselho tem prazo próprio — o CFM exige 20 anos para prontuário
             médico, por exemplo. O valor informado aqui prevalece sobre o padrão
             do sistema, que é de {RETENCAO_PADRAO_ANOS} anos. Em branco, vale o
