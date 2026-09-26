@@ -24,7 +24,7 @@ export function FiltroSegmentado({
   className?: string
 }) {
   return (
-    <nav aria-label={rotulo} className={cn(!quebrar && "-mx-1 overflow-x-auto px-1", className)}>
+    <nav aria-label={rotulo} className={cn(!quebrar && "-mx-1 max-w-full overflow-x-auto px-1", className)}>
       <ul className={cn("flex gap-1", quebrar ? "flex-wrap" : "w-max")}>
         {segmentos.map((s) => {
           const ativo = s.valor === atual

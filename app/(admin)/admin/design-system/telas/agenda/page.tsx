@@ -1,12 +1,44 @@
+import type { Metadata } from "next"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
-import { CalendarDays } from "lucide-react"
-import { EmptyWorkspace, WorkspacePage, WorkspaceToolbar } from "@/components/patterns/workspace-page"
+import { lerVisao } from "@/components/schedule/grade"
+import { TelaDaAgenda } from "@/components/schedule/tela-da-agenda"
+import { chaveDoDia } from "@/lib/formatters/data"
+import { AGORA } from "../../_fixtures/agora"
+import { COMPROMISSOS, EXPEDIENTE, PROFISSIONAIS } from "../../_fixtures/agenda"
 
-export default function SchedulePage() {
-  return <div className="flex flex-col gap-8"><AvisoDePrototipo entrega="agendamento (fase 5)" /><WorkspacePage title="Agenda" description="Tenha uma visão clara dos próximos compromissos e da disponibilidade da equipe." action={{ label: "Novo agendamento" }}>
-    <WorkspaceToolbar placeholder="Buscar por paciente ou profissional" filters={["Hoje", "Esta semana", "Todos os profissionais"]} />
-    <div className="grid gap-4 md:grid-cols-7">{["Seg 21", "Ter 22", "Qua 23", "Qui 24", "Sex 25", "Sáb 26", "Dom 27"].map((day, index) => <div key={day} className="min-h-44 rounded-card border border-hairline bg-surface-1 p-4"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-3">{day}</p>{index < 5 && <div className="mt-4 rounded-lg border-l-2 border-brand bg-brand/5 p-3"><p className="text-sm font-medium text-ink-1">{index + 1} consultas</p><p className="mt-1 text-xs text-ink-2">A partir das 08:30</p></div>}</div>)}</div>
-    <EmptyWorkspace title="Agenda integrada" description="Conecte sua agenda para sincronizar horários e permitir que os agentes façam agendamentos automaticamente." action="Configurar integração" />
-    <CalendarDays className="sr-only" />
-  </WorkspacePage></div>
+export const metadata: Metadata = {
+  title: "Protótipo: Agenda",
+  robots: { index: false, follow: false },
+}
+
+function texto(v: string | string[] | undefined): string | undefined {
+  return typeof v === "string" ? v : undefined
+}
+
+export default async function AgendaPrototipo({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
+  const pedida = texto(params.data)
+  const data = pedida && /^\d{4}-\d{2}-\d{2}$/.test(pedida) ? pedida : chaveDoDia(AGORA)
+  const prof = texto(params.prof)
+
+  return (
+    <div className="grid gap-6">
+      <AvisoDePrototipo entrega="agendamento e Google Calendar (fase 5)" />
+      <TelaDaAgenda
+        visao={lerVisao(texto(params.visao))}
+        data={data}
+        profissionalId={PROFISSIONAIS.some((p) => p.id === prof) ? prof! : null}
+        profissionais={PROFISSIONAIS}
+        compromissos={COMPROMISSOS}
+        expediente={EXPEDIENTE}
+        agora={AGORA}
+        caminho="/admin/design-system/telas/agenda"
+        acaoDesabilitada="Protótipo: a ação ainda não existe"
+      />
+    </div>
+  )
 }
