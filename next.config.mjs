@@ -8,6 +8,7 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     // Assets locais e versionados: cache longo é seguro.
     minimumCacheTTL: 31536000,
+    qualities: [75, 85],
   },
   // Falha o build em erro de tipo: a checagem já passa limpa.
   typescript: {
