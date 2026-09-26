@@ -21,6 +21,8 @@ import {
 } from "./abas-cadastro"
 import { AbaConsentimento, AbaUrgencia } from "./abas-sensiveis"
 import { StatusBadge } from "@/components/patterns/status-badge"
+import { PageHeader } from "@/components/patterns/page-header"
+import { Vazio } from "@/components/patterns/vazio"
 
 export const metadata: Metadata = {
   title: "Perfil da clínica",
@@ -96,29 +98,25 @@ export default async function SettingsPage() {
   ]
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Perfil da clínica</h1>
-          <p className="mt-1 text-sm text-ink-2">
-            {clinic.legal_name}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {clinic.status === "active" ? (
-            <StatusBadge tone="success">ativa</StatusBadge>
-          ) : (
-            <StatusBadge>rascunho</StatusBadge>
-          )}
-          {pendencias.length > 0 && (
-            <StatusBadge tone="warning">
-              {pendencias.length}{" "}
-              {pendencias.length === 1 ? "pendência" : "pendências"}
-            </StatusBadge>
-          )}
-        </div>
-      </header>
+    <div className="grid gap-8">
+      <PageHeader
+        title="Perfil da clínica"
+        description={clinic.legal_name}
+        status={
+          <>
+            {clinic.status === "active" ? (
+              <StatusBadge tone="success">ativa</StatusBadge>
+            ) : (
+              <StatusBadge>rascunho</StatusBadge>
+            )}
+            {pendencias.length > 0 && (
+              <StatusBadge tone="warning">
+                {pendencias.length} {pendencias.length === 1 ? "pendência" : "pendências"}
+              </StatusBadge>
+            )}
+          </>
+        }
+      />
 
       {/* useSearchParams exige limite de Suspense para não forçar a página
           inteira a renderizar no cliente. */}
@@ -131,12 +129,12 @@ export default async function SettingsPage() {
 
 function SemPermissao() {
   return (
-    <div className="max-w-md space-y-2">
-      <h1 className="text-2xl font-semibold">Perfil da clínica</h1>
-      <p className="text-ink-2">
+    <div className="grid max-w-xl gap-6">
+      <PageHeader title="Perfil da clínica" />
+      <Vazio>
         Só o responsável pela clínica edita o perfil. Fale com quem administra a
         conta se precisar alterar algum dado aqui.
-      </p>
+      </Vazio>
     </div>
   )
 }

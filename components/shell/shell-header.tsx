@@ -30,7 +30,11 @@ export function ShellHeader({ painel }: { painel: Painel }) {
   return (
     <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-hairline bg-sheet/80 px-3 backdrop-blur-md sm:px-4 md:rounded-t-sheet">
       <SidebarTrigger className="text-ink-2" />
-      <Separator orientation="vertical" className="mr-1 data-[orientation=vertical]:h-4" />
+      {/* Rota fora do menu (ex.: protótipos do painel interno) não tem
+          trilha; sem ela, o separador ficaria solto. */}
+      {trilha.length > 0 && (
+        <Separator orientation="vertical" className="mr-1 data-[orientation=vertical]:h-4" />
+      )}
 
       <Breadcrumb className="min-w-0 flex-1">
         <BreadcrumbList className="flex-nowrap">

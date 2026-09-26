@@ -3,6 +3,8 @@ import { notFound } from "next/navigation"
 import { requireClinicContext } from "@/lib/auth/context"
 import { getAgent } from "@/lib/agent-config/queries"
 import { FormularioDeAgente } from "../formulario"
+import { PageHeader } from "@/components/patterns/page-header"
+import { Vazio } from "@/components/patterns/vazio"
 
 export const metadata: Metadata = {
   title: "Configuração do agente",
@@ -34,11 +36,12 @@ export default async function AgentPage({
 
 function SemPermissao() {
   return (
-    <div className="max-w-md space-y-2">
-      <h1 className="text-2xl font-semibold">Agentes</h1>
-      <p className="text-ink-2">
-        Só o responsável pela clínica configura os agentes.
-      </p>
+    <div className="grid max-w-xl gap-6">
+      <PageHeader title="Agentes" />
+      <Vazio>
+        Só o responsável pela clínica configura os agentes. Fale com quem
+        administra a conta se precisar alterar algo aqui.
+      </Vazio>
     </div>
   )
 }

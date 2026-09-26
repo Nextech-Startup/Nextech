@@ -1,21 +1,36 @@
 import type { ReactNode } from "react"
 
-export function PageHeader({ title, description, actions, breadcrumb, status, eyebrow, action }: { title: string; description?: string; actions?: ReactNode; breadcrumb?: ReactNode; status?: ReactNode; eyebrow?: string; action?: { label: string; href?: string } }) {
-  const resolvedActions = actions ?? (action ? <a href={action.href ?? "#"} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-strong">{action.label}</a> : null)
+/**
+ * Cabeçalho de toda tela do painel: título, descrição, estado e ações.
+ *
+ * Onde se está (grupo › tela) já aparece na trilha do cabeçalho do shell;
+ * repetir isso num rótulo acima do título só empilharia a mesma informação.
+ */
+export function PageHeader({
+  title,
+  description,
+  status,
+  actions,
+}: {
+  title: string
+  description?: ReactNode
+  status?: ReactNode
+  actions?: ReactNode
+}) {
   return (
-    <header className="flex flex-col gap-5 border-b border-hairline pb-6">
-      {breadcrumb}
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="flex flex-col gap-2">
-          {eyebrow ? <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-on-light dark:text-brand">{eyebrow}</p> : null}
-          <div className="flex items-center gap-3">
-            <h1 className="font-display text-3xl tracking-tight text-ink-1">{title}</h1>
-            {status}
-          </div>
-          {description ? <p className="max-w-2xl text-sm text-ink-2">{description}</p> : null}
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="grid min-w-0 gap-1.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h1 className="font-display text-[1.75rem] leading-tight tracking-tight text-ink-1 sm:text-3xl">
+            {title}
+          </h1>
+          {status}
         </div>
-        {resolvedActions ? <div className="flex items-center gap-2">{resolvedActions}</div> : null}
+        {description && (
+          <p className="max-w-2xl text-sm leading-relaxed text-ink-2">{description}</p>
+        )}
       </div>
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </header>
   )
 }

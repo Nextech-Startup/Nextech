@@ -1,7 +1,7 @@
 import { DataList, DataRow, WorkspacePage, WorkspaceToolbar } from "@/components/patterns/workspace-page"
 
 export default function PatientsPage() {
-  return <WorkspacePage prototipo="tela de pacientes (os dados já existem)" eyebrow="Operação" title="Pacientes" description="Centralize os contatos e o histórico de relacionamento da sua clínica." action={{ label: "Cadastrar paciente" }}>
+  return <WorkspacePage prototipo="tela de pacientes (os dados já existem)" title="Pacientes" description="Centralize os contatos e o histórico de relacionamento da sua clínica." action={{ label: "Cadastrar paciente" }}>
     <WorkspaceToolbar placeholder="Buscar por nome ou telefone" filters={["Todos", "Ativos", "Inativos"]} />
     <DataList>
       <DataRow title="Mariana Alves" detail="(81) 90000-0001 · Último contato hoje" meta="642 interações" status="success" />
