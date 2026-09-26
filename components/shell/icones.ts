@@ -33,6 +33,7 @@ const ICONES: Record<string, LucideIcon> = {
   "/dashboard/templates": MessageSquareText,
   "/dashboard/settings": Building2,
   "/dashboard/settings/team": UserRoundCog,
+  "/dashboard/integrations": Plug,
   "/dashboard/billing": CreditCard,
   "/admin": Building2,
   "/admin/usage": Activity,

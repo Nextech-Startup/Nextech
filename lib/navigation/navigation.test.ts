@@ -20,7 +20,7 @@ describe("mapa do painel da clínica", () => {
     expect(DASHBOARD_NAV.map((g) => g.label)).toEqual([
       "Operação",
       "Automação",
-      "Configuração",
+      "Gestão",
     ])
   })
 
@@ -42,13 +42,19 @@ describe("mapa do painel da clínica", () => {
     ])
   })
 
-  it("Configuração lista perfil, equipe e cobrança", () => {
-    const config = DASHBOARD_NAV.find((g) => g.label === "Configuração")!
-    expect(config.items.map((i) => i.label)).toEqual([
+  it("Gestão lista perfil, equipe, integrações e cobrança", () => {
+    const gestao = DASHBOARD_NAV.find((g) => g.label === "Gestão")!
+    expect(gestao.items.map((i) => i.label)).toEqual([
       "Perfil da clínica",
       "Equipe e acessos",
+      "Integrações",
       "Plano e cobrança",
     ])
+  })
+
+  it("Integrações ainda não tem tela", () => {
+    const item = DASHBOARD_NAV.flatMap((g) => g.items).find((i) => i.label === "Integrações")!
+    expect(item).toMatchObject({ href: "/dashboard/integrations", status: "em-breve" })
   })
 
   it("cada item aponta para uma rota interna única", () => {
@@ -68,9 +74,15 @@ describe("filtro por papel", () => {
     expect(rotulos("owner")).toHaveLength(total)
   })
 
-  it("staff não vê o grupo Configuração", () => {
+  it("staff não vê o grupo Gestão", () => {
     const grupos = resolveDashboardNav("staff", "/dashboard").map((g) => g.label)
     expect(grupos).toEqual(["Operação", "Automação"])
+  })
+
+  it("Integrações é só do owner: guarda credencial da clínica", () => {
+    expect(rotulos("owner")).toContain("Integrações")
+    expect(rotulos("staff")).not.toContain("Integrações")
+    expect(rotulos("professional")).not.toContain("Integrações")
   })
 
   it("staff não vê plano e cobrança", () => {

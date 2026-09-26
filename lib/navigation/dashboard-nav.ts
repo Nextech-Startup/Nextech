@@ -8,7 +8,7 @@ import type { NavGroup, ResolvedNavGroup, ResolvedNavItem } from "./schema"
  *
  * `roles` codifica a visibilidade decidida na seção 2 do desenho:
  *   owner        — tudo
- *   staff        — Operação e Automação, sem Configuração e sem cobrança
+ *   staff        — Operação e Automação, sem Gestão
  *   professional — só Agenda e Pacientes
  *
  * Esconder é usabilidade, não segurança: a barreira real continua sendo a
@@ -58,7 +58,10 @@ export const DASHBOARD_NAV: readonly NavGroup[] = [
     ],
   },
   {
-    label: "Configuração",
+    // Só owner. Integrações mora aqui, e não em Automação (que staff vê),
+    // porque guarda credencial da clínica: token OAuth e chave de CRM
+    // (regra 8 do CLAUDE.md). A conexão do WhatsApp continua no agente.
+    label: "Gestão",
     items: [
       {
         label: "Perfil da clínica",
@@ -69,6 +72,12 @@ export const DASHBOARD_NAV: readonly NavGroup[] = [
       {
         label: "Equipe e acessos",
         href: "/dashboard/settings/team",
+        status: "em-breve",
+        roles: ["owner"],
+      },
+      {
+        label: "Integrações",
+        href: "/dashboard/integrations",
         status: "em-breve",
         roles: ["owner"],
       },
@@ -97,7 +106,7 @@ export function isItemActive(href: string, pathname: string): boolean {
 
 /**
  * Aplica o papel e o caminho atual ao mapa. Grupo que ficou sem item
- * algum some inteiro — um cabeçalho "Configuração" vazio só ocuparia
+ * algum some inteiro — um cabeçalho "Gestão" vazio só ocuparia
  * espaço e sugeriria que falta permissão.
  */
 export function resolveDashboardNav(

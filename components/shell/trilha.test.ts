@@ -30,9 +30,17 @@ describe("montarTrilha", () => {
   })
 
   it("rota que o papel não enxerga não gera trilha", () => {
-    // staff não vê Configuração: a trilha não pode revelar o caminho.
+    // staff não vê Gestão: a trilha não pode revelar o caminho.
     const rota = "/dashboard/settings"
     expect(montarTrilha(resolveDashboardNav("staff", rota), rota)).toEqual([])
+  })
+
+  it("perfil da clínica fica sob Gestão", () => {
+    const rota = "/dashboard/settings"
+    expect(montarTrilha(resolveDashboardNav("owner", rota), rota)).toEqual([
+      { label: "Gestão" },
+      { label: "Perfil da clínica" },
+    ])
   })
 
   it("painel interno tem um grupo só e não o repete na trilha", () => {
