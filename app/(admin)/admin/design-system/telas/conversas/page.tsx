@@ -2,7 +2,7 @@ import { MessageSquare } from "lucide-react"
 import { DataList, DataRow, EmptyWorkspace, WorkspacePage, WorkspaceToolbar } from "@/components/patterns/workspace-page"
 
 export default function ConversationsPage() {
-  return <WorkspacePage eyebrow="Operação" title="Conversas" description="Acompanhe atendimentos, identifique gargalos e assuma uma conversa quando necessário." action={{ label: "Nova conversa" }}>
+  return <WorkspacePage prototipo="motor de conversa (fase 3b)" eyebrow="Operação" title="Conversas" description="Acompanhe atendimentos, identifique gargalos e assuma uma conversa quando necessário." action={{ label: "Nova conversa" }}>
     <WorkspaceToolbar placeholder="Buscar por paciente ou assunto" filters={["Todos os status", "Em andamento", "Resolvidas"]} />
     <DataList>
       <DataRow title="Mariana Alves" detail="Agente Recepção · Precisa confirmar o horário da consulta" meta="há 4 min" status="success" />

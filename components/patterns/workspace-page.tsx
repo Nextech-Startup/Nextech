@@ -1,6 +1,7 @@
 import { ArrowUpRight, Plus, Search } from "lucide-react"
 import type { ReactNode } from "react"
 
+import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
 import { PageHeader } from "@/components/patterns/page-header"
 import { StatusBadge } from "@/components/patterns/status-badge"
 
@@ -9,16 +10,20 @@ export function WorkspacePage({
   title,
   description,
   action,
+  prototipo,
   children,
 }: {
   eyebrow: string
   title: string
   description: string
   action?: { label: string; href?: string }
+  /** Quando entra no ar — obrigatório enquanto a tela for protótipo. */
+  prototipo?: string
   children: ReactNode
 }) {
   return (
     <div className="flex flex-col gap-8">
+      {prototipo && <AvisoDePrototipo entrega={prototipo} />}
       <PageHeader eyebrow={eyebrow} title={title} description={description} action={action} />
       {children}
     </div>
