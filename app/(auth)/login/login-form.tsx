@@ -3,6 +3,7 @@
 import { useActionState } from "react"
 import { useSearchParams } from "next/navigation"
 import { login, type LoginState } from "@/lib/auth/actions"
+import { Botao, Campo, Input } from "@/components/patterns/formulario"
 
 const estadoInicial: LoginState = { error: null }
 
@@ -12,60 +13,35 @@ export function LoginForm() {
   const [state, formAction, pending] = useActionState(login, estadoInicial)
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="grid gap-4">
       <input type="hidden" name="redirectTo" value={redirectTo} />
 
-      <div className="space-y-1.5">
-        <label
-          htmlFor="email"
-          className="block text-sm font-medium text-ink-2"
-        >
-          E-mail
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          autoFocus
-          className="w-full rounded-xl border border-hairline bg-surface-1 px-4 py-3 text-ink-1 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
-        />
-      </div>
+      <Campo label="E-mail">
+        <Input id="email" name="email" type="email" required autoComplete="email" autoFocus />
+      </Campo>
 
-      <div className="space-y-1.5">
-        <label
-          htmlFor="password"
-          className="block text-sm font-medium text-ink-2"
-        >
-          Senha
-        </label>
-        <input
+      <Campo label="Senha">
+        <Input
           id="password"
           name="password"
           type="password"
           required
           autoComplete="current-password"
-          className="w-full rounded-xl border border-hairline bg-surface-1 px-4 py-3 text-ink-1 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
-      </div>
+      </Campo>
 
       {state.error && (
         <p
           role="alert"
-          className="rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-sm text-ink-1"
+          className="rounded-xl border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger-fg"
         >
           {state.error}
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded-xl bg-brand px-4 py-3 font-medium text-white transition hover:bg-brand-strong focus:outline-none focus:ring-2 focus:ring-brand/40 disabled:opacity-60"
-      >
-        {pending ? "Entrando..." : "Entrar"}
-      </button>
+      <Botao type="submit" disabled={pending} className="mt-1 h-10 w-full">
+        {pending ? "Entrando…" : "Entrar"}
+      </Botao>
     </form>
   )
 }
