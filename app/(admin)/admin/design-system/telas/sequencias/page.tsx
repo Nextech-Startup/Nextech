@@ -1,9 +1,34 @@
+import type { Metadata } from "next"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
-import { DataList, DataRow, WorkspacePage, WorkspaceToolbar } from "@/components/patterns/workspace-page"
+import { TelaDeSequencias } from "@/components/sequences/tela-de-sequencias"
+import { AGORA } from "../../_fixtures/agora"
+import { SEQUENCIAS } from "../../_fixtures/sequencias"
 
-export default function SequencesPage() {
-  return <div className="flex flex-col gap-8"><AvisoDePrototipo entrega="sequências (fase 4)" /><WorkspacePage title="Sequências" description="Crie jornadas automáticas para acompanhar cada etapa do relacionamento com o paciente." action={{ label: "Nova sequência" }}>
-    <WorkspaceToolbar placeholder="Buscar sequência" filters={["Todos os status", "Ativas", "Rascunhos"]} />
-    <DataList><DataRow title="Lembrete de consulta" detail="3 mensagens · 24 horas antes do horário" meta="124 inscritos" status="success" /><DataRow title="Boas-vindas" detail="2 mensagens · após o primeiro contato" meta="86 inscritos" status="success" /><DataRow title="Retorno pós-consulta" detail="4 mensagens · 1 dia após o atendimento" meta="Em edição" status="warning" /></DataList>
-  </WorkspacePage></div>
+export const metadata: Metadata = {
+  title: "Protótipo: Sequências",
+  robots: { index: false, follow: false },
+}
+
+export default async function SequenciasPrototipo({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const pedida = (await searchParams).s
+  const id = typeof pedida === "string" ? pedida : undefined
+
+  return (
+    <div className="grid gap-6">
+      <AvisoDePrototipo entrega="sequências e templates (fase 4)" />
+      <TelaDeSequencias
+        sequencias={SEQUENCIAS}
+        aberta={SEQUENCIAS.find((s) => s.id === id) ?? SEQUENCIAS[0]}
+        celularNoEditor={Boolean(id)}
+        agora={AGORA}
+        caminho="/admin/design-system/telas/sequencias"
+        caminhoDoTemplate="/admin/design-system/telas/templates"
+        acaoDesabilitada="Protótipo: a ação ainda não existe"
+      />
+    </div>
+  )
 }

@@ -1,7 +1,7 @@
 import type { TemplateDoWhatsApp } from "@/components/templates/tipos"
 
 /**
- * Seis templates cobrindo o ciclo da Meta: aprovado, rejeitado com motivo,
+ * Oito templates cobrindo o ciclo da Meta: aprovado, rejeitado com motivo,
  * em análise e dois rascunhos — um deles com o corpo que a Meta recusaria,
  * para mostrar a validação antes do envio.
  */
@@ -89,5 +89,33 @@ export const TEMPLATES: TemplateDoWhatsApp[] = [
     motivoRejeicao: null,
     enviadoEm: null,
     atualizadoEm: "2026-09-28T09:40:00-03:00",
+  },
+  {
+    id: "tpl-reativacao-2",
+    nome: "reativacao_segundo_toque",
+    uso: "reativacao",
+    categoria: "MARKETING",
+    agente: "Recepção Odonto",
+    corpo:
+      "Oi, {{1}}! Passando para lembrar que sua avaliação de rotina está em aberto. Quer que eu veja um horário para você?",
+    exemplos: { 1: "Helena" },
+    status: "approved",
+    motivoRejeicao: null,
+    enviadoEm: "2026-08-05T11:05:00-03:00",
+    atualizadoEm: "2026-08-05T15:31:00-03:00",
+  },
+  {
+    id: "tpl-recall-2",
+    nome: "recall_segundo_toque",
+    uso: "recall",
+    categoria: "MARKETING",
+    agente: "Recepção Odonto",
+    corpo:
+      "Oi, {{1}}! Ainda dá tempo de marcar sua limpeza semestral. Responda esta mensagem que eu vejo os horários.",
+    exemplos: { 1: "Rafaela" },
+    status: "approved",
+    motivoRejeicao: null,
+    enviadoEm: "2026-09-24T09:05:00-03:00",
+    atualizadoEm: "2026-09-24T12:00:00-03:00",
   },
 ]
