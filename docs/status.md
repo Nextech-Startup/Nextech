@@ -11,10 +11,10 @@
 | **3a — Fundação multi-tenant** | ✅ concluída |
 | **3b — Motor de conversa** | ⬜ spec pronta, nada implementado |
 | **3c — Shell de navegação** | ✅ concluída |
-| Redesign do painel | ⬜ pendente, sem fase atribuída — ver roadmap |
+| Redesign do painel | 🟡 design system, shell e telas atuais prontos; protótipos completos pendentes — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**361 testes passando** · 8 migrations aplicadas · em produção em `app.nextech.ia.br`
+**402 testes passando** · 8 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 ---
 
@@ -176,10 +176,13 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 
 ### Design
 
-- [ ] **Redesign do painel** — registrado em 2026-09-26: visual e estrutura não
-  agradam. Nunca houve tarefa de design; faltam tokens de estado, componentes do
-  painel e mobile, e a estrutura da 3c/3a precisa ser reavaliada. Lista completa e
-  risco assumido em `docs/roadmap.md`, seção "Redesign do painel". A 3b segue antes
+- [x] **Redesign do painel, primeira parte**: concluída em 2026-09-26 na branch
+  `design/app-redesign` (design system, shell, telas atuais e protótipos no admin).
+  Ainda não foi para `staging`
+- [ ] **Redesign do painel, segunda parte**: protótipos completos das telas futuras,
+  nova divisão do menu e Minha conta. Lista em `docs/roadmap.md`
+- [ ] **Clínicas "Completa Ltda" no banco**: duas, sem responsável, parecem resíduo
+  de teste antigo. Confirmar e apagar
 
 ### Dívida técnica conhecida
 

@@ -53,17 +53,41 @@ Depende de 3a (o `role` vem de `requireClinicContext()`).
 
 **Consequência para a fase 3b e seguintes:** a tela de conversa do `(admin)` lê dado de saúde e exige justificativa obrigatória antes de abrir, registrada na trilha. Isso estende `admin_audit_log` com a ação `conversation.view` e um campo de justificativa.
 
-### Redesign do painel — pendente, sem fase atribuída
-Registrado em 2026-09-26. O painel não agrada ao Jhones — nem o visual, nem a estrutura (menu, organização das telas, fluxo entre elas). A causa é que nunca houve tarefa de design: o documento de arquitetura deixou o design visual fora de escopo ("entra na implementação de cada tela"), e na prática cada spec foi implementada pelo comportamento e pelo teste, com a tela como subproduto.
+### Redesign do painel — primeira parte ✅ (2026-09-26)
+O painel não agradava ao Jhones, nem no visual nem na estrutura, porque nunca tinha havido tarefa de design: cada spec foi implementada pelo comportamento e pelo teste, com a tela como subproduto. A direção veio de duas rodadas na v0 (brief em `docs/design/prompt-v0-design-system.md` e prompt mestre em `docs/design/prompt-mestre-v0.md`). A implementação foi feita na branch `design/app-redesign`, pelo plano `docs/superpowers/plans/2026-09-26-redesign-do-painel.md`.
 
-O que já se sabe que falta:
-- **Tokens de estado** (sucesso, atenção, erro, neutro) e **densidade de tabela** — prometidos na §5 da arquitetura, não existem em `app/globals.css`
-- **Componentes do painel** — `components/ui/` tem só `button`, `card`, `select` e `slider`, herdados da landing; não há input, tabela, badge nem abas, e cada tela monta os seus
-- **Estrutura** — reavaliar o que a 3c e a 3a decidiram: sidebar em três grupos, perfil da clínica em 7 abas, agente em lista + formulário
-- **Mobile** — o menu é uma faixa empilhada acima do conteúdo; a gaveta foi adiada
-- Pendências de design que já moram em outras fases: preview de conversa lado a lado com o formulário (3b), visão geral (fase 10), e notificações, busca global e seletor multi-clínica (em aberto no desenho da navegação)
+Entregue:
+- **Design system sobre shadcn/ui**, com a identidade da landing:
+  - tokens de estado (`success`, `warning`, `danger`, `info`, `neutral`);
+  - a folha `sheet` do shell;
+  - raios por hierarquia;
+  - 27 primitivos;
+  - o kit `components/patterns` (formulário, cartão, estado vazio, status, cabeçalho de página, KPI, bolha de conversa).
+- **Shell novo:**
+  - menu recolhível, que vira gaveta no celular (fecha a pendência de mobile da 3c);
+  - trilha de navegação;
+  - busca de telas (Ctrl K);
+  - troca de tema;
+  - menu do usuário.
+- **Telas atuais refeitas com dado real:**
+  - login com aurora;
+  - Visão geral com primeiros passos derivados do cadastro (`lib/onboarding`) e KPIs sem número inventado;
+  - Agentes com prévia da saudação ao lado do formulário;
+  - Perfil da clínica em subnavegação vertical;
+  - Clínicas no admin.
+- **Protótipos das telas futuras** em `/admin/design-system`. São as telas que a v0 tinha posto como rotas reais com dado inventado. Só a equipe as vê.
+- **Três travas por teste:**
+  - `tests/architecture/rotas.test.ts`: item "em breve" não tem rota;
+  - `tests/architecture/tokens.test.ts`: nada de `[var(--x)]` no painel;
+  - `tests/architecture/landing-scope.test.ts`: a landing mantém o verde.
 
-Decidido seguir para a 3b como planejado. **Risco assumido:** as telas da 3b (conversas, preview de chat) nascem sobre a base visual atual e entram no escopo do redesign quando ele acontecer. Começa pela skill `product-spec`, como qualquer feature.
+**`accent` mudou de significado.** No projeto, `accent` passa a ser o do shadcn: a superfície neutra de hover. O verde da marca é `brand`. A landing continua usando `accent` como verde por meio do escopo `.landing-scope` (`app/(marketing)/layout.tsx`), sem nenhum arquivo dela alterado.
+
+Fica para o próximo plano, uma decisão por vez:
+- **Protótipos completos:** Conversas com thread e painel do paciente, Agenda dia/semana, editor visual de Sequências.
+- **Nova divisão do menu** proposta pela v0: grupos "Gestão" e "Conta", "Integrações". É decisão de produto.
+- **Minha conta.**
+- **Mover a landing para `components/marketing/`.**
 
 ## Fase 4 — Templates e sequências
 - `whatsapp-templates-v1.md`, `message-sequences-v1.md`
