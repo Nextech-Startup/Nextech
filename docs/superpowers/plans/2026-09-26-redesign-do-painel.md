@@ -2,6 +2,29 @@
 
 > **Para quem executa:** SUB-SKILL OBRIGATÓRIA: use `superpowers:subagent-driven-development` (recomendada) ou `superpowers:executing-plans` para implementar este plano tarefa por tarefa. Os passos usam checkbox (`- [ ]`) para acompanhamento.
 
+## Status da execução: ✅ concluído em 2026-09-26
+
+As 12 tarefas foram executadas e integradas na `staging` local (último commit `55a5a51`), ainda sem push para o GitHub.
+- **Testes:** 402 passando (eram 371). `tsc` e `npm run build` limpos.
+- **Verificação visual:** todas as telas, nos dois temas, em 1440px e 390px.
+- **Landing:** conferida no navegador (`--accent` = `lab(72.8575% -47.9172 13.5998)`).
+
+Ajustes feitos durante a execução, além do que o plano descrevia:
+
+| Tarefa | Ajuste | Por quê |
+|---|---|---|
+| 2 | Brilho do `.painel-glow` aumentado (slate 0.22→0.34, marca 0.07→0.09) | No valor original ficava imperceptível |
+| 4 | Pastas vazias das 7 rotas antigas removidas | O `git mv` deixa a pasta para trás |
+| 5 | As quatro caixas de pendência/aviso passaram de `warn` (vermelho) para os tons `warning` | Pendência não é erro; o selo "N pendências" já era âmbar |
+| 5 | Um `<Selo key={k}>` que a troca automática não pegava | Selo com prop extra |
+| 6 | "Novo agente" no cabeçalho some quando a lista está vazia | Dois botões primários iguais na mesma tela |
+| 6 | Separador da trilha escondido quando a rota não tem trilha | Rotas fora do menu (protótipos) deixavam o separador solto |
+| 8 | Dicas dos campos passaram de "— texto" para "(texto)" | Padrão de texto do design |
+| 8 | Início e fim do horário de atendimento agrupados | No celular, "18:00" quebrava sozinho para a linha de baixo |
+| 9 | A explicação do KPI pendente reserva duas linhas (`min-h-[2lh]`) | O "—" ficava em alturas diferentes de um card para outro |
+
+O próximo passo está na seção "Próximo plano (parte 2)", no fim deste documento.
+
 **Objetivo:** tudo o que uma clínica e a equipe Nextech veem no painel passa a ter a identidade da landing, sobre shadcn/ui. Nenhum número, paciente ou agente inventado aparece em rota real.
 
 **Arquitetura:** a cor vem só de tokens (`app/globals.css`). Os primitivos vêm do shadcn (`components/ui`). As composições reaproveitáveis ficam em `components/patterns` e as peças de domínio em `components/<domínio>`. As páginas em `app/` continuam buscando dado pelas funções que já existem em `lib/` e só trocam a apresentação. Telas sem backend viram protótipo com dado fictício em `/admin/design-system/telas/*`, e o item do menu continua "em breve". Um teste garante isso.
@@ -84,7 +107,7 @@ Somem: `app/(dashboard)/dashboard/settings/ui.tsx`, `app/(dashboard)/dashboard/a
 **Interfaces:**
 - Produz: as páginas da v0 em `app/(dashboard)/dashboard/{conversations,schedule,patients,sequences,templates,billing}/page.tsx` e `settings/team/page.tsx`; `components/patterns/workspace-page.tsx`; `PageHeader` e `StatusBadge` na versão da v0; `images.qualities` no `next.config.mjs`.
 
-- [ ] **Passo 1: garantir árvore limpa.** O `next dev` reescreve o `CLAUDE.md`. Descarte isso antes de trazer commits.
+- [x] **Passo 1: garantir árvore limpa.** O `next dev` reescreve o `CLAUDE.md`. Descarte isso antes de trazer commits.
 
 ```bash
 git checkout -- CLAUDE.md
@@ -92,20 +115,20 @@ git status --short
 ```
 Esperado: só `?? "Prompt v0.md"`.
 
-- [ ] **Passo 2: trazer os commits.**
+- [x] **Passo 2: trazer os commits.**
 
 ```bash
 git cherry-pick 302d572 886a12c 2fcb7b3
 ```
 Esperado: três commits aplicados sem conflito. O WIP não toca nenhum arquivo que eles alteram. Se aparecer conflito em `CLAUDE.md`, resolva com a versão atual (`git checkout --ours CLAUDE.md && git add CLAUDE.md && git cherry-pick --continue`).
 
-- [ ] **Passo 3: arquivar o prompt mestre.**
+- [x] **Passo 3: arquivar o prompt mestre.**
 
 ```bash
 mkdir -p docs/design && git mv -f "Prompt v0.md" docs/design/prompt-mestre-v0.md 2>/dev/null || mv "Prompt v0.md" docs/design/prompt-mestre-v0.md
 ```
 
-- [ ] **Passo 4: conferir tipos e testes.**
+- [x] **Passo 4: conferir tipos e testes.**
 
 ```bash
 npx tsc --noEmit
@@ -113,7 +136,7 @@ npx vitest run lib/utils.test.ts components/shell tests/architecture lib/navigat
 ```
 Esperado: `tsc` sem saída e todos os testes passando.
 
-- [ ] **Passo 5: commit.**
+- [x] **Passo 5: commit.**
 
 ```bash
 git add docs/design/prompt-mestre-v0.md
@@ -132,7 +155,7 @@ git commit -m "docs: arquiva o prompt mestre gerado pela v0" -m "Co-Authored-By:
 **Interfaces:**
 - Consome: `.landing-scope` em `app/globals.css` e `app/(marketing)/layout.tsx` (do WIP).
 
-- [ ] **Passo 1: escrever o teste da guarda.**
+- [x] **Passo 1: escrever o teste da guarda.**
 
 ```ts
 // tests/architecture/landing-scope.test.ts
@@ -168,14 +191,14 @@ describe("tokens da landing", () => {
 })
 ```
 
-- [ ] **Passo 2: rodar.** O teste passa, porque o WIP já tem o escopo. Para provar que ele pega a regressão, apague temporariamente a linha `--accent: var(--brand);` do `.landing-scope`, rode, veja falhar e restaure.
+- [x] **Passo 2: rodar.** O teste passa, porque o WIP já tem o escopo. Para provar que ele pega a regressão, apague temporariamente a linha `--accent: var(--brand);` do `.landing-scope`, rode, veja falhar e restaure.
 
 ```bash
 npx vitest run tests/architecture/landing-scope.test.ts
 ```
 Esperado: 3 passando (e 1 falhando durante a prova).
 
-- [ ] **Passo 3: "em breve" discreto no menu.** Em `components/shell/app-sidebar.tsx`, dentro de `ItemEmBreve`, troque o selo em pílula:
+- [x] **Passo 3: "em breve" discreto no menu.** Em `components/shell/app-sidebar.tsx`, dentro de `ItemEmBreve`, troque o selo em pílula:
 
 ```tsx
         <span className="ml-auto rounded-pill border border-hairline px-1.5 py-px text-[0.625rem] text-ink-3 group-data-[collapsible=icon]:hidden">
@@ -190,7 +213,7 @@ por texto simples. Sete dos dez itens estão em breve, e pílula em todos vira r
         </span>
 ```
 
-- [ ] **Passo 4: brilho visível atrás do menu.** Em `components/shell/panel-shell.tsx`, troque `<SidebarProvider defaultOpen={aberto} className="painel-glow">` por:
+- [x] **Passo 4: brilho visível atrás do menu.** Em `components/shell/panel-shell.tsx`, troque `<SidebarProvider defaultOpen={aberto} className="painel-glow">` por:
 
 ```tsx
     // No desktop o menu fica transparente para o brilho aparecer atrás
@@ -202,7 +225,7 @@ por texto simples. Sete dos dez itens estão em breve, e pílula em todos vira r
     >
 ```
 
-- [ ] **Passo 5: conferir no navegador.**
+- [x] **Passo 5: conferir no navegador.**
 
 ```bash
 MSYS_NO_PATHCONV=1 node $SHOT/shot.mjs /tmp/t2 clinica:/dashboard/agents:dark:1440 clinica:/dashboard/agents:light:1440 clinica:/dashboard/agents:dark:390
@@ -213,7 +236,7 @@ Esperado:
 - em 390px, o menu escondido atrás do botão do cabeçalho;
 - `--accent no escopo -> lab(72.8575% -47.9172 13.5998)`.
 
-- [ ] **Passo 6: commit.**
+- [x] **Passo 6: commit.**
 
 ```bash
 git add tests/architecture/landing-scope.test.ts components/shell/app-sidebar.tsx components/shell/panel-shell.tsx
@@ -228,7 +251,7 @@ git commit -m "feat(shell): guarda o escopo da landing e deixa o menu mais quiet
 - Criar: `tests/architecture/tokens.test.ts`
 - Modificar (por script): todo `.ts`/`.tsx` em `app/(dashboard)`, `app/(admin)`, `app/(auth)`, `components/shell` e `components/patterns`.
 
-- [ ] **Passo 1: escrever o teste que falha.**
+- [x] **Passo 1: escrever o teste que falha.**
 
 ```ts
 // tests/architecture/tokens.test.ts
@@ -265,14 +288,14 @@ describe("tokens do painel", () => {
 })
 ```
 
-- [ ] **Passo 2: rodar e ver falhar.**
+- [x] **Passo 2: rodar e ver falhar.**
 
 ```bash
 npx vitest run tests/architecture/tokens.test.ts
 ```
 Esperado: FAIL, listando os arquivos do painel (settings, agents, admin, login).
 
-- [ ] **Passo 3: converter.** Rode este script a partir da raiz do repositório. Ele fica fora do repo, no scratchpad, e não é commitado.
+- [x] **Passo 3: converter.** Rode este script a partir da raiz do repositório. Ele fica fora do repo, no scratchpad, e não é commitado.
 
 ```js
 // $SHOT/../codemod-tokens.mjs
@@ -314,21 +337,21 @@ node "$SHOT/../codemod-tokens.mjs"
 ```
 O que muda: `bg-[var(--surface-1)]` → `bg-surface-1`, `text-[var(--text-2)]` → `text-ink-2`, `accent-[var(--brand)]` → `accent-brand`, `bg-[var(--brand)]/12` → `bg-brand/12` e assim por diante. Os valores são os mesmos, então nada muda visualmente.
 
-- [ ] **Passo 4: rodar de novo.**
+- [x] **Passo 4: rodar de novo.**
 
 ```bash
 npx vitest run tests/architecture/tokens.test.ts && npx tsc --noEmit
 ```
 Esperado: PASS. Se sobrar um `[var(--x)]` com variável fora do mapa, `grep -rn "\[var(--" "app/(dashboard)" "app/(admin)" "app/(auth)" components/shell components/patterns` mostra onde. Converta à mão para o token equivalente.
 
-- [ ] **Passo 5: conferir que nada mudou de cor.**
+- [x] **Passo 5: conferir que nada mudou de cor.**
 
 ```bash
 MSYS_NO_PATHCONV=1 node $SHOT/shot.mjs /tmp/t3 clinica:/dashboard/settings:dark:1440 anon:/login:dark:1440
 ```
 Esperado: mesmas cores de antes da conversão.
 
-- [ ] **Passo 6: commit.**
+- [x] **Passo 6: commit.**
 
 ```bash
 git add -A "app/(dashboard)" "app/(admin)" "app/(auth)" components/shell components/patterns tests/architecture/tokens.test.ts
@@ -351,7 +374,7 @@ git commit -m "refactor: troca classes var(--x) por tokens do tema e trava por t
 - Consome: `DASHBOARD_NAV` e `ADMIN_NAV` de `lib/navigation`.
 - Produz: `AvisoDePrototipo({ entrega: string })` e `WorkspacePage({ ..., prototipo?: string })`.
 
-- [ ] **Passo 1: escrever o teste que falha.**
+- [x] **Passo 1: escrever o teste que falha.**
 
 ```ts
 // tests/architecture/rotas.test.ts
@@ -388,14 +411,14 @@ describe("rotas do menu", () => {
 })
 ```
 
-- [ ] **Passo 2: rodar e ver falhar.**
+- [x] **Passo 2: rodar e ver falhar.**
 
 ```bash
 npx vitest run tests/architecture/rotas.test.ts
 ```
 Esperado: FAIL. O primeiro caso lista `/dashboard/conversations`, `/dashboard/schedule`, `/dashboard/patients`, `/dashboard/sequences`, `/dashboard/templates`, `/dashboard/settings/team` e `/dashboard/billing`.
 
-- [ ] **Passo 3: criar o aviso de protótipo.**
+- [x] **Passo 3: criar o aviso de protótipo.**
 
 ```tsx
 // components/patterns/aviso-de-prototipo.tsx
@@ -421,7 +444,7 @@ export function AvisoDePrototipo({ entrega }: { entrega: string }) {
 }
 ```
 
-- [ ] **Passo 4: `WorkspacePage` aceita `prototipo`.** Em `components/patterns/workspace-page.tsx`, adicione o import e a prop, e renderize o aviso antes do `PageHeader`.
+- [x] **Passo 4: `WorkspacePage` aceita `prototipo`.** Em `components/patterns/workspace-page.tsx`, adicione o import e a prop, e renderize o aviso antes do `PageHeader`.
 
 ```tsx
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
@@ -454,7 +477,7 @@ export function WorkspacePage({
 }
 ```
 
-- [ ] **Passo 5: mover as 7 telas e marcá-las como protótipo.**
+- [x] **Passo 5: mover as 7 telas e marcá-las como protótipo.**
 
 ```bash
 D="app/(dashboard)/dashboard"; P="app/(admin)/admin/design-system/telas"
@@ -476,7 +499,7 @@ Paciente não tem e-mail em `patient-v1`. Em `$P/pacientes/page.tsx`, troque os 
 sed -i 's/mariana\.alves@email\.com/(81) 90000-0001/; s/rafael\.mendes@email\.com/(81) 90000-0002/; s/camila\.duarte@email\.com/(81) 90000-0003/; s/lucas\.ferreira@email\.com/(81) 90000-0004/; s/Buscar por nome, telefone ou e-mail/Buscar por nome ou telefone/' "$P/pacientes/page.tsx"
 ```
 
-- [ ] **Passo 6: galeria de protótipos.**
+- [x] **Passo 6: galeria de protótipos.**
 
 ```tsx
 // app/(admin)/admin/design-system/page.tsx
@@ -533,21 +556,21 @@ export default function PrototiposPage() {
 }
 ```
 
-- [ ] **Passo 7: Visão geral volta a ser honesta.** A versão da v0 inventa KPIs, agentes e atividade. Volte à versão da `staging` (a Tarefa 9 a redesenha com dado real) e converta as duas classes antigas.
+- [x] **Passo 7: Visão geral volta a ser honesta.** A versão da v0 inventa KPIs, agentes e atividade. Volte à versão da `staging` (a Tarefa 9 a redesenha com dado real) e converta as duas classes antigas.
 
 ```bash
 git checkout staging -- "app/(dashboard)/dashboard/page.tsx"
 sed -i 's/text-\[var(--text-2)\]/text-ink-2/g' "app/(dashboard)/dashboard/page.tsx"
 ```
 
-- [ ] **Passo 8: rodar tudo.**
+- [x] **Passo 8: rodar tudo.**
 
 ```bash
 npx vitest run tests/architecture && npx tsc --noEmit
 ```
 Esperado: PASS. Em `http://localhost:3000/dashboard/patients` (logado como clínica), agora vem 404. Em `/admin/design-system/telas/pacientes` (logado como admin), o protótipo aparece com a faixa azul.
 
-- [ ] **Passo 9: commit.**
+- [x] **Passo 9: commit.**
 
 ```bash
 git add -A "app/(dashboard)" "app/(admin)" components/patterns tests/architecture/rotas.test.ts
@@ -577,7 +600,7 @@ git commit -m "fix: tira dado inventado do painel da clínica e move as telas da
   - `StatusBadge({ tone?: StatusTone, children, className? })` e `StatusTone`;
   - `StatusDoAgente({ status })` e `TOM_DO_STATUS`.
 
-- [ ] **Passo 1: escrever os testes que falham.**
+- [x] **Passo 1: escrever os testes que falham.**
 
 ```tsx
 // components/patterns/formulario.test.tsx
@@ -665,14 +688,14 @@ describe("StatusDoAgente", () => {
 })
 ```
 
-- [ ] **Passo 2: rodar e ver falhar.**
+- [x] **Passo 2: rodar e ver falhar.**
 
 ```bash
 npx vitest run components/patterns/formulario.test.tsx components/agents
 ```
 Esperado: FAIL, "Failed to resolve import ./formulario". Se a falha for `React is not defined`, adicione `oxc: { jsx: { runtime: "automatic" } }` na raiz do objeto de `vitest.config.mts` e rode de novo.
 
-- [ ] **Passo 3: implementar o kit de formulário.**
+- [x] **Passo 3: implementar o kit de formulário.**
 
 ```tsx
 // components/patterns/formulario.tsx
@@ -812,7 +835,7 @@ export function Aviso({ state }: { state: EstadoDeFormulario }) {
 }
 ```
 
-- [ ] **Passo 4: `Cartao`, `Vazio` e `StatusBadge`.**
+- [x] **Passo 4: `Cartao`, `Vazio` e `StatusBadge`.**
 
 ```tsx
 // components/patterns/cartao.tsx
@@ -926,7 +949,7 @@ export function StatusDoAgente({ status }: { status: AgentStatus }) {
 }
 ```
 
-- [ ] **Passo 5: `EscolhaDeConvenios` ganha arquivo próprio.**
+- [x] **Passo 5: `EscolhaDeConvenios` ganha arquivo próprio.**
 
 ```tsx
 // app/(dashboard)/dashboard/settings/escolha-de-convenios.tsx
@@ -972,7 +995,7 @@ export function EscolhaDeConvenios({
 }
 ```
 
-- [ ] **Passo 6: apontar as telas para o kit.** Troque o bloco `import { ... } from "./ui"` de cada arquivo pelo bloco abaixo.
+- [x] **Passo 6: apontar as telas para o kit.** Troque o bloco `import { ... } from "./ui"` de cada arquivo pelo bloco abaixo.
 
 `settings/abas-cadastro.tsx`:
 ```ts
@@ -1018,14 +1041,14 @@ Esperado: `sem resíduos`.
 
 Em `components/patterns/workspace-page.tsx`, a `DataRow` passa o tom explicitamente. Troque `<StatusBadge status={status}>` por `<StatusBadge tone={status}>`.
 
-- [ ] **Passo 7: rodar.**
+- [x] **Passo 7: rodar.**
 
 ```bash
 npx vitest run components tests/architecture && npx tsc --noEmit
 ```
 Esperado: PASS. No navegador, `/dashboard/settings` e `/dashboard/agents` já mostram campos com cantos de controle, botões em pílula e status com ponto.
 
-- [ ] **Passo 8: commit.**
+- [x] **Passo 8: commit.**
 
 ```bash
 git add -A components "app/(dashboard)"
@@ -1044,7 +1067,7 @@ git commit -m "feat: kit de formulário e status do painel em components/pattern
 **Interfaces:**
 - Produz: `PageHeader({ title: string; description?: ReactNode; status?: ReactNode; actions?: ReactNode })`. As props `eyebrow`, `action` e `breadcrumb` da versão da v0 deixam de existir: a trilha do shell já diz onde se está.
 
-- [ ] **Passo 1: reescrever o `PageHeader`.**
+- [x] **Passo 1: reescrever o `PageHeader`.**
 
 ```tsx
 // components/patterns/page-header.tsx
@@ -1086,7 +1109,7 @@ export function PageHeader({
 }
 ```
 
-- [ ] **Passo 2: `WorkspacePage` sem `eyebrow`.** Em `components/patterns/workspace-page.tsx`, substitua a função `WorkspacePage` inteira. A ação de protótipo vira botão desabilitado, porque não pode fingir que faz algo.
+- [x] **Passo 2: `WorkspacePage` sem `eyebrow`.** Em `components/patterns/workspace-page.tsx`, substitua a função `WorkspacePage` inteira. A ação de protótipo vira botão desabilitado, porque não pode fingir que faz algo.
 
 ```tsx
 export function WorkspacePage({
@@ -1127,7 +1150,7 @@ Com o import `import { Button } from "@/components/ui/button"`. Depois:
 sed -i 's/ eyebrow="[^"]*"//' app/\(admin\)/admin/design-system/telas/*/page.tsx
 ```
 
-- [ ] **Passo 3: reescrever a lista de agentes.**
+- [x] **Passo 3: reescrever a lista de agentes.**
 
 ```tsx
 // app/(dashboard)/dashboard/agents/lista.tsx
@@ -1287,7 +1310,7 @@ export function ListaDeAgentes({
 }
 ```
 
-- [ ] **Passo 4: `SemPermissao` com o padrão.** Em `agents/page.tsx` e `agents/[id]/page.tsx`, adicione os imports de `PageHeader` e `Vazio` e troque a função:
+- [x] **Passo 4: `SemPermissao` com o padrão.** Em `agents/page.tsx` e `agents/[id]/page.tsx`, adicione os imports de `PageHeader` e `Vazio` e troque a função:
 
 ```tsx
 function SemPermissao() {
@@ -1335,7 +1358,7 @@ Em `settings/page.tsx`, faça o mesmo com o título "Perfil da clínica" e o tex
   )
 ```
 
-- [ ] **Passo 5: rodar e olhar.**
+- [x] **Passo 5: rodar e olhar.**
 
 ```bash
 npx tsc --noEmit && npx vitest run components tests/architecture
@@ -1343,7 +1366,7 @@ MSYS_NO_PATHCONV=1 node $SHOT/shot.mjs /tmp/t6 clinica:/dashboard/agents:dark:14
 ```
 Esperado: títulos em Cal Sans, sem rótulo em caixa alta acima e com ações alinhadas à direita.
 
-- [ ] **Passo 6: commit.**
+- [x] **Passo 6: commit.**
 
 ```bash
 git add -A components "app/(dashboard)" "app/(admin)"
@@ -1361,7 +1384,7 @@ git commit -m "feat: PageHeader do painel e lista de agentes redesenhada" -m "Co
 **Interfaces:**
 - Produz: `Abas({ secoes: readonly Secao[] })`, com `Secao = { id: string; label: string; alertas?: number; conteudo: ReactNode }`. O contrato da query string (`?aba=<id>`) não muda.
 
-- [ ] **Passo 1: reescrever as abas.**
+- [x] **Passo 1: reescrever as abas.**
 
 ```tsx
 // app/(dashboard)/dashboard/settings/abas.tsx
@@ -1445,11 +1468,11 @@ export function Abas({ secoes }: { secoes: readonly Secao[] }) {
 }
 ```
 
-- [ ] **Passo 2: contadores nas seções.** Em `settings/page.tsx`:
+- [x] **Passo 2: contadores nas seções.** Em `settings/page.tsx`:
 - na entrada `id: "identidade"` da lista `secoes`, adicione `alertas: pendencias.length,`;
 - na entrada `id: "urgencia"`, adicione `alertas: regras.filter((r) => r.confirmed_at === null).length,`. Regra sem confirmação não está no ar.
 
-- [ ] **Passo 3: rodar e olhar.**
+- [x] **Passo 3: rodar e olhar.**
 
 ```bash
 npx tsc --noEmit
@@ -1460,7 +1483,7 @@ Esperado:
 - `?aba=equipe` abre direto em Equipe;
 - contador de pendências em Identidade, quando houver.
 
-- [ ] **Passo 4: commit.**
+- [x] **Passo 4: commit.**
 
 ```bash
 git add "app/(dashboard)/dashboard/settings"
@@ -1479,7 +1502,7 @@ git commit -m "feat(settings): subnavegação vertical com pendências por seç�
 **Interfaces:**
 - Produz: `ChatBubble({ lado: "paciente" | "clinica"; autor?: string; hora?: string; children })` e `PreviewDeConversa({ nome: string; saudacao: string | null })`.
 
-- [ ] **Passo 1: a bolha de conversa.**
+- [x] **Passo 1: a bolha de conversa.**
 
 ```tsx
 // components/patterns/chat-bubble.tsx
@@ -1527,7 +1550,7 @@ export function ChatBubble({
 }
 ```
 
-- [ ] **Passo 2: a prévia.**
+- [x] **Passo 2: a prévia.**
 
 ```tsx
 // components/agents/preview-de-conversa.tsx
@@ -1587,7 +1610,7 @@ export function PreviewDeConversa({
 }
 ```
 
-- [ ] **Passo 3: montar o editor.** Em `agents/formulario.tsx`:
+- [x] **Passo 3: montar o editor.** Em `agents/formulario.tsx`:
 
 1. Troque os imports. Remova `import Link from "next/link"` (a trilha do shell já leva de volta a Agentes) e adicione:
 ```ts
@@ -1633,7 +1656,7 @@ export function FormularioDeAgente({ agente }: { agente: Agent }) {
 6. Em `ConexaoWhatsapp`, troque o `span` de `acao` ("conectado") por `<StatusBadge tone="success">conectado</StatusBadge>`.
 7. Nos dois `<input type="time">` de `Configuracao`, troque a classe por `h-9 rounded-control border border-hairline bg-surface-0/60 px-2.5 text-sm text-ink-1 [color-scheme:light] dark:[color-scheme:dark]`.
 
-- [ ] **Passo 4: rodar e olhar.**
+- [x] **Passo 4: rodar e olhar.**
 
 ```bash
 npx tsc --noEmit && npx vitest run components tests/architecture
@@ -1644,7 +1667,7 @@ MSYS_NO_PATHCONV=1 node $SHOT/shot.mjs /tmp/t8 clinica:/dashboard/agents:dark:14
 ```
 Esperado: a prévia à direita, fixa ao rolar, com a saudação salva numa bolha à direita, e o botão "Publicar agente" verde.
 
-- [ ] **Passo 5: commit.**
+- [x] **Passo 5: commit.**
 
 ```bash
 git add -A components "app/(dashboard)/dashboard/agents"
@@ -1664,7 +1687,7 @@ git commit -m "feat(agents): editor com prévia da saudação ao lado" -m "Co-Au
 - Consome: `getCurrentClinic`, `getRegulatoryIdentity`, `listProfessionals`, `listProcedures`, `listAgents`, `pendenciasRegulatorias`, `estaConectado` e `ROTULO_DA_ESPECIALIDADE` (todos já existem em `lib/`).
 - Produz: `passosDoOnboarding(d: DadosDoOnboarding): Passo[]`, `proximoPasso(p: readonly Passo[]): Passo | null` e `KpiCard({ label, value?, detail?, icon?, pendente? })`.
 
-- [ ] **Passo 1: escrever o teste que falha.**
+- [x] **Passo 1: escrever o teste que falha.**
 
 ```ts
 // lib/onboarding/passos.test.ts
@@ -1738,14 +1761,14 @@ describe("passosDoOnboarding", () => {
 })
 ```
 
-- [ ] **Passo 2: rodar e ver falhar.**
+- [x] **Passo 2: rodar e ver falhar.**
 
 ```bash
 npx vitest run lib/onboarding
 ```
 Esperado: FAIL, "Failed to resolve import ./passos".
 
-- [ ] **Passo 3: implementar.**
+- [x] **Passo 3: implementar.**
 
 ```ts
 // lib/onboarding/passos.ts
@@ -1839,14 +1862,14 @@ export function proximoPasso(passos: readonly Passo[]): Passo | null {
 }
 ```
 
-- [ ] **Passo 4: rodar.**
+- [x] **Passo 4: rodar.**
 
 ```bash
 npx vitest run lib/onboarding
 ```
 Esperado: 7 passando.
 
-- [ ] **Passo 5: `KpiCard` com estado pendente.**
+- [x] **Passo 5: `KpiCard` com estado pendente.**
 
 ```tsx
 // components/patterns/kpi-card.tsx
@@ -1898,7 +1921,7 @@ export function KpiCard({
 }
 ```
 
-- [ ] **Passo 6: a Visão geral.**
+- [x] **Passo 6: a Visão geral.**
 
 ```tsx
 // app/(dashboard)/dashboard/page.tsx
@@ -2154,7 +2177,7 @@ function AguardandoMinhasTelas() {
 ```
 Antes de rodar, confira o `data-slot` do indicador: `grep -n "data-slot" components/ui/progress.tsx`. Se não for `progress-indicator`, ajuste o seletor da classe do `Progress`.
 
-- [ ] **Passo 7: rodar e olhar.**
+- [x] **Passo 7: rodar e olhar.**
 
 ```bash
 npx tsc --noEmit && npx vitest run lib/onboarding components tests/architecture
@@ -2166,7 +2189,7 @@ Esperado:
 - "Agentes" com a lista real ou o estado vazio;
 - nenhum número inventado.
 
-- [ ] **Passo 8: commit.**
+- [x] **Passo 8: commit.**
 
 ```bash
 git add lib/onboarding components/patterns/kpi-card.tsx "app/(dashboard)/dashboard/page.tsx"
@@ -2183,7 +2206,7 @@ git commit -m "feat(dashboard): visão geral com primeiros passos e indicadores 
 **Interfaces:**
 - Consome: `listClinics` e `getPlatformStats` (`lib/admin/queries`), as actions de `app/(admin)/admin/actions.ts` (sem mudança), `Table*` (`components/ui/table`) e o kit da Tarefa 5.
 
-- [ ] **Passo 1: a página.**
+- [x] **Passo 1: a página.**
 
 ```tsx
 // app/(admin)/admin/page.tsx
@@ -2261,7 +2284,7 @@ function Numeros({ total, ativas, rascunho }: { total: number; ativas: number; r
 }
 ```
 
-- [ ] **Passo 2: a linha.**
+- [x] **Passo 2: a linha.**
 
 ```tsx
 // app/(admin)/admin/clinica-row.tsx
@@ -2369,7 +2392,7 @@ export function ClinicaRow({ clinica }: { clinica: ClinicResumo }) {
 }
 ```
 
-- [ ] **Passo 3: o formulário de nova clínica.**
+- [x] **Passo 3: o formulário de nova clínica.**
 
 ```tsx
 // app/(admin)/admin/nova-clinica-form.tsx
@@ -2430,7 +2453,7 @@ export function NovaClinicaForm() {
 }
 ```
 
-- [ ] **Passo 4: rodar e olhar.**
+- [x] **Passo 4: rodar e olhar.**
 
 ```bash
 npx tsc --noEmit && npx vitest run tests/architecture lib/admin
@@ -2438,7 +2461,7 @@ MSYS_NO_PATHCONV=1 node $SHOT/shot.mjs /tmp/t10 admin:/admin:dark:1440 admin:/ad
 ```
 Esperado: tabela com status em pílula e ações discretas. Em 390px a tabela rola na horizontal dentro do cartão (o `Table` do shadcn já envolve em `overflow-x-auto`), sem estourar a página.
 
-- [ ] **Passo 5: commit.**
+- [x] **Passo 5: commit.**
 
 ```bash
 git add "app/(admin)/admin"
@@ -2455,7 +2478,7 @@ git commit -m "feat(admin): lista de clínicas no design system" -m "Co-Authored
 **Interfaces:**
 - Consome: `Background` (`components/background.tsx`, a aurora da landing; só é importado, não modificado), `login` e `LoginState` (`lib/auth/actions`), e o kit.
 
-- [ ] **Passo 1: a página.**
+- [x] **Passo 1: a página.**
 
 ```tsx
 // app/(auth)/login/page.tsx
@@ -2520,7 +2543,7 @@ export default function LoginPage() {
 }
 ```
 
-- [ ] **Passo 2: o formulário.** Os `name` (`email`, `password`, `redirectTo`) e a mensagem genérica de erro não mudam.
+- [x] **Passo 2: o formulário.** Os `name` (`email`, `password`, `redirectTo`) e a mensagem genérica de erro não mudam.
 
 ```tsx
 // app/(auth)/login/login-form.tsx
@@ -2573,7 +2596,7 @@ export function LoginForm() {
 }
 ```
 
-- [ ] **Passo 3: rodar e olhar.**
+- [x] **Passo 3: rodar e olhar.**
 
 ```bash
 npx tsc --noEmit && npx vitest run tests/auth tests/architecture
@@ -2581,7 +2604,7 @@ MSYS_NO_PATHCONV=1 node $SHOT/shot.mjs /tmp/t11 anon:/login:dark:1440 anon:/logi
 ```
 Esperado: aurora ao fundo e cartão de vidro. O script de screenshot continua conseguindo logar (ele usa `input[name="email"]` e `button[type="submit"]`).
 
-- [ ] **Passo 4: commit.**
+- [x] **Passo 4: commit.**
 
 ```bash
 git add "app/(auth)/login"
@@ -2596,7 +2619,7 @@ git commit -m "feat(login): aurora e vidro da landing na porta de entrada" -m "C
 - Modificar: `docs/roadmap.md` (seção "Redesign do painel"), `docs/status.md` (tabela e pendência de design)
 - Modificar: `C:\Users\Jhone\.claude\projects\c--Projetos-pessoais-Nextech\memory\nextech-sistema-de-design.md`
 
-- [ ] **Passo 1: suíte inteira, tipos e build.**
+- [x] **Passo 1: suíte inteira, tipos e build.**
 
 ```bash
 npx vitest run
@@ -2605,7 +2628,7 @@ npm run build
 ```
 Esperado: todos os testes passando (os 371 anteriores mais os novos), `tsc` sem saída e build concluído. Se o build falhar por falta de variável de ambiente, registre isso na mensagem final em vez de contornar.
 
-- [ ] **Passo 2: passada visual completa.**
+- [x] **Passo 2: passada visual completa.**
 
 ```bash
 MSYS_NO_PATHCONV=1 node $SHOT/shot.mjs /tmp/final \
@@ -2623,7 +2646,7 @@ Critique cada imagem com o checklist da seção 12 do prompt mestre:
 
 E confira que a landing continua com `--accent no escopo -> lab(72.8575% -47.9172 13.5998)`. Corrija o que falhar antes de seguir.
 
-- [ ] **Passo 3: docs.**
+- [x] **Passo 3: docs.**
   - Em `docs/roadmap.md`, a seção "Redesign do painel" passa a registrar:
     - o que foi entregue: tokens, shell, kit, telas atuais e protótipos no admin;
     - o que fica para o próximo plano (seção "Fora deste plano" abaixo).
@@ -2632,12 +2655,12 @@ E confira que a landing continua com `--accent no escopo -> lab(72.8575% -47.917
     - o número de testes é atualizado;
     - a inconsistência 361/371 é corrigida.
 
-- [ ] **Passo 4: memória.** Em `nextech-sistema-de-design.md`, registre três coisas:
+- [x] **Passo 4: memória.** Em `nextech-sistema-de-design.md`, registre três coisas:
   - o redesign foi feito na branch `design/app-redesign`, a partir da v0;
   - a regra que ficou: protótipo com dado fictício só em `/admin/design-system/telas/*`, travada por `tests/architecture/rotas.test.ts`;
   - o escopo `.landing-scope` e o motivo dele.
 
-- [ ] **Passo 5: commit final.**
+- [x] **Passo 5: commit final.**
 
 ```bash
 git add docs/roadmap.md docs/status.md
@@ -2647,7 +2670,7 @@ git log --oneline staging..HEAD
 
 ---
 
-## Fora deste plano (próximo plano, uma decisão por vez)
+## Próximo plano (parte 2) — uma decisão por vez
 
 Estes pontos do prompt mestre precisam de spec ou de decisão do Jhones antes de virar código:
 
