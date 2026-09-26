@@ -53,6 +53,18 @@ Depende de 3a (o `role` vem de `requireClinicContext()`).
 
 **Consequência para a fase 3b e seguintes:** a tela de conversa do `(admin)` lê dado de saúde e exige justificativa obrigatória antes de abrir, registrada na trilha. Isso estende `admin_audit_log` com a ação `conversation.view` e um campo de justificativa.
 
+### Redesign do painel — pendente, sem fase atribuída
+Registrado em 2026-09-26. O painel não agrada ao Jhones — nem o visual, nem a estrutura (menu, organização das telas, fluxo entre elas). A causa é que nunca houve tarefa de design: o documento de arquitetura deixou o design visual fora de escopo ("entra na implementação de cada tela"), e na prática cada spec foi implementada pelo comportamento e pelo teste, com a tela como subproduto.
+
+O que já se sabe que falta:
+- **Tokens de estado** (sucesso, atenção, erro, neutro) e **densidade de tabela** — prometidos na §5 da arquitetura, não existem em `app/globals.css`
+- **Componentes do painel** — `components/ui/` tem só `button`, `card`, `select` e `slider`, herdados da landing; não há input, tabela, badge nem abas, e cada tela monta os seus
+- **Estrutura** — reavaliar o que a 3c e a 3a decidiram: sidebar em três grupos, perfil da clínica em 7 abas, agente em lista + formulário
+- **Mobile** — o menu é uma faixa empilhada acima do conteúdo; a gaveta foi adiada
+- Pendências de design que já moram em outras fases: preview de conversa lado a lado com o formulário (3b), visão geral (fase 10), e notificações, busca global e seletor multi-clínica (em aberto no desenho da navegação)
+
+Decidido seguir para a 3b como planejado. **Risco assumido:** as telas da 3b (conversas, preview de chat) nascem sobre a base visual atual e entram no escopo do redesign quando ele acontecer. Começa pela skill `product-spec`, como qualquer feature.
+
 ## Fase 4 — Templates e sequências
 - `whatsapp-templates-v1.md`, `message-sequences-v1.md`
 - Depende da fase 3b (precisa do agente e do paciente conversando)

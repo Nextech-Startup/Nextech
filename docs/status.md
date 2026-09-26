@@ -1,6 +1,6 @@
 # Status do Projeto — Nextech SaaS
 
-> Atualizado em 2026-09-16. Documento de acompanhamento: o que está pronto, o que falta e o que bloqueia.
+> Atualizado em 2026-09-26. Documento de acompanhamento: o que está pronto, o que falta e o que bloqueia.
 
 ## Onde estamos
 
@@ -11,6 +11,7 @@
 | **3a — Fundação multi-tenant** | ✅ concluída |
 | **3b — Motor de conversa** | ⬜ spec pronta, nada implementado |
 | **3c — Shell de navegação** | ✅ concluída |
+| Redesign do painel | ⬜ pendente, sem fase atribuída — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
 **361 testes passando** · 8 migrations aplicadas · em produção em `app.nextech.ia.br`
@@ -172,6 +173,13 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 - [ ] **Credenciais da Meta** — iniciar o processo, que leva tempo e não trava código
 
 - [x] ~~**Revisar o PR #4**~~ — mergeado em 2026-09-16 (commit `80f2423`), com fase 3c, `patient-v1` e `clinic-profile-v1`. `main` e `staging` estão no mesmo ponto
+
+### Design
+
+- [ ] **Redesign do painel** — registrado em 2026-09-26: visual e estrutura não
+  agradam. Nunca houve tarefa de design; faltam tokens de estado, componentes do
+  painel e mobile, e a estrutura da 3c/3a precisa ser reavaliada. Lista completa e
+  risco assumido em `docs/roadmap.md`, seção "Redesign do painel". A 3b segue antes
 
 ### Dívida técnica conhecida
 
