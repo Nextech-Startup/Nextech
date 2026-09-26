@@ -61,6 +61,7 @@ export default async function SettingsPage() {
     {
       id: "identidade",
       label: "Identidade",
+      alertas: pendencias.length,
       conteudo: <AbaIdentidade clinic={clinic} pendencias={pendencias} />,
     },
     {
@@ -88,6 +89,7 @@ export default async function SettingsPage() {
     {
       id: "urgencia",
       label: "Urgência",
+      alertas: regras.filter((r) => r.confirmed_at === null).length,
       conteudo: <AbaUrgencia regras={regras} />,
     },
     {
