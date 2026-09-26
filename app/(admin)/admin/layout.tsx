@@ -2,7 +2,6 @@ import { redirect } from "next/navigation"
 import { requireAdminContext, AdminContextError } from "@/lib/admin/context"
 import { hasClinic } from "@/lib/auth/context"
 import { PanelShell } from "@/components/shell/panel-shell"
-import { SidebarNav } from "@/components/shell/sidebar-nav"
 
 export default async function AdminLayout({
   children,
@@ -28,14 +27,14 @@ export default async function AdminLayout({
 
   return (
     <PanelShell
+      painel={{ tipo: "interno" }}
       marca="/admin"
-      selo="Interno"
-      nome={nome ?? "Equipe Nextech"}
-      papel="Equipe Nextech"
-      atalho={
-        temClinica ? { href: "/dashboard", label: "Painel da clínica" } : undefined
-      }
-      nav={<SidebarNav painel="interno" />}
+      espaco={{ titulo: "Painel interno", subtitulo: "Equipe Nextech" }}
+      usuario={{
+        nome: nome ?? "Equipe Nextech",
+        papel: "Equipe Nextech",
+        atalho: temClinica ? { href: "/dashboard", label: "Painel da clínica" } : undefined,
+      }}
     >
       {children}
     </PanelShell>

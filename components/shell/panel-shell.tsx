@@ -1,58 +1,47 @@
-import Link from "next/link"
+import { cookies } from "next/headers"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { Toaster } from "@/components/ui/sonner"
+import { AppSidebar } from "./app-sidebar"
+import type { Painel } from "./painel"
 import { ShellHeader } from "./shell-header"
 
 /**
- * Casco de dois painéis: sidebar fixa à esquerda, cabeçalho e conteúdo à
- * direita.
+ * Casco dos dois painéis.
  *
- * Abaixo de `lg` a barra vira uma faixa acima do conteúdo, empilhada. Não
- * é a gaveta que o mobile de verdade pede — essa decisão ficou em aberto
- * no desenho (seção 7), à espera de uso real. O que existe aqui garante
- * que a navegação continue alcançável numa tela estreita, em vez de
- * espremer duas colunas onde não cabem.
+ * Menu e cabeçalho vivem no fundo da página; o conteúdo vive numa folha
+ * elevada (`bg-sheet`, cantos `rounded-sheet`) — a hierarquia é espacial,
+ * não de cor. O brilho do alto (`.painel-glow`) é a aurora da landing em
+ * versão estática.
+ *
+ * Abaixo de `md` o menu vira gaveta e a folha ocupa a tela toda.
  */
-export function PanelShell({
+export async function PanelShell({
+  painel,
   marca,
-  selo,
-  nome,
-  papel,
-  atalho,
-  nav,
+  espaco,
+  usuario,
   children,
 }: {
-  /** Destino do logo: a raiz do painel em que se está. */
+  painel: Painel
   marca: string
-  /** Distingue o painel interno do painel da clínica. */
-  selo?: string
-  nome: string
-  papel: string
-  atalho?: { href: string; label: string }
-  nav: React.ReactNode
+  espaco: { titulo: string; subtitulo: string }
+  usuario: { nome: string; papel: string; atalho?: { href: string; label: string } }
   children: React.ReactNode
 }) {
+  // O shadcn guarda aberto/recolhido num cookie; ler aqui evita o menu
+  // nascer aberto e recolher depois da hidratação.
+  const aberto = (await cookies()).get("sidebar_state")?.value !== "false"
+
   return (
-    <div className="min-h-dvh bg-[var(--surface-0)] text-[var(--text-1)] lg:flex">
-      <aside className="border-b border-[var(--hairline)] bg-[var(--surface-1)] lg:h-dvh lg:w-60 lg:shrink-0 lg:border-r lg:border-b-0 lg:sticky lg:top-0 lg:overflow-y-auto">
-        <div className="flex items-center gap-2 px-6 py-4 lg:py-5">
-          <Link href={marca} className="font-display text-lg tracking-tight">
-            Nextech
-          </Link>
-          {selo && (
-            <span className="rounded-pill bg-[var(--brand)]/10 px-2 py-0.5 text-[0.6875rem] font-medium text-[var(--brand-on-light)] dark:text-[var(--brand-dim)]">
-              {selo}
-            </span>
-          )}
+    <SidebarProvider defaultOpen={aberto} className="painel-glow">
+      <AppSidebar painel={painel} marca={marca} espaco={espaco} usuario={usuario} />
+      <SidebarInset>
+        <ShellHeader painel={painel} />
+        <div id="conteudo" className="flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+          <div className="mx-auto w-full max-w-6xl">{children}</div>
         </div>
-
-        <div className="px-3 pb-5">{nav}</div>
-      </aside>
-
-      <div className="min-w-0 flex-1">
-        <ShellHeader nome={nome} papel={papel} atalho={atalho} />
-        <main id="conteudo" className="px-4 py-8 sm:px-6 lg:px-10">
-          <div className="mx-auto max-w-5xl">{children}</div>
-        </main>
-      </div>
-    </div>
+      </SidebarInset>
+      <Toaster position="bottom-right" />
+    </SidebarProvider>
   )
 }

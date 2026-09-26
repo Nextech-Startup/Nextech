@@ -2,8 +2,9 @@ import Link from "next/link"
 import { requireClinicContext, ClinicContextError } from "@/lib/auth/context"
 import { isPlatformAdmin } from "@/lib/admin/context"
 import { logout } from "@/lib/auth/actions"
+import { getCurrentClinic } from "@/lib/clinics/queries"
 import { PanelShell } from "@/components/shell/panel-shell"
-import { SidebarNav } from "@/components/shell/sidebar-nav"
+import { Button } from "@/components/ui/button"
 import { ROTULO_DO_PAPEL, primeiraRotaVisivel } from "@/lib/navigation/landing"
 
 export default async function DashboardLayout({
@@ -24,17 +25,19 @@ export default async function DashboardLayout({
     throw erro
   }
 
-  // Atalho entre os painéis: só para quem é das duas coisas. Antes da fase
-  // 3c não havia caminho nenhum — navegava-se digitando a URL.
-  const daEquipe = await isPlatformAdmin()
+  // Atalho entre os painéis: só para quem é das duas coisas.
+  const [daEquipe, clinica] = await Promise.all([isPlatformAdmin(), getCurrentClinic()])
 
   return (
     <PanelShell
+      painel={{ tipo: "clinica", role: ctx.role }}
       marca={primeiraRotaVisivel(ctx.role) ?? "/dashboard"}
-      nome={ctx.email ?? "Minha conta"}
-      papel={ROTULO_DO_PAPEL[ctx.role]}
-      atalho={daEquipe ? { href: "/admin", label: "Painel interno" } : undefined}
-      nav={<SidebarNav painel="clinica" role={ctx.role} />}
+      espaco={{ titulo: clinica.legal_name, subtitulo: "Painel da clínica" }}
+      usuario={{
+        nome: ctx.email ?? "Minha conta",
+        papel: ROTULO_DO_PAPEL[ctx.role],
+        atalho: daEquipe ? { href: "/admin", label: "Painel interno" } : undefined,
+      }}
     >
       <div data-clinic-id={ctx.clinicId}>{children}</div>
     </PanelShell>
@@ -47,28 +50,24 @@ export default async function DashboardLayout({
  */
 function SemClinica() {
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-[var(--surface-0)] px-4 text-[var(--text-1)]">
-      <div className="w-full max-w-md text-center">
-        <h1 className="text-xl font-semibold">Nenhuma clínica vinculada</h1>
-        <p className="mt-2 text-sm text-[var(--text-2)]">
+    <div className="painel-glow flex min-h-dvh items-center justify-center px-4">
+      <div className="w-full max-w-md rounded-card border border-hairline bg-sheet p-8 text-center">
+        <h1 className="font-display text-2xl tracking-tight text-ink-1">
+          Nenhuma clínica vinculada
+        </h1>
+        <p className="mt-2 text-sm text-ink-2">
           Esta conta não é responsável por nenhuma clínica. Se você é da equipe
           Nextech, use o painel interno.
         </p>
 
-        <div className="mt-6 flex items-center justify-center gap-4">
-          <Link
-            href="/admin"
-            className="rounded-xl bg-[var(--brand)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--brand-strong)]"
-          >
-            Painel interno
-          </Link>
+        <div className="mt-6 flex items-center justify-center gap-2">
+          <Button asChild>
+            <Link href="/admin">Abrir o painel interno</Link>
+          </Button>
           <form action={logout}>
-            <button
-              type="submit"
-              className="text-sm text-[var(--text-2)] transition hover:text-[var(--text-1)]"
-            >
+            <Button type="submit" variant="ghost">
               Sair
-            </button>
+            </Button>
           </form>
         </div>
       </div>

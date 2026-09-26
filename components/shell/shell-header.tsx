@@ -1,46 +1,66 @@
+"use client"
+
+import { Fragment } from "react"
 import Link from "next/link"
-import { logout } from "@/lib/auth/actions"
+import { usePathname } from "next/navigation"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
+import { Separator } from "@/components/ui/separator"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { CommandMenu } from "./command-menu"
+import { gruposDoPainel, type Painel } from "./painel"
+import { ThemeSwitch } from "./theme-switch"
+import { montarTrilha } from "./trilha"
 
 /**
- * Cabeçalho comum aos dois painéis: quem está logado, em que papel, e a
- * saída. O `atalho` é o link entre os painéis — aparece só para quem é da
- * equipe Nextech e também responde por uma clínica, que hoje só navega
- * entre os dois digitando URL.
+ * Barra do topo da folha de conteúdo: abrir/recolher o menu, onde se está
+ * (trilha), a busca de telas e o tema. Fica colada ao topo e ganha vidro
+ * quando o conteúdo rola por baixo.
  */
-export function ShellHeader({
-  nome,
-  papel,
-  atalho,
-}: {
-  nome: string
-  papel: string
-  atalho?: { href: string; label: string }
-}) {
+export function ShellHeader({ painel }: { painel: Painel }) {
+  const pathname = usePathname()
+  const trilha = montarTrilha(gruposDoPainel(painel, pathname), pathname)
+
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-[var(--surface-0)]/85 backdrop-blur-md">
-      <div className="flex h-14 items-center justify-end gap-5 px-4 sm:px-6">
-        {atalho && (
-          <Link
-            href={atalho.href}
-            className="rounded-pill border border-[var(--hairline)] px-3 py-1.5 text-xs text-[var(--text-2)] transition-colors hover:border-[var(--brand)] hover:text-[var(--text-1)]"
-          >
-            {atalho.label}
-          </Link>
-        )}
+    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-hairline bg-sheet/80 px-3 backdrop-blur-md sm:px-4 md:rounded-t-sheet">
+      <SidebarTrigger className="text-ink-2" />
+      <Separator orientation="vertical" className="mr-1 data-[orientation=vertical]:h-4" />
 
-        <div className="min-w-0 text-right">
-          <div className="truncate text-sm text-[var(--text-1)]">{nome}</div>
-          <div className="text-xs text-[var(--text-3)]">{papel}</div>
-        </div>
+      <Breadcrumb className="min-w-0 flex-1">
+        <BreadcrumbList className="flex-nowrap">
+          {trilha.map((m, i) => {
+            const ultima = i === trilha.length - 1
+            return (
+              <Fragment key={`${m.label}-${i}`}>
+                {i > 0 && <BreadcrumbSeparator className="hidden sm:block" />}
+                <BreadcrumbItem className={ultima ? "min-w-0" : "hidden sm:inline-flex"}>
+                  {ultima ? (
+                    <BreadcrumbPage className="truncate font-medium text-ink-1">
+                      {m.label}
+                    </BreadcrumbPage>
+                  ) : m.href ? (
+                    <BreadcrumbLink asChild>
+                      <Link href={m.href}>{m.label}</Link>
+                    </BreadcrumbLink>
+                  ) : (
+                    <span className="text-ink-3">{m.label}</span>
+                  )}
+                </BreadcrumbItem>
+              </Fragment>
+            )
+          })}
+        </BreadcrumbList>
+      </Breadcrumb>
 
-        <form action={logout}>
-          <button
-            type="submit"
-            className="rounded-xl px-2.5 py-1.5 text-sm text-[var(--text-2)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-1)]"
-          >
-            Sair
-          </button>
-        </form>
+      <div className="flex items-center gap-1.5">
+        <CommandMenu painel={painel} />
+        <ThemeSwitch />
       </div>
     </header>
   )

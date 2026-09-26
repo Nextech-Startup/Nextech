@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Entrada e saída dos primitivos shadcn (animate-in, fade-in-0, slide-in-from-*). */
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -64,8 +66,21 @@
   --border: var(--hairline);
   --input: var(--hairline);
   --ring: var(--brand);
+
+  /* No shadcn, `accent` é a superfície NEUTRA de hover e seleção (menu,
+     item de lista, botão ghost) — não a cor da marca. A marca é `brand`.
+     A landing foi escrita quando `accent` era o verde; ela recebe o nome
+     antigo de volta pelo escopo `.landing-scope`, mais abaixo. */
   --accent: var(--surface-2);
   --accent-foreground: var(--text-1);
+
+  /* --- Painel ------------------------------------------------------------
+     O painel é uma folha elevada (`sheet`) sobre o fundo da página: menu e
+     cabeçalho ficam no fundo, o conteúdo fica na folha. */
+  --sheet: oklch(1 0 0);
+
+  /* Tons de estado: status de agente, conversa, template, conexão e consumo.
+     Mesma luminosidade e croma entre si, hue próprio para cada tom. */
   --success-bg: oklch(0.94 0.04 150);
   --success-fg: oklch(0.34 0.10 150);
   --success-border: oklch(0.82 0.08 150);
@@ -82,6 +97,26 @@
   --neutral-fg: var(--text-2);
   --neutral-border: var(--hairline);
   --radius: 1rem;
+
+  /* Sidebar do shadcn: derivada dos tokens de papel, então acompanha o tema
+     sem precisar ser redeclarada no bloco .dark. */
+  --sidebar: var(--surface-0);
+  --sidebar-foreground: var(--text-2);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--surface-0);
+  --sidebar-accent: var(--glass-bg);
+  --sidebar-accent-foreground: var(--text-1);
+  --sidebar-border: var(--hairline);
+  --sidebar-ring: var(--brand);
+}
+
+/* Legado da landing: os componentes dela usam `accent` como o verde da
+   marca. Aplicado em app/(marketing)/layout.tsx, com display: contents. */
+.landing-scope {
+  --accent: var(--brand);
+  --accent-strong: var(--brand-strong);
+  --accent-dim: var(--brand-dim);
+  --accent-on-light: var(--brand-on-light);
 }
 
 /* A partir de md o logo cresce (h-14 -> h-18) e a barra fica mais alta. */
@@ -118,8 +153,11 @@
 
   --primary: oklch(1 0 0);
   --primary-foreground: oklch(0.09 0 0);
-  --accent: var(--surface-2);
-  --accent-foreground: var(--text-1);
+
+  /* A folha fica entre o fundo (0.09) e o card (0.14): destaca o conteúdo
+     do menu sem clarear uma área grande demais. */
+  --sheet: oklch(0.12 0.004 165);
+
   --success-bg: oklch(0.24 0.04 150);
   --success-fg: oklch(0.82 0.12 150);
   --success-border: oklch(0.38 0.08 150);
@@ -167,7 +205,13 @@
   --color-brand-strong: var(--brand-strong);
   --color-brand-dim: var(--brand-dim);
   --color-brand-on-light: var(--brand-on-light);
+  --color-sheet: var(--sheet);
   --color-warn: var(--warn);
+
+  /* Legado da landing (ver .landing-scope): fora dela estes não resolvem. */
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-dim: var(--accent-dim);
+  --color-accent-on-light: var(--accent-on-light);
   --color-success-bg: var(--success-bg);
   --color-success-fg: var(--success-fg);
   --color-success-border: var(--success-border);
@@ -200,6 +244,9 @@
   --radius-pill: 9999px;
   --radius-card: 1.25rem;
   --radius-panel: 2.5rem;
+  /* Painel: a folha de conteúdo e os controles de formulário. */
+  --radius-sheet: 1.5rem;
+  --radius-control: 0.625rem;
 
   /* Animações Magic UI e Gerais */
   --animate-float: float 6s ease-in-out infinite;
@@ -208,12 +255,20 @@
   --animate-marquee-vertical: marquee-vertical var(--duration, 30s) linear infinite;
   --animate-border-beam: border-beam 8s linear infinite;
 
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+
   /* Keyframes Otimizados */
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-20px); }
   }
-
 
   @keyframes marquee {
     from { transform: translateX(0); }
@@ -278,6 +333,15 @@
   backdrop-filter: blur(12px);
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
+}
+
+/* A aurora da landing no painel, sem WebGL: dois brilhos estáticos no alto
+   da tela, o slate-blue da aurora e um toque da marca. Custa um gradiente,
+   não um canvas — o painel fica aberto o dia inteiro. */
+.painel-glow {
+  background:
+    radial-gradient(56rem 22rem at 12% -8%, oklch(0.56 0.035 240 / calc(var(--aurora-opacity) * 0.22)), transparent 70%),
+    radial-gradient(36rem 16rem at 88% -12%, oklch(0.75 0.14 165 / calc(var(--aurora-opacity) * 0.07)), transparent 70%);
 }
 
 /* Efeito Noise sutil */
