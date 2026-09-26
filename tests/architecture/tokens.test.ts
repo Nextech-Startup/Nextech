@@ -2,12 +2,18 @@ import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 
+// Toda pasta de components/ é do painel, menos os primitivos do shadcn e a
+// landing (que tem o próprio dialeto e fica fora desta regra).
+const FORA_DO_PAINEL = ["ui", "marketing"]
+
 const PAINEL = [
   "app/(dashboard)",
   "app/(admin)",
   "app/(auth)",
-  "components/shell",
-  "components/patterns",
+  ...readdirSync("components")
+    .filter((nome) => !FORA_DO_PAINEL.includes(nome))
+    .map((nome) => join("components", nome))
+    .filter((caminho) => statSync(caminho).isDirectory()),
 ]
 
 function arquivos(dir: string): string[] {
