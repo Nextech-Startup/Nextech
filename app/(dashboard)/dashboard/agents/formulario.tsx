@@ -243,7 +243,7 @@ function Configuracao({ agente }: { agente: Agent }) {
                     type="checkbox"
                     name={`${dia}_open`}
                     defaultChecked={horario[dia]?.open}
-                    className="size-4 accent-[var(--accent)]"
+                    className="size-4 accent-[var(--brand)]"
                   />
                   {ROTULO_DO_DIA[dia]}
                 </label>
@@ -279,7 +279,7 @@ function Configuracao({ agente }: { agente: Agent }) {
               name="handoff_enabled"
               defaultChecked={agente.handoff_enabled}
               onChange={(e) => setHandoff(e.currentTarget.checked)}
-              className="size-4 accent-[var(--accent)]"
+              className="size-4 accent-[var(--brand)]"
             />
             A IA pode transferir a conversa para uma pessoa da equipe
           </label>
@@ -347,7 +347,7 @@ function ConexaoWhatsapp({
       descricao="Credenciais da Cloud API da Meta. Um número atende um agente só."
       acao={
         conectado ? (
-          <span className="rounded-full bg-[var(--accent)]/12 px-2.5 py-0.5 text-xs font-medium text-[var(--accent-on-light)] dark:text-[var(--accent-dim)]">
+          <span className="rounded-full bg-[var(--brand)]/12 px-2.5 py-0.5 text-xs font-medium text-[var(--brand-on-light)] dark:text-[var(--brand-dim)]">
             conectado
           </span>
         ) : undefined

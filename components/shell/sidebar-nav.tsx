@@ -94,7 +94,7 @@ function ItemAtivo({
       {atual && (
         <span
           aria-hidden="true"
-          className="absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-pill bg-[var(--accent)]"
+          className="absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-pill bg-[var(--brand)]"
         />
       )}
       <Link

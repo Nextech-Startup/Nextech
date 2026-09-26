@@ -22,7 +22,7 @@ export function ShellHeader({
         {atalho && (
           <Link
             href={atalho.href}
-            className="rounded-pill border border-[var(--hairline)] px-3 py-1.5 text-xs text-[var(--text-2)] transition-colors hover:border-[var(--accent)] hover:text-[var(--text-1)]"
+            className="rounded-pill border border-[var(--hairline)] px-3 py-1.5 text-xs text-[var(--text-2)] transition-colors hover:border-[var(--brand)] hover:text-[var(--text-1)]"
           >
             {atalho.label}
           </Link>

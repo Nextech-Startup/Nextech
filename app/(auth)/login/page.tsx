@@ -40,7 +40,7 @@ export default function LoginPage() {
           Ainda não é cliente?{" "}
           <Link
             href="https://www.nextech.ia.br"
-            className="text-[var(--accent-on-light)] underline underline-offset-4 transition hover:text-[var(--accent-strong)] dark:text-[var(--accent-dim)]"
+            className="text-[var(--brand-on-light)] underline underline-offset-4 transition hover:text-[var(--brand-strong)] dark:text-[var(--brand-dim)]"
           >
             Conheça o Nextech
           </Link>

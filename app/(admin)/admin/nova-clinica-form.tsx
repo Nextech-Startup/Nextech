@@ -18,12 +18,12 @@ export function NovaClinicaForm() {
         <button
           type="button"
           onClick={() => setAberto(true)}
-          className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-strong)]"
+          className="rounded-xl bg-[var(--brand)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--brand-strong)]"
         >
           Nova clínica
         </button>
         {state.success && (
-          <p className="text-sm text-[var(--accent-on-light)] dark:text-[var(--accent-dim)]">
+          <p className="text-sm text-[var(--brand-on-light)] dark:text-[var(--brand-dim)]">
             {state.success}
           </p>
         )}
@@ -52,7 +52,7 @@ export function NovaClinicaForm() {
             required
             autoFocus
             placeholder="Clínica Exemplo Ltda"
-            className="w-full rounded-xl border border-[var(--hairline)] bg-[var(--surface-0)] px-3 py-2.5 text-[var(--text-1)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+            className="w-full rounded-xl border border-[var(--hairline)] bg-[var(--surface-0)] px-3 py-2.5 text-[var(--text-1)] outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
           />
         </div>
 
@@ -64,7 +64,7 @@ export function NovaClinicaForm() {
             id="cnpj"
             name="cnpj"
             placeholder="00.000.000/0000-00"
-            className="w-full rounded-xl border border-[var(--hairline)] bg-[var(--surface-0)] px-3 py-2.5 text-[var(--text-1)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+            className="w-full rounded-xl border border-[var(--hairline)] bg-[var(--surface-0)] px-3 py-2.5 text-[var(--text-1)] outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
           />
         </div>
       </div>
@@ -82,7 +82,7 @@ export function NovaClinicaForm() {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-strong)] disabled:opacity-60"
+          className="rounded-xl bg-[var(--brand)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--brand-strong)] disabled:opacity-60"
         >
           {pending ? "Criando..." : "Criar clínica"}
         </button>

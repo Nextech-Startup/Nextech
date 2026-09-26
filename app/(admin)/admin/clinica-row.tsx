@@ -42,7 +42,7 @@ export function ClinicaRow({ clinica }: { clinica: ClinicResumo }) {
           <span
             className={
               ativa
-                ? "rounded-full bg-[var(--accent)]/12 px-2.5 py-0.5 text-xs font-medium text-[var(--accent-on-light)] dark:text-[var(--accent-dim)]"
+                ? "rounded-full bg-[var(--brand)]/12 px-2.5 py-0.5 text-xs font-medium text-[var(--brand-on-light)] dark:text-[var(--brand-dim)]"
                 : "rounded-full bg-[var(--surface-2)] px-2.5 py-0.5 text-xs font-medium text-[var(--text-2)]"
             }
           >
@@ -54,7 +54,7 @@ export function ClinicaRow({ clinica }: { clinica: ClinicResumo }) {
             <button
               type="button"
               onClick={() => setConvidando((v) => !v)}
-              className="text-sm text-[var(--accent-on-light)] transition hover:underline dark:text-[var(--accent-dim)]"
+              className="text-sm text-[var(--brand-on-light)] transition hover:underline dark:text-[var(--brand-dim)]"
             >
               Convidar responsável
             </button>
@@ -101,13 +101,13 @@ export function ClinicaRow({ clinica }: { clinica: ClinicResumo }) {
                   type="email"
                   required
                   placeholder="responsavel@clinica.com.br"
-                  className="w-72 rounded-xl border border-[var(--hairline)] bg-[var(--surface-1)] px-3 py-2 outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                  className="w-72 rounded-xl border border-[var(--hairline)] bg-[var(--surface-1)] px-3 py-2 outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
                 />
               </div>
               <button
                 type="submit"
                 disabled={convitePending}
-                className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-strong)] disabled:opacity-60"
+                className="rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--brand-strong)] disabled:opacity-60"
               >
                 {convitePending ? "Criando..." : "Criar acesso"}
               </button>

@@ -38,7 +38,7 @@ export function PanelShell({
             Nextech
           </Link>
           {selo && (
-            <span className="rounded-pill bg-[var(--accent)]/10 px-2 py-0.5 text-[0.6875rem] font-medium text-[var(--accent-on-light)] dark:text-[var(--accent-dim)]">
+            <span className="rounded-pill bg-[var(--brand)]/10 px-2 py-0.5 text-[0.6875rem] font-medium text-[var(--brand-on-light)] dark:text-[var(--brand-dim)]">
               {selo}
             </span>
           )}

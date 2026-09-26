@@ -58,7 +58,7 @@ function SemClinica() {
         <div className="mt-6 flex items-center justify-center gap-4">
           <Link
             href="/admin"
-            className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-strong)]"
+            className="rounded-xl bg-[var(--brand)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--brand-strong)]"
           >
             Painel interno
           </Link>

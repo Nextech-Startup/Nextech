@@ -13,7 +13,7 @@ import type { ProfileFormState } from "./actions"
 export const estadoInicial: ProfileFormState = { error: null, success: null }
 
 const CLASSE_CAMPO =
-  "w-full rounded-xl border border-[var(--hairline)] bg-[var(--surface-0)] px-3 py-2.5 text-[var(--text-1)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+  "w-full rounded-xl border border-[var(--hairline)] bg-[var(--surface-0)] px-3 py-2.5 text-[var(--text-1)] outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
 
 export function Campo({
   label,
@@ -57,7 +57,7 @@ export function Botao({
 }) {
   const estilo = {
     primario:
-      "bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] disabled:opacity-60",
+      "bg-[var(--brand)] text-white hover:bg-[var(--brand-strong)] disabled:opacity-60",
     secundario:
       "border border-[var(--hairline)] text-[var(--text-2)] hover:text-[var(--text-1)] disabled:opacity-60",
     perigo:
@@ -93,7 +93,7 @@ export function Aviso({ state }: { state: ProfileFormState }) {
     return (
       <p
         role="status"
-        className="rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-4 py-3 text-sm text-[var(--accent-on-light)] dark:text-[var(--accent-dim)]"
+        className="rounded-xl border border-[var(--brand)]/25 bg-[var(--brand)]/8 px-4 py-3 text-sm text-[var(--brand-on-light)] dark:text-[var(--brand-dim)]"
       >
         {state.success}
       </p>
@@ -149,7 +149,7 @@ export function Selo({
   const estilo = {
     neutro: "bg-[var(--surface-2)] text-[var(--text-2)]",
     ativo:
-      "bg-[var(--accent)]/12 text-[var(--accent-on-light)] dark:text-[var(--accent-dim)]",
+      "bg-[var(--brand)]/12 text-[var(--brand-on-light)] dark:text-[var(--brand-dim)]",
     alerta: "bg-[var(--warn)]/12 text-[var(--warn)]",
   }[tom]
 
@@ -194,7 +194,7 @@ export function EscolhaDeConvenios({
             name="insurance_ids"
             value={c.id}
             defaultChecked={marcados.includes(c.id)}
-            className="size-4 accent-[var(--accent)]"
+            className="size-4 accent-[var(--brand)]"
           />
           {c.name}
           {!c.active && <span className="text-[var(--text-3)]">(inativo)</span>}

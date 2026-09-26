@@ -143,7 +143,7 @@ export function ListaDeAgentes({
             <li key={a.id}>
               <Link
                 href={`/dashboard/agents/${a.id}`}
-                className="block rounded-2xl border border-[var(--hairline)] bg-[var(--surface-1)] p-5 transition hover:border-[var(--accent)]/40"
+                className="block rounded-2xl border border-[var(--hairline)] bg-[var(--surface-1)] p-5 transition hover:border-[var(--brand)]/40"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
