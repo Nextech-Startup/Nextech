@@ -4,8 +4,9 @@ import type { ClinicRole } from "@/lib/auth/context"
  * O que cada papel pode fazer, por capacidade e não por rótulo vago.
  *
  * É uma proposta: team-access-v1 deixa a matriz campo a campo em aberto.
- * Ela descreve o que o código já faz hoje — staff vê a lista de agentes
- * mas o editor é só do owner; professional vê só o que é dele — e um teste
+ * Ela descreve o que o código já faz hoje — agentes são só do owner
+ * (lista e editor), staff opera sequências e templates, professional vê só
+ * o que é dele — e um teste
  * a mantém igual ao menu (`lib/navigation`), para a tela nunca prometer um
  * acesso que o menu esconde.
  */
@@ -40,13 +41,14 @@ export const CAPACIDADES: readonly Capacidade[] = [
   },
   {
     id: "automacao",
-    rotulo: "Ver agentes, sequências e templates",
-    tela: "/dashboard/agents",
+    rotulo: "Ver sequências e templates",
+    tela: "/dashboard/sequences",
     alcance: { owner: "tudo", staff: "tudo", professional: "nada" },
   },
   {
     id: "editar-agentes",
-    rotulo: "Configurar e publicar agentes",
+    rotulo: "Ver, configurar e publicar agentes",
+    tela: "/dashboard/agents",
     alcance: { owner: "tudo", staff: "nada", professional: "nada" },
   },
   {
