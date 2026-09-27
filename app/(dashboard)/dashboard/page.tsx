@@ -54,13 +54,14 @@ export default async function DashboardPage({
   }
 
   // Conta de demonstração (spec demo-account-v1): o protótipo completo, com
-  // o dado de exemplo trazido para hoje, e nenhuma consulta ao dado real.
+  // o dado de exemplo trazido para hoje. Do dado real, só o nome da clínica,
+  // o mesmo que o menu mostra.
   if (isDemo) {
-    const { periodo } = await searchParams
+    const [{ periodo }, clinica] = await Promise.all([searchParams, getCurrentClinic()])
     const relogio = relogioDaDemonstracao(AGORA)
     return (
       <TelaDeVisaoGeral
-        dados={relogio.deslocar(VISAO_GERAL)}
+        dados={{ ...relogio.deslocar(VISAO_GERAL), clinica: clinica.legal_name }}
         periodo={periodo === "7d" ? "7d" : "mes"}
         agora={relogio.agora}
         hrefDoPeriodo={{ "7d": "/dashboard?periodo=7d", mes: "/dashboard" }}

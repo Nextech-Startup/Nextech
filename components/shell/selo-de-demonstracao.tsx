@@ -13,8 +13,10 @@ export function SeloDeDemonstracao() {
   return (
     <span className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-pill border border-info-border bg-info-bg px-2.5 text-xs font-medium text-info-fg">
       <FlaskConical aria-hidden="true" className="size-3.5" />
-      Demonstração
-      <span className="sr-only sm:not-sr-only">· dados fictícios</span>
+      {/* Texto num só span: o gap do flex não separaria o ponto de "dados". */}
+      <span>
+        Demonstração<span className="sr-only sm:not-sr-only"> · dados fictícios</span>
+      </span>
     </span>
   )
 }

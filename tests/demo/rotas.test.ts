@@ -23,10 +23,17 @@ vi.mock("@/lib/auth/context", () => ({
   requireClinicContext: async () => ({
     clinicId: "clinica-1",
     userId: "usuario-1",
-    email: null,
+    email: "dono@exemplo.test",
     supabase: {},
     ...contexto,
   }),
+}))
+
+const CLINICA = "Clínica Demonstração (teste)"
+const EMAIL = "dono@exemplo.test"
+
+vi.mock("@/lib/clinics/queries", () => ({
+  getCurrentClinic: async () => ({ id: "clinica-1", legal_name: "Clínica Demonstração (teste)" }),
 }))
 
 vi.mock("next/navigation", async (original) => ({
@@ -73,11 +80,11 @@ const NOVAS: Rota[] = [
   { rota: "/dashboard/settings/team", carregar: () => import("@/app/(dashboard)/dashboard/settings/team/page"), confere: ["membros", d(MEMBROS)] },
   { rota: "/dashboard/integrations", carregar: () => import("@/app/(dashboard)/dashboard/integrations/page"), confere: ["painel", d(INTEGRACOES)] },
   { rota: "/dashboard/billing", carregar: () => import("@/app/(dashboard)/dashboard/billing/page"), confere: ["resumo", d(COBRANCA)] },
-  { rota: "/dashboard/account", carregar: () => import("@/app/(dashboard)/dashboard/account/page"), confere: ["conta", d(MINHA_CONTA)] },
+  { rota: "/dashboard/account", carregar: () => import("@/app/(dashboard)/dashboard/account/page"), confere: ["conta", { ...d(MINHA_CONTA), nome: null, email: EMAIL, papel: "owner", clinica: CLINICA }] },
 ]
 
 const EXISTENTES: Rota[] = [
-  { rota: "/dashboard", carregar: () => import("@/app/(dashboard)/dashboard/page"), confere: ["dados", d(VISAO_GERAL)] },
+  { rota: "/dashboard", carregar: () => import("@/app/(dashboard)/dashboard/page"), confere: ["dados", { ...d(VISAO_GERAL), clinica: CLINICA }] },
   { rota: "/dashboard/agents", carregar: () => import("@/app/(dashboard)/dashboard/agents/page"), confere: ["agentes", d(AGENTES)] },
   { rota: "/dashboard/agents/[id]", carregar: () => import("@/app/(dashboard)/dashboard/agents/[id]/page"), id: agente.id, confere: ["agente", d(agente)] },
 ]
