@@ -56,6 +56,12 @@ export function descreverRegistro(r: RegistroDaTrilha): DescricaoDoRegistro {
         detalhe: r.metadata.usuario_novo ? "Conta nova, com senha provisória." : "Pessoa que já tinha conta.",
         suporte: false,
       }
+    case "clinic.prepare_demo":
+      return {
+        acao: "Preparou a conta de demonstração",
+        detalhe: r.metadata.vinculo === "criado" ? "Passou a responder pela clínica." : "Já respondia pela clínica.",
+        suporte: false,
+      }
     case "conversation.list":
       return { acao: "Abriu as conversas", detalhe: justificativa(r), suporte: true }
     case "conversation.view":
@@ -70,6 +76,7 @@ const ACOES_DE_CLINICA: readonly string[] = [
   "clinic.create",
   "clinic.update_status",
   "member.invite",
+  "clinic.prepare_demo",
   "conversation.list",
   "conversation.view",
 ]

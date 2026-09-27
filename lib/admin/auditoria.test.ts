@@ -169,3 +169,26 @@ describe("lerCursor", () => {
     expect(lerCursor("2026-13-45T99:99:99Z")).toBeUndefined()
   })
 })
+
+describe("conta de demonstração na trilha", () => {
+  // O script da demonstração dá a uma conta da equipe acesso de dono a uma
+  // clínica: a trilha mostra quando, e se o vínculo é novo.
+  it("descreve o preparo e diz se o vínculo é novo", () => {
+    expect(
+      descreverRegistro(registro({ id: "d1", acao: "clinic.prepare_demo", metadata: { vinculo: "criado" } })),
+    ).toEqual({
+      acao: "Preparou a conta de demonstração",
+      detalhe: "Passou a responder pela clínica.",
+      suporte: false,
+    })
+    expect(
+      descreverRegistro(registro({ id: "d2", acao: "clinic.prepare_demo", metadata: { vinculo: "ja-existia" } })),
+    ).toEqual({ acao: "Preparou a conta de demonstração", detalhe: "Já respondia pela clínica.", suporte: false })
+  })
+
+  it("o preparo sempre tem clínica", () => {
+    expect(clinicaDoRegistro(registro({ id: "d3", acao: "clinic.prepare_demo", clinica: null }))).toBe(
+      "Clínica removida",
+    )
+  })
+})

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import type { AdminAction } from "@/lib/admin/audit"
 import { PERFIL_FICTICIO, type TabelaDoPerfil } from "./perfil"
 
 /**
@@ -10,7 +11,14 @@ import { PERFIL_FICTICIO, type TabelaDoPerfil } from "./perfil"
  *
  * Recebe o client do `service_role`: não há sessão, e marcar `is_demo` é
  * justamente o que o `authenticated` não pode fazer.
+ *
+ * Só prepara clínica que não é de cliente (achado M1 da revisão de
+ * segurança): numa clínica ativa, com paciente ou com agente no WhatsApp,
+ * o dono passaria a ver dado inventado no lugar do real, e a conta da
+ * equipe ganharia acesso aos pacientes dela.
  */
+
+const PREPARO: AdminAction = "clinic.prepare_demo"
 
 export type RelatorioDoPreparo = {
   vinculo: "criado" | "ja-existia"
@@ -38,11 +46,12 @@ export async function prepararContaDeDemonstracao(
 
   const { data: clinica, error: erroClinica } = await db
     .from("clinics")
-    .select("id")
+    .select("id, status")
     .eq("id", clinicId)
     .maybeSingle()
   if (erroClinica) throw falha("ler a clínica", erroClinica)
   if (!clinica) throw new PreparoRecusado(`Nenhuma clínica com o id ${clinicId}.`)
+  await recusarClinicaDeCliente(db, clinicId, clinica.status as string)
 
   const usuario = await acharUsuarioPorEmail(db, email)
   if (!usuario) throw new PreparoRecusado(`Nenhum usuário com o e-mail ${email}.`)
@@ -74,12 +83,55 @@ export async function prepararContaDeDemonstracao(
     vinculo = "criado"
   }
 
+  // Uma conta da equipe passa a responder pela clínica: fica na trilha, como
+  // o convite do painel interno. Quem roda o script age em nome dessa conta.
+  const { error: erroTrilha } = await db.from("admin_audit_log").insert({
+    actor_user_id: usuario.id,
+    action: PREPARO,
+    clinic_id: clinicId,
+    metadata: { vinculo },
+  })
+  if (erroTrilha) throw falha("registrar na trilha de auditoria", erroTrilha)
+
   const perfil = {} as RelatorioDoPreparo["perfil"]
   for (const tabela of Object.keys(PERFIL_FICTICIO) as TabelaDoPerfil[]) {
     perfil[tabela] = await preencherSeVazia(db, clinicId, tabela)
   }
 
   return { vinculo, perfil }
+}
+
+/**
+ * Clínica ativa, com paciente ou com agente conectado ou publicado é de
+ * cliente. Paciente cobre conversa e mensagem, que sempre têm paciente.
+ */
+async function recusarClinicaDeCliente(
+  db: SupabaseClient,
+  clinicId: string,
+  status: string,
+): Promise<void> {
+  if (status === "active") {
+    throw new PreparoRecusado("A clínica está ativa: parece de cliente, e não vira demonstração.")
+  }
+
+  const { count: pacientes, error: erroPacientes } = await db
+    .from("patients")
+    .select("*", { count: "exact", head: true })
+    .eq("clinic_id", clinicId)
+  if (erroPacientes) throw falha("contar os pacientes", erroPacientes)
+  if ((pacientes ?? 0) > 0) {
+    throw new PreparoRecusado("A clínica tem paciente: parece de cliente, e não vira demonstração.")
+  }
+
+  const { count: conectados, error: erroAgentes } = await db
+    .from("agents")
+    .select("*", { count: "exact", head: true })
+    .eq("clinic_id", clinicId)
+    .or("whatsapp_phone_number_id.not.is.null,status.eq.active")
+  if (erroAgentes) throw falha("conferir os agentes", erroAgentes)
+  if ((conectados ?? 0) > 0) {
+    throw new PreparoRecusado("A clínica tem agente no WhatsApp: parece de cliente, e não vira demonstração.")
+  }
 }
 
 /** Só preenche a tabela que não tem nenhuma linha da clínica. */

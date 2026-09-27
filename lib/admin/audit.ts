@@ -5,6 +5,8 @@ export type AdminAction =
   | "clinic.create"
   | "clinic.update_status"
   | "member.invite"
+  /** O script da conta de demonstração (scripts/conta-demo.ts), fora do painel. */
+  | "clinic.prepare_demo"
 
 type RegistroAuditoria = {
   action: AdminAction
