@@ -42,7 +42,7 @@ export function AppSidebar({
   marca: string
   /** O "onde estou": a clínica, ou o painel interno. */
   espaco: { titulo: string; subtitulo: string }
-  usuario: { nome: string; papel: string; atalho?: { href: string; label: string } }
+  usuario: { nome: string; papel: string; atalho?: { href: string; label: string }; conta?: string }
 }) {
   const pathname = usePathname()
   const grupos = gruposDoPainel(painel, pathname)
@@ -95,7 +95,7 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
-        <UserMenu nome={usuario.nome} papel={usuario.papel} atalho={usuario.atalho} />
+        <UserMenu nome={usuario.nome} papel={usuario.papel} atalho={usuario.atalho} conta={usuario.conta} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

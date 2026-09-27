@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { DASHBOARD_NAV, resolveDashboardNav, isItemActive } from "./dashboard-nav"
+import { DASHBOARD_NAV, hrefDaMinhaConta, resolveDashboardNav, isItemActive } from "./dashboard-nav"
 import { ADMIN_NAV, resolveAdminNav } from "./admin-nav"
 import { primeiraRotaVisivel, ROTULO_DO_PAPEL } from "./landing"
 import type { ClinicRole } from "@/lib/auth/context"
@@ -274,5 +274,55 @@ describe("rótulo do papel", () => {
     expect(ROTULO_DO_PAPEL.owner).toBe("Responsável")
     expect(ROTULO_DO_PAPEL.staff).toBe("Equipe")
     expect(ROTULO_DO_PAPEL.professional).toBe("Profissional")
+  })
+})
+
+describe("conta de demonstração", () => {
+  const itens = (role: ClinicRole, demo: boolean, pathname = "/dashboard") =>
+    resolveDashboardNav(role, pathname, { demo }).flatMap((g) => g.items)
+
+  it("todo item é navegável e nenhum fica em breve", () => {
+    const todos = itens("owner", true)
+    expect(todos).toHaveLength(DASHBOARD_NAV.flatMap((g) => g.items).length)
+    expect(todos.filter((i) => i.status !== "pronto")).toEqual([])
+  })
+
+  it("o filtro por papel continua valendo", () => {
+    for (const role of ["owner", "staff", "professional"] as const) {
+      expect(itens(role, true).map((i) => i.label)).toEqual(itens(role, false).map((i) => i.label))
+    }
+    expect(itens("professional", true).map((i) => i.label)).toEqual(["Agenda", "Pacientes"])
+  })
+
+  it("o item que era em breve acende na própria rota", () => {
+    const ativos = itens("owner", true, "/dashboard/patients/p-01").filter((i) => i.active)
+    expect(ativos.map((i) => i.label)).toEqual(["Pacientes"])
+  })
+
+  it("fora da demonstração o menu não muda", () => {
+    expect(resolveDashboardNav("owner", "/dashboard", { demo: false })).toEqual(
+      resolveDashboardNav("owner", "/dashboard"),
+    )
+    expect(itens("owner", false).filter((i) => i.status === "em-breve").map((i) => i.label)).toEqual([
+      "Conversas",
+      "Agenda",
+      "Pacientes",
+      "Sequências",
+      "Templates",
+      "Equipe e acessos",
+      "Integrações",
+      "Plano e cobrança",
+    ])
+  })
+
+  it("Minha conta só tem destino na demonstração", () => {
+    expect(hrefDaMinhaConta(true)).toBe("/dashboard/account")
+    expect(hrefDaMinhaConta(false)).toBeNull()
+  })
+
+  it("na demonstração, a primeira tela do profissional é a Agenda", () => {
+    expect(primeiraRotaVisivel("professional", true)).toBe("/dashboard/schedule")
+    expect(primeiraRotaVisivel("professional")).toBeNull()
+    expect(primeiraRotaVisivel("owner", true)).toBe("/dashboard")
   })
 })

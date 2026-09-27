@@ -25,7 +25,13 @@ export async function PanelShell({
   painel: Painel
   marca: string
   espaco: { titulo: string; subtitulo: string }
-  usuario: { nome: string; papel: string; atalho?: { href: string; label: string } }
+  usuario: {
+    nome: string
+    papel: string
+    atalho?: { href: string; label: string }
+    /** Destino de "Minha conta"; sem ele, o item fica "em breve". */
+    conta?: string
+  }
   children: React.ReactNode
 }) {
   // O shadcn guarda aberto/recolhido num cookie; ler aqui evita o menu

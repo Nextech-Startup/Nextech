@@ -1,5 +1,5 @@
 import type { ClinicRole } from "@/lib/auth/context"
-import { DASHBOARD_NAV, isItemActive } from "./dashboard-nav"
+import { ROTAS_DO_PAINEL, isItemActive } from "./dashboard-nav"
 import type { NavGroup, NavItem } from "./schema"
 
 const TODOS_OS_PAPEIS: readonly ClinicRole[] = ["owner", "staff", "professional"]
@@ -14,7 +14,7 @@ const TODOS_OS_PAPEIS: readonly ClinicRole[] = ["owner", "staff", "professional"
  */
 export function itemDaRota(
   pathname: string,
-  grupos: readonly NavGroup[] = DASHBOARD_NAV,
+  grupos: readonly NavGroup[] = ROTAS_DO_PAINEL,
 ): NavItem | null {
   let melhor: NavItem | null = null
   for (const grupo of grupos) {
@@ -29,7 +29,7 @@ export function itemDaRota(
 /** Quem abre a rota. `null` quando a rota não está no mapa. */
 export function papeisDaRota(
   pathname: string,
-  grupos: readonly NavGroup[] = DASHBOARD_NAV,
+  grupos: readonly NavGroup[] = ROTAS_DO_PAINEL,
 ): readonly ClinicRole[] | null {
   const item = itemDaRota(pathname, grupos)
   if (!item) return null
@@ -44,7 +44,7 @@ export function papeisDaRota(
 export function podeAcessar(
   role: ClinicRole,
   pathname: string,
-  grupos: readonly NavGroup[] = DASHBOARD_NAV,
+  grupos: readonly NavGroup[] = ROTAS_DO_PAINEL,
 ): boolean {
   return papeisDaRota(pathname, grupos)?.includes(role) ?? false
 }

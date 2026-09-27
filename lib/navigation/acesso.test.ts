@@ -90,3 +90,11 @@ describe("quemAcessa", () => {
     expect(quemAcessa([])).toBe("ninguém")
   })
 })
+
+describe("Minha conta", () => {
+  it("abre para todos os papéis, pela regra do menu do usuário", () => {
+    for (const role of ["owner", "staff", "professional"] as const) {
+      expect(podeAcessar(role, "/dashboard/account")).toBe(true)
+    }
+  })
+})

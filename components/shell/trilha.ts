@@ -5,6 +5,7 @@ export type Migalha = { label: string; href?: string }
 /** Rótulo da tela que vive abaixo de um item do menu, como `/agents/<uuid>`. */
 const SUBTELA: Record<string, string> = {
   "/dashboard/agents": "Agente",
+  "/dashboard/patients": "Paciente",
 }
 
 /**

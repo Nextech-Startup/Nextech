@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { CommandMenu } from "./command-menu"
 import { gruposDoPainel, type Painel } from "./painel"
+import { SeloDeDemonstracao } from "./selo-de-demonstracao"
 import { ThemeSwitch } from "./theme-switch"
 import { montarTrilha } from "./trilha"
 
@@ -63,6 +64,7 @@ export function ShellHeader({ painel }: { painel: Painel }) {
       </Breadcrumb>
 
       <div className="flex items-center gap-1.5">
+        {painel.tipo === "clinica" && painel.demo && <SeloDeDemonstracao />}
         <CommandMenu painel={painel} />
         <ThemeSwitch />
       </div>

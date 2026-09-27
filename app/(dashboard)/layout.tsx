@@ -6,6 +6,7 @@ import { getCurrentClinic } from "@/lib/clinics/queries"
 import { PanelShell } from "@/components/shell/panel-shell"
 import { Button } from "@/components/ui/button"
 import { ROTULO_DO_PAPEL, primeiraRotaVisivel } from "@/lib/navigation/landing"
+import { hrefDaMinhaConta } from "@/lib/navigation/dashboard-nav"
 
 export default async function DashboardLayout({
   children,
@@ -30,13 +31,14 @@ export default async function DashboardLayout({
 
   return (
     <PanelShell
-      painel={{ tipo: "clinica", role: ctx.role }}
-      marca={primeiraRotaVisivel(ctx.role) ?? "/dashboard"}
+      painel={{ tipo: "clinica", role: ctx.role, demo: ctx.isDemo }}
+      marca={primeiraRotaVisivel(ctx.role, ctx.isDemo) ?? "/dashboard"}
       espaco={{ titulo: clinica.legal_name, subtitulo: "Painel da clínica" }}
       usuario={{
         nome: ctx.email ?? "Minha conta",
         papel: ROTULO_DO_PAPEL[ctx.role],
         atalho: daEquipe ? { href: "/admin", label: "Painel interno" } : undefined,
+        conta: hrefDaMinhaConta(ctx.isDemo) ?? undefined,
       }}
     >
       <div data-clinic-id={ctx.clinicId}>{children}</div>

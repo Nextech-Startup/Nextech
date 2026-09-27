@@ -4,7 +4,14 @@ import { resolveDashboardNav } from "@/lib/navigation/dashboard-nav"
 import { resolveAdminNav } from "@/lib/navigation/admin-nav"
 
 /** Qual dos dois painéis está aberto — e, no da clínica, com que papel. */
-export type Painel = { tipo: "clinica"; role: ClinicRole } | { tipo: "interno" }
+export type Painel =
+  | {
+      tipo: "clinica"
+      role: ClinicRole
+      /** Conta de demonstração: todo item do menu abre, com o dado de exemplo. */
+      demo: boolean
+    }
+  | { tipo: "interno" }
 
 /**
  * Menu resolvido do painel atual. Menu, trilha e busca (⌘K) leem daqui,
@@ -12,6 +19,6 @@ export type Painel = { tipo: "clinica"; role: ClinicRole } | { tipo: "interno" }
  */
 export function gruposDoPainel(painel: Painel, pathname: string): ResolvedNavGroup[] {
   return painel.tipo === "clinica"
-    ? resolveDashboardNav(painel.role, pathname)
+    ? resolveDashboardNav(painel.role, pathname, { demo: painel.demo })
     : resolveAdminNav(pathname)
 }

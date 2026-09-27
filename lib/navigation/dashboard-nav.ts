@@ -1,5 +1,5 @@
 import type { ClinicRole } from "@/lib/auth/context"
-import type { NavGroup, ResolvedNavGroup, ResolvedNavItem } from "./schema"
+import type { NavGroup, NavItem, ResolvedNavGroup, ResolvedNavItem } from "./schema"
 
 /**
  * Mapa do painel da clínica, em três grupos ordenados por frequência de
@@ -110,6 +110,33 @@ export function isItemActive(href: string, pathname: string): boolean {
 }
 
 /**
+ * "Minha conta" mora no menu do usuário, e não no sidebar, mas segue a
+ * mesma regra: vale para todos os papéis e, fora da demonstração, ainda
+ * é "em breve".
+ */
+export const MENU_DO_USUARIO: NavGroup = {
+  label: "Conta",
+  items: [{ label: "Minha conta", href: "/dashboard/account", status: "em-breve" }],
+}
+
+/** O mapa de acesso das páginas: o menu mais o menu do usuário. */
+export const ROTAS_DO_PAINEL: readonly NavGroup[] = [...DASHBOARD_NAV, MENU_DO_USUARIO]
+
+/**
+ * Na conta de demonstração, toda tela abre com o dado de exemplo: nenhum
+ * item fica "em breve". Fora dela, vale o `status` do mapa.
+ */
+export function statusNoPainel(item: NavItem, demo: boolean): NavItem["status"] {
+  return demo ? "pronto" : item.status
+}
+
+/** Destino de "Minha conta"; `null` enquanto ela é "em breve". */
+export function hrefDaMinhaConta(demo: boolean): string | null {
+  const [conta] = MENU_DO_USUARIO.items
+  return statusNoPainel(conta, demo) === "pronto" ? conta.href : null
+}
+
+/**
  * Aplica o papel e o caminho atual ao mapa. Grupo que ficou sem item
  * algum some inteiro — um cabeçalho "Gestão" vazio só ocuparia
  * espaço e sugeriria que falta permissão.
@@ -117,22 +144,23 @@ export function isItemActive(href: string, pathname: string): boolean {
 export function resolveDashboardNav(
   role: ClinicRole,
   pathname: string,
-  groups: readonly NavGroup[] = DASHBOARD_NAV,
+  { demo = false, grupos = DASHBOARD_NAV }: { demo?: boolean; grupos?: readonly NavGroup[] } = {},
 ): ResolvedNavGroup[] {
-  return groups
+  return grupos
     .map((grupo) => ({
       label: grupo.label,
       items: grupo.items
         .filter((item) => !item.roles || item.roles.includes(role))
-        .map(
-          (item): ResolvedNavItem => ({
+        .map((item): ResolvedNavItem => {
+          const status = statusNoPainel(item, demo)
+          return {
             label: item.label,
             href: item.href,
-            status: item.status,
+            status,
             // Item "em breve" não é navegável, então nunca é o destino atual.
-            active: item.status === "pronto" && isItemActive(item.href, pathname),
-          }),
-        ),
+            active: status === "pronto" && isItemActive(item.href, pathname),
+          }
+        }),
     }))
     .filter((grupo) => grupo.items.length > 0)
 }

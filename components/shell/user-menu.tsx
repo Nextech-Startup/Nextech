@@ -17,16 +17,19 @@ import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/c
 
 /**
  * Quem está logado, no pé do sidebar: identidade, papel, tema, o atalho
- * entre painéis (só para quem é das duas coisas) e a saída.
+ * entre painéis (só para quem é das duas coisas) e a saída. "Minha conta"
+ * só vira link quando tem destino (hoje, na conta de demonstração).
  */
 export function UserMenu({
   nome,
   papel,
   atalho,
+  conta,
 }: {
   nome: string
   papel: string
   atalho?: { href: string; label: string }
+  conta?: string
 }) {
   const { isMobile } = useSidebar()
   const { resolvedTheme, setTheme } = useTheme()
@@ -67,11 +70,20 @@ export function UserMenu({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem disabled>
-              <UserRound />
-              Minha conta
-              <span className="ml-auto text-[0.6875rem] text-ink-3">em breve</span>
-            </DropdownMenuItem>
+            {conta ? (
+              <DropdownMenuItem asChild>
+                <Link href={conta}>
+                  <UserRound />
+                  Minha conta
+                </Link>
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem disabled>
+                <UserRound />
+                Minha conta
+                <span className="ml-auto text-[0.6875rem] text-ink-3">em breve</span>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onSelect={() => setTheme(escuro ? "light" : "dark")}>
               {escuro ? <Sun /> : <Moon />}
               {escuro ? "Tema claro" : "Tema escuro"}

@@ -43,6 +43,25 @@ describe("montarTrilha", () => {
     ])
   })
 
+  it("na demonstração, a tela que era em breve ganha trilha", () => {
+    const rota = "/dashboard/conversations"
+    expect(montarTrilha(resolveDashboardNav("owner", rota, { demo: true }), rota)).toEqual([
+      { label: "Operação" },
+      { label: "Conversas" },
+    ])
+    // Fora dela, o item é inerte e não acende: sem trilha.
+    expect(montarTrilha(resolveDashboardNav("owner", rota), rota)).toEqual([])
+  })
+
+  it("a ficha do paciente na demonstração volta para a lista", () => {
+    const rota = "/dashboard/patients/p-01"
+    expect(montarTrilha(resolveDashboardNav("owner", rota, { demo: true }), rota)).toEqual([
+      { label: "Operação" },
+      { label: "Pacientes", href: "/dashboard/patients" },
+      { label: "Paciente" },
+    ])
+  })
+
   it("painel interno tem um grupo só e não o repete na trilha", () => {
     expect(montarTrilha(resolveAdminNav("/admin"), "/admin")).toEqual([
       { label: "Clínicas" },
