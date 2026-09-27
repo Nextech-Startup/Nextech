@@ -10,6 +10,12 @@ export const metadata: Metadata = {
 
 const TELAS = [
   {
+    slug: "visao-geral",
+    nome: "Visão geral",
+    mostra: "Alertas por prioridade, o agora do dia, indicadores com comparação de período e funil do contato à consulta",
+    entrega: "motor de conversa (fase 3b) e agenda (fase 5)",
+  },
+  {
     slug: "conversas",
     nome: "Conversas",
     mostra: "Fila por prioridade, janela de 24h da Meta, passar para humano e devolver, notas internas",
@@ -26,6 +32,12 @@ const TELAS = [
     nome: "Agenda",
     mostra: "Dia por profissional e semana, com conflitos visíveis antes de confirmar",
     entrega: "agendamento (fase 5)",
+  },
+  {
+    slug: "agentes",
+    nome: "Agentes com operação",
+    mostra: "Saúde com motivo, volume de 7 dias, o que a próxima publicação leva ao ar, histórico e teste seguro",
+    entrega: "motor de conversa (fase 3b)",
   },
   {
     slug: "templates",
@@ -46,10 +58,22 @@ const TELAS = [
     entrega: "convite de equipe por e-mail",
   },
   {
+    slug: "integracoes",
+    nome: "Integrações",
+    mostra: "Triagem do que pede atenção, WhatsApp de cada agente, Google Calendar e CRMs sem credencial na tela",
+    entrega: "Google Calendar (fase 5), CRM (fase 6) e eventos da Meta (fase 3b)",
+  },
+  {
     slug: "cobranca",
     nome: "Plano e cobrança",
     mostra: "Os dois limites do plano (atendimentos e agentes), próxima cobrança e faturas",
     entrega: "cobrança (fase 7)",
+  },
+  {
+    slug: "minha-conta",
+    nome: "Minha conta",
+    mostra: "Perfil, papel e último acesso, escolha de tema e troca de senha",
+    entrega: "e-mail transacional (Resend)",
   },
 ] as const
 

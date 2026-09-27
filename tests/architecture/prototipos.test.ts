@@ -33,7 +33,7 @@ describe("dado fictício", () => {
 
   it("toda tela de protótipo mostra o aviso de dado fictício", () => {
     const paginas = arquivos(`${PROTOTIPOS}/telas`).filter((f) => f.endsWith("/page.tsx"))
-    expect(paginas.length).toBeGreaterThanOrEqual(7)
+    expect(paginas.length).toBeGreaterThanOrEqual(13)
     const semAviso = paginas.filter((f) => !readFileSync(f, "utf8").includes("<AvisoDePrototipo"))
     expect(semAviso).toEqual([])
   })
