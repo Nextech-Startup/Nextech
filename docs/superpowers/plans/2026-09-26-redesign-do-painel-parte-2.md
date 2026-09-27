@@ -1696,7 +1696,7 @@ describe("convite", () => {
 
 ## Próximo plano (parte 3) — telas que faltam
 
-> **Itens 1 a 4 e 10 feitos** na parte 3 (`docs/superpowers/plans/2026-09-26-redesign-do-painel-parte-3.md`), em 2026-09-26. Os itens 5 a 9, do painel interno, são o escopo da parte 4.
+> **✅ Todos os 10 itens feitos.** Os itens 1 a 4 e 10 na parte 3 (`docs/superpowers/plans/2026-09-26-redesign-do-painel-parte-3.md`), e os itens 5 a 9 na parte 4 (`docs/superpowers/plans/2026-09-26-redesign-do-painel-parte-4.md`), ambos em 2026-09-26. A Auditoria (item 9) também entrou no ar com dado real em 2026-09-27 (`docs/specs/admin-audit-v1.md`). Com isso, o redesign terminou: as próximas telas reais chegam com as fases do roadmap, a começar pela 3b.
 
 Tudo com o padrão da parte 2:
 - componente de domínio em `components/<domínio>/`;
@@ -1723,12 +1723,12 @@ A ordem e o recorte são decisão do Jhones: apresente como opções selecionáv
    - atividade recente.
 4. ✅ **Agentes com operação** (prompt mestre, seção 6): saúde, última atividade, volume processado, histórico de alterações e teste seguro antes de publicar. A tela real existe; o protótipo mostra o que chega com a fase 3b.
 
-**Painel interno** (itens "em breve" de `ADMIN_NAV`): escopo da parte 4
-5. **Consumo**: atendimentos por clínica contra o limite do plano, só agregado.
-6. **Conexões**: estado do WhatsApp por clínica e template rejeitado.
-7. **Saúde**: falhas de webhook, erros do OpenRouter e cron que não rodou.
-8. **Conversas de suporte**: justificativa obrigatória antes de abrir (bloqueio, não aviso) e registro em `admin_audit_log` (desenho de navegação, seção 3).
-9. **Auditoria**: a trilha consultável.
+**Painel interno** (itens "em breve" de `ADMIN_NAV`): feitos na parte 4
+5. ✅ **Consumo**: atendimentos por clínica contra o limite do plano, só agregado.
+6. ✅ **Conexões**: estado do WhatsApp por clínica e template rejeitado.
+7. ✅ **Saúde**: falhas de webhook, erros do OpenRouter e cron que não rodou.
+8. ✅ **Conversas de suporte**: justificativa obrigatória antes de abrir (bloqueio, não aviso) e registro em `admin_audit_log` (desenho de navegação, seção 3).
+9. ✅ **Auditoria**: a trilha consultável. Já no ar com dado real (`admin-audit-v1`).
 
 **Estados transversais** (prompt mestre, seção 7)
 10. ✅ `loading.tsx` com Skeleton, `error.tsx` com recuperação e permissão negada, nas rotas reais do painel. Isto não é protótipo: vale para as telas que já existem.

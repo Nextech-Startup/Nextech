@@ -51,7 +51,7 @@ O mapa das rotas virou dado em `lib/navigation/`, separado do markup: cada spec 
 
 Depende de 3a (o `role` vem de `requireClinicContext()`).
 
-**Consequência para a fase 3b e seguintes:** a tela de conversa do `(admin)` lê dado de saúde e exige justificativa obrigatória antes de abrir, registrada na trilha. Isso estende `admin_audit_log` com a ação `conversation.view` e um campo de justificativa.
+**Consequência para a fase 3b e seguintes:** a tela de conversa do `(admin)` lê dado de saúde e exige justificativa obrigatória antes de abrir, registrada na trilha. Isso estende `admin_audit_log` com a ação `conversation.view` e um campo de justificativa. *Atualização de 2026-09-26 (redesign, parte 4):* sem migration. A ação vai na coluna `action` (texto), e a justificativa, só motivo e número do chamado, no `metadata` (jsonb). A regra está em `lib/admin/acesso-de-suporte.ts`.
 
 ### Redesign do painel — primeira parte ✅ (2026-09-26)
 O painel não agradava ao Jhones, nem no visual nem na estrutura, porque nunca tinha havido tarefa de design: cada spec foi implementada pelo comportamento e pelo teste, com a tela como subproduto. A direção veio de duas rodadas na v0 (brief em `docs/design/prompt-v0-design-system.md` e prompt mestre em `docs/design/prompt-mestre-v0.md`). A implementação foi feita na branch `design/app-redesign`, pelo plano `docs/superpowers/plans/2026-09-26-redesign-do-painel.md`.

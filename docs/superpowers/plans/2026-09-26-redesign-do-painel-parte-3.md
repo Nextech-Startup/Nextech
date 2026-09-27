@@ -42,7 +42,7 @@ Ajustes feitos durante a execução, além do que o plano descrevia:
 
 ### O que a próxima sessão precisa saber
 
-- **Parte 4:** o painel interno, itens 5 a 9 do "Próximo plano" do plano da parte 2 (Consumo, Conexões, Saúde, Conversas de suporte e Auditoria). A ordem e o recorte são decisão do Jhones.
+- **Parte 4:** ✅ concluída em 2026-09-26 (`docs/superpowers/plans/2026-09-26-redesign-do-painel-parte-4.md`): Consumo, Conexões, Saúde, Conversas de suporte e Auditoria.
 - **Fixtures:** clínica "Clínica Sorriso Recife", responsável Ana Paula Souza. `_fixtures/agentes.ts` exporta `AGENTES` (visão geral) e `DETALHES_DOS_AGENTES` (detalhe). `_fixtures/integracoes.ts` deriva o WhatsApp desses mesmos agentes.
 - **Revisão visual:** `docs/design/shot-referencia.mjs` avisa `ROLAGEM-H` e `(caiu no login)` e tem os papéis `admin` e `clinica`. Para apontar para um `next start`, rode com `BASE=http://localhost:3100`.
 - **Ambiente:** o `next dev` devolve 500 ("Jest worker") nas rotas dinâmicas. O `next dev` escreve em `.next/dev`, então `next build` e `next start -p 3100` rodam ao lado dele. Antes de subir o `next start`, veja se a porta 3100 não ficou ocupada por um servidor antigo.

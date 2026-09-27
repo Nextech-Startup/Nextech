@@ -26,6 +26,21 @@ Ajustes feitos durante a execução, além do que o plano descrevia:
 | 10 | O alvo da conversa na trilha é um uuid | Os ids da fixture de Conversas ("c-urgente") viravam "c-urgent" ao encurtar |
 | 10 | Registro sem clínica deixa a célula vazia | "Sem clínica" em toda listagem de clínicas era ruído |
 
+**Depois do plano (2026-09-27):** a Auditoria entrou no ar com dado real, pela spec `docs/specs/admin-audit-v1.md`. `/admin/audit` saiu de "em breve"; as outras quatro telas do painel interno seguem "em breve" até o backend delas existir.
+
+### O que a próxima sessão precisa saber
+
+- **O redesign terminou.** Todas as telas existem como protótipo em `/admin/design-system`. Item de menu só sai de "em breve" com dado real, e sair de "em breve" é decisão do Jhones: em 2026-09-27 ele preferiu não antecipar Pacientes nem Equipe.
+- **Próxima etapa: fase 3b, motor de conversa** (`docs/specs/conversation-engine-v1.md`). A spec está pronta, não há plano, e as credenciais da Meta ainda não chegaram: o webhook e o envio são construídos contra um mock. A fase 3b destrava Conversas, a Visão geral com número real, Consumo, Conexões, Saúde e Conversas de suporte.
+- **O que a 3b reaproveita do redesign:**
+  - `lib/whatsapp/conexao.ts` (eventos `ACCOUNT_OFFBOARDED` e `ACCOUNT_RECONNECTED`);
+  - `lib/agent-config/saude.ts` (saúde do agente);
+  - `lib/conversations/janela.ts` (janela de 24h);
+  - `lib/admin/acesso-de-suporte.ts` (justificativa e registro de suporte);
+  - as telas de `components/conversations/` e `components/admin/`.
+- **Acesso de suporte na 3b:** `AcaoDeSuporte` se junta ao `AdminAction`, sem migration (a coluna `action` é texto e `metadata` é jsonb).
+- **Ambiente:** o `next dev` devolve 500 ("Jest worker") nas rotas dinâmicas. Confira essas rotas num `next start -p 3100` depois do build, com `BASE=http://localhost:3100` no script de captura, e veja antes se a porta não ficou ocupada por um servidor antigo.
+
 ## Decisões do Jhones (2026-09-26)
 
 | Tema | Decisão |

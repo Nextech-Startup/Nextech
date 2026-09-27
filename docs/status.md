@@ -1,6 +1,6 @@
 # Status do Projeto — Nextech SaaS
 
-> Atualizado em 2026-09-26. Documento de acompanhamento: o que está pronto, o que falta e o que bloqueia.
+> Atualizado em 2026-09-27. Documento de acompanhamento: o que está pronto, o que falta e o que bloqueia.
 
 ## Onde estamos
 
@@ -220,7 +220,7 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
   a saída é um fluxo de Embedded Signup, não afrouxar a leitura
 - [ ] **Tabela `projetoAtivo`** — existe no banco, nenhum código a referencia. Resíduo ou uso externo? Mantida na baseline com nota
 - [ ] **Convite mostra senha na tela** — o `(admin)` exibe a senha provisória porque o Resend não está configurado. Vira convite por e-mail quando estiver
-- [ ] **`admin_audit_log` precisa de justificativa** — a fase 3c decidiu que ver conversa de paciente exige motivo registrado. Estende a tabela com `conversation.view` e campo de justificativa
+- [ ] **`admin_audit_log` precisa de justificativa** — a fase 3c decidiu que ver conversa de paciente exige motivo registrado. **Desenho pronto (redesign, parte 4):** não precisa de migration. A ação vai na coluna `action`, que é texto (`conversation.list` e `conversation.view`), e a justificativa no `metadata`, só com o motivo de uma lista fechada e o número do chamado, sem texto livre. A regra está em `lib/admin/acesso-de-suporte.ts`, com teste; a gravação entra com a fase 3b
 
 ---
 
