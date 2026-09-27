@@ -204,13 +204,14 @@ export async function updatePatient(
  * não parecer um telefone real para ninguém tentar escrever para ele.
  * `opted_out` fica true para que nenhuma sequência futura o alcance.
  *
- * O conteúdo das conversas sai antes, pela função `redact_patient_messages`:
- * o histórico pode ter nome, CPF e sintomas. Se a redação falhar, o
- * cadastro fica como estava, e o pedido pode ser refeito inteiro, porque
- * as duas etapas são idempotentes.
+ * Tudo numa transação só, pela função `anonymize_patient`, que também apaga
+ * o conteúdo das conversas (o histórico pode ter nome, CPF e sintomas) e
+ * trava o paciente: uma mensagem em trânsito não grava conteúdo no meio.
+ * A checagem de owner vale lá dentro também; a daqui só poupa a ida ao
+ * banco.
  */
 export async function anonymizePatient(patientId: string): Promise<void> {
-  const { supabase, clinicId, role } = await requireClinicContext()
+  const { supabase, role } = await requireClinicContext()
 
   if (role !== "owner") {
     throw new Error("Apenas o owner atende a um pedido de exclusão de dado.")
@@ -225,23 +226,12 @@ export async function anonymizePatient(patientId: string): Promise<void> {
     .padStart(11, "0")
     .slice(0, 11)
 
-  const { error: erroRedacao } = await supabase.rpc("redact_patient_messages", {
+  const { error } = await supabase.rpc("anonymize_patient", {
     p_patient_id: patientId,
+    // O + e os dígitos satisfazem o check de E.164; o prefixo 999 não é
+    // país nenhum, então nunca colide com número real.
+    p_phone_marker: `+999${marcador}`,
   })
-  if (erroRedacao) throw erroRedacao
-
-  const { error } = await supabase
-    .from("patients")
-    .update({
-      // O + e os dígitos satisfazem o check de E.164; o prefixo 999 não é
-      // país nenhum, então nunca colide com número real.
-      whatsapp_phone_number: `+999${marcador}`,
-      name: null,
-      consent_given_at: null,
-      opted_out: true,
-    })
-    .eq("id", patientId)
-    .eq("clinic_id", clinicId)
 
   if (error) throw error
 }

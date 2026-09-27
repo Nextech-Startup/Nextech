@@ -100,3 +100,22 @@ describe("log da rota quando a recepção falha com dado de paciente no erro", (
     conferirLog()
   })
 })
+
+describe("logPermitido", () => {
+  it("recusa um Error cru, mesmo sem chaves enumeráveis", () => {
+    expect(logPermitido(["[whatsapp-webhook]", new Error(`CPF de ${NOME}`)])).toBe(false)
+  })
+
+  it("recusa metadado sem etapa, com chave desconhecida ou valor que não é primitivo", () => {
+    expect(logPermitido(["[whatsapp-webhook]", { tipo: "x" }])).toBe(false)
+    expect(logPermitido(["[whatsapp-webhook]", { etapa: "x", telefone: WA_ID }])).toBe(false)
+    expect(logPermitido(["[whatsapp-webhook]", { etapa: "x", tipo: { nome: NOME } }])).toBe(false)
+    expect(logPermitido(["outro rótulo", { etapa: "x" }])).toBe(false)
+  })
+
+  it("aceita o formato da rota", () => {
+    expect(
+      logPermitido(["[whatsapp-webhook]", { etapa: "recepcao", definitiva: false, tipo: "Error", codigo: null }]),
+    ).toBe(true)
+  })
+})

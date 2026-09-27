@@ -210,6 +210,8 @@ describe("falhaDefinitiva", () => {
     expect(falhaDefinitiva({ tipo: "postgrest", codigo: "08006" })).toBe(false)
     expect(falhaDefinitiva({ tipo: "postgrest", codigo: "42501" })).toBe(false)
     expect(falhaDefinitiva({ tipo: "postgrest", codigo: "PGRST301" })).toBe(false)
+    // Paciente anonimizado no meio: o reenvio cria um cadastro novo.
+    expect(falhaDefinitiva({ tipo: "postgrest", codigo: "NX010" })).toBe(false)
     expect(falhaDefinitiva({ tipo: "postgrest", codigo: null })).toBe(false)
     expect(falhaDefinitiva({ tipo: "ConteudoError", codigo: null })).toBe(false)
   })

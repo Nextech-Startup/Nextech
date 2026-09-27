@@ -46,11 +46,22 @@ async function criarUsuario(rotulo: string): Promise<Usuario> {
   return { id: data.user!.id, email, password }
 }
 
-async function comoUsuario(u: Usuario) {
-  const client = anonClient()
-  const { error } = await client.auth.signInWithPassword({ email: u.email, password: u.password })
-  if (error) throw error
-  return client
+// Um login por usuário no arquivo inteiro: um por caso esgota o limite de
+// requisições do Supabase Auth quando a suíte roda toda.
+const sessoes = new Map<string, Promise<SupabaseClient>>()
+
+function comoUsuario(u: Usuario): Promise<SupabaseClient> {
+  let sessao = sessoes.get(u.email)
+  if (!sessao) {
+    sessao = (async () => {
+      const client = anonClient()
+      const { error } = await client.auth.signInWithPassword({ email: u.email, password: u.password })
+      if (error) throw error
+      return client
+    })()
+    sessoes.set(u.email, sessao)
+  }
+  return sessao
 }
 
 function registrar(
@@ -319,12 +330,14 @@ describe("integridade entre clínicas", () => {
   })
 })
 
-describe("redação do conteúdo no direito de exclusão (LGPD)", () => {
+describe("anonimização com redação do conteúdo (direito de exclusão, LGPD)", () => {
   let staff: Usuario
+  // Formato do marcador de anonymizePatient: +999 e 11 dígitos.
+  const MARCADOR = `+999${String(Date.now()).slice(-11).padStart(11, "0")}`
 
   beforeAll(async () => {
     // Uma mensagem de texto com conteúdo em cada clínica: é o que a
-    // redação apaga, e o que a outra clínica não pode tocar.
+    // anonimização apaga, e o que a outra clínica não pode tocar.
     for (const c of [A, B]) {
       const { error } = await admin.rpc("register_whatsapp_message", {
         p_clinic_id: c.id,
@@ -358,28 +371,44 @@ describe("redação do conteúdo no direito de exclusão (LGPD)", () => {
     return data!
   }
 
+  async function cadastro(pacienteId: string) {
+    const { data } = await admin
+      .from("patients")
+      .select("whatsapp_phone_number, name, opted_out, anonymized_at")
+      .eq("id", pacienteId)
+      .single()
+    return data!
+  }
+
+  const anonimizar = (cliente: SupabaseClient, pacienteId: string, marcador = MARCADOR) =>
+    cliente.rpc("anonymize_patient", { p_patient_id: pacienteId, p_phone_marker: marcador })
+
   it("quem não é owner da clínica do paciente é recusado, e nada muda", async () => {
     const donoDeA = await comoUsuario(A.usuario)
-    const outraClinica = await donoDeA.rpc("redact_patient_messages", { p_patient_id: B.paciente })
-    expect(outraClinica.error?.code).toBe("42501")
-
-    const equipe = await comoUsuario(staff)
-    const naoOwner = await equipe.rpc("redact_patient_messages", { p_patient_id: A.paciente })
-    expect(naoOwner.error?.code).toBe("42501")
-
-    const anonimo = await anonClient().rpc("redact_patient_messages", { p_patient_id: A.paciente })
-    expect(anonimo.error?.code).toBe("42501")
+    expect((await anonimizar(donoDeA, B.paciente)).error?.code).toBe("42501")
+    expect((await anonimizar(await comoUsuario(staff), A.paciente)).error?.code).toBe("42501")
+    expect((await anonimizar(anonClient(), A.paciente)).error?.code).toBe("42501")
 
     for (const c of [A, B]) {
       expect(await conteudos(c.id)).toEqual([
         { content_encrypted: "blob-de-teste", content_redacted_at: null },
       ])
+      expect(await cadastro(c.paciente)).toMatchObject({
+        whatsapp_phone_number: TELEFONE,
+        anonymized_at: null,
+      })
     }
   })
 
-  it("o owner redige as mensagens do próprio paciente, e só elas", async () => {
+  it("recusa marcador que não é do formato de anonimização", async () => {
     const donoDeA = await comoUsuario(A.usuario)
-    const { data, error } = await donoDeA.rpc("redact_patient_messages", { p_patient_id: A.paciente })
+    expect((await anonimizar(donoDeA, A.paciente, "+5581912345678")).error?.code).toBe("22023")
+    expect((await cadastro(A.paciente)).whatsapp_phone_number).toBe(TELEFONE)
+  })
+
+  it("o owner anonimiza o próprio paciente e apaga o conteúdo, numa transação", async () => {
+    const donoDeA = await comoUsuario(A.usuario)
+    const { data, error } = await anonimizar(donoDeA, A.paciente)
     expect(error).toBeNull()
     // As três mensagens da conversa: a do paciente, o eco e a de texto.
     expect(data).toBe(3)
@@ -390,13 +419,41 @@ describe("redação do conteúdo no direito de exclusão (LGPD)", () => {
       .eq("clinic_id", A.id)
       .eq("conversation_id", A.conversa)
     expect(deA!.every((m) => m.content_encrypted === null && m.content_redacted_at !== null)).toBe(true)
+    const anonimizado = await cadastro(A.paciente)
+    expect(anonimizado).toMatchObject({ whatsapp_phone_number: MARCADOR, name: null, opted_out: true })
+    expect(anonimizado.anonymized_at).not.toBeNull()
+
+    // A outra clínica, com o mesmo telefone, fica intacta.
     expect(await conteudos(B.id)).toEqual([
       { content_encrypted: "blob-de-teste", content_redacted_at: null },
     ])
+    expect((await cadastro(B.paciente)).whatsapp_phone_number).toBe(TELEFONE)
 
     // Idempotente: o segundo pedido não recarimba nada.
-    const segunda = await donoDeA.rpc("redact_patient_messages", { p_patient_id: A.paciente })
+    const segunda = await anonimizar(donoDeA, A.paciente)
     expect(segunda.data).toBe(0)
+    expect((await cadastro(A.paciente)).anonymized_at).toBe(anonimizado.anonymized_at)
+  })
+
+  it("mensagem em trânsito para o paciente anonimizado é recusada com NX010", async () => {
+    const wamid = `${WAMID_COMPARTILHADO}.depois`
+    const { error } = await admin.rpc("register_whatsapp_message", {
+      p_clinic_id: A.id,
+      p_agent_id: A.agente,
+      p_patient_id: A.paciente,
+      p_wa_message_id: wamid,
+      p_author: "patient",
+      p_media_type: "text",
+      p_content_encrypted: "blob-que-nao-pode-entrar",
+      p_occurred_at: "2026-09-21T11:00:00Z",
+    })
+    expect(error?.code).toBe("NX010")
+    const { count } = await admin
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("clinic_id", A.id)
+      .eq("wa_message_id", wamid)
+    expect(count).toBe(0)
   })
 
   it("o check só aceita texto sem conteúdo quando ele foi redigido", async () => {

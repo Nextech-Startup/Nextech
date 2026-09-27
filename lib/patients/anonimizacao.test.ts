@@ -51,36 +51,33 @@ function contexto(supabase: ReturnType<typeof supabaseDeMentira>, role = "owner"
 beforeEach(() => vi.clearAllMocks())
 
 describe("anonymizePatient (direito de exclusão)", () => {
-  it("redige o conteúdo das conversas antes de tirar telefone e nome", async () => {
+  it("anonimiza e redige numa chamada só, com o marcador de telefone derivado do id", async () => {
     const supabase = supabaseDeMentira({})
     contexto(supabase)
 
     await anonymizePatient(PACIENTE)
 
-    expect(supabase.chamadas[0]).toEqual({
-      alvo: "redact_patient_messages",
-      metodo: "rpc",
-      args: [{ p_patient_id: PACIENTE }],
+    expect(supabase.chamadas).toHaveLength(1)
+    const [chamada] = supabase.chamadas
+    expect(chamada.alvo).toBe("anonymize_patient")
+    expect(chamada.args[0]).toEqual({
+      p_patient_id: PACIENTE,
+      p_phone_marker: expect.stringMatching(/^\+999\d{11}$/),
     })
-    const update = supabase.chamadas.find((c) => c.alvo === "patients" && c.metodo === "update")
-    expect(update!.args[0]).toMatchObject({ name: null, consent_given_at: null, opted_out: true })
-    const filtros = supabase.chamadas.filter((c) => c.metodo === "eq").map((c) => c.args)
-    expect(filtros).toEqual([
-      ["id", PACIENTE],
-      ["clinic_id", CLINICA],
-    ])
+    // Determinístico: o mesmo pedido refeito gera o mesmo marcador.
+    await anonymizePatient(PACIENTE)
+    expect(supabase.chamadas[1].args[0]).toEqual(chamada.args[0])
   })
 
-  it("se a redação falha, o cadastro fica como estava e o erro sobe", async () => {
+  it("a recusa do banco sobe como está", async () => {
     const recusa = { code: "42501", message: "recusado", details: null, hint: null }
-    const supabase = supabaseDeMentira({ redact_patient_messages: { data: null, error: recusa } })
+    const supabase = supabaseDeMentira({ anonymize_patient: { data: null, error: recusa } })
     contexto(supabase)
 
     await expect(anonymizePatient(PACIENTE)).rejects.toBe(recusa)
-    expect(supabase.chamadas.some((c) => c.alvo === "patients")).toBe(false)
   })
 
-  it("quem não é owner é recusado antes de qualquer escrita", async () => {
+  it("quem não é owner é recusado antes de ir ao banco", async () => {
     const supabase = supabaseDeMentira({})
     contexto(supabase, "staff")
 
