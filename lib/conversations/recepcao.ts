@@ -10,6 +10,8 @@ import { cifrarConteudo } from "./conteudo"
  */
 export type ResultadoDaRecepcao = {
   clinicId: string
+  /** O número pelo qual a mensagem chegou: a resposta só sai por ele. */
+  phoneNumberId: string
   conversationId: string
   messageId: string
   nova: boolean
@@ -87,6 +89,7 @@ export async function receberMensagem(
 
   return {
     clinicId,
+    phoneNumberId: m.phoneNumberId,
     conversationId: registrada.conversation_id,
     messageId: registrada.message_id,
     nova: registrada.inserted,

@@ -140,6 +140,7 @@ describe("logPermitido", () => {
 describe("a rota agenda a resposta da IA (motor de conversa, parte 2)", () => {
   const resultado = (p: Partial<ResultadoDaRecepcao> = {}): ResultadoDaRecepcao => ({
     clinicId: "clinica",
+    phoneNumberId: "1",
     conversationId: "conversa",
     messageId: "mensagem",
     nova: true,

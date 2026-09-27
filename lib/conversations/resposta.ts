@@ -193,7 +193,9 @@ async function responder(r: ResultadoDaRecepcao, deps: Dependencias): Promise<De
     p_occurred_at: reservadaEm,
     p_within_window: custo.withinWindow,
     p_billable: custo.billable,
-    p_phone_number_id: agente.whatsapp_phone_number_id,
+    // O número de chegada, e não o lido agora: uma troca de número nos 10 s
+    // de agrupamento também impede a resposta.
+    p_phone_number_id: r.phoneNumberId,
   })
   if (erroReserva) throw erroReserva
   const reserva = (linhas as Reserva[])[0]
