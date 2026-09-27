@@ -2,6 +2,37 @@
 
 > **Para quem executa:** SUB-SKILL OBRIGATÓRIA: `superpowers:executing-plans`, tarefa por tarefa, sem subagentes. A pedido do Jhones, a execução acontece na mesma sessão do plano. Carregue `supabase-postgres-best-practices` antes da tarefa 6. Os passos usam checkbox (`- [ ]`).
 
+## Status da execução: 🟡 em andamento (pausado em 2026-09-27)
+
+- **Feito:** tarefas 1 a 6, na `staging` local, sem push. Commits:
+  - `8f28917`: plano;
+  - `aec264a`: cifra do conteúdo;
+  - `723936d`: assinatura;
+  - `9629ad7`: leitura do payload;
+  - `d9e9a88`: evento de conta;
+  - `845c2fb`: erro para log;
+  - `f11e57b`: migration e RLS.
+- **Banco:** a migration `20260927120000_conversation_engine.sql` já está **aplicada** (`supabase db push`, só ela entrou). `tests/rls/conversations.test.ts` passou: 20 testes contra o banco real. `tests/rls/agents.test.ts`, `tests/rls/patients.test.ts` e `lib/patients` também passaram (86), depois do `unique (id, clinic_id)` em `agents` e `patients`.
+- **Testes novos até aqui:** 65 unitários (15 da cifra, 12 da assinatura, 22 do payload, 11 do evento de conta e 5 do erro para log) e 20 de RLS. A suíte inteira ainda não rodou depois destas mudanças.
+- **Env:** `MESSAGE_CONTENT_ENCRYPTION_KEY` foi gerada no `.env` local e documentada no `.env.example`. Na Vercel, ainda falta criar nos três ambientes (ação do Jhones).
+- **Onde parou, na tarefa 7:**
+  - o passo 1 está feito: `tests/whatsapp/webhook.test.ts` foi escrito com os 15 casos. **Ele não está commitado** e falha, como o passo 2 espera, porque a rota ainda não existe;
+  - a próxima sessão retoma no passo 3: `lib/whatsapp/conta.ts`, `lib/conversations/recepcao.ts` e `app/api/whatsapp/webhook/route.ts`;
+  - depois, a verificação final e a tarefa 8.
+
+Ajustes feitos durante a execução, além do que o plano descrevia:
+
+| Tarefa | Ajuste | Por quê |
+|---|---|---|
+| 1 | A chave local foi gerada com `node -e "crypto.randomBytes(32)"` | Não há `openssl` no Windows do projeto; o formato é o mesmo, 32 bytes em base64 |
+| 2 | O caso "recusa pedido sem challenge" monta os parâmetros sem desestruturar | Evita uma variável não usada |
+| 6 | Índice `attendance_sessions_conversation_idx` em `(conversation_id)` | O índice único parcial só cobre as sessões abertas; a FK em cascata precisa das fechadas também |
+| 6 | Check `(event = 'ACCOUNT_OFFBOARDED') = (agent_status_before is not null)` | É mais estrito que o plano: a desconexão sempre guarda o status anterior, e a reconexão nunca guarda |
+| 6 | `force row level security` nas quatro tabelas | Mesmo padrão de `patients` |
+| 6 | A função também recusa `p_wa_message_id` nulo (`22023`) | A recepção sempre tem o id da Meta; sem ele, a idempotência não existe |
+| 6 | `#variable_conflict use_column` na função | As colunas de saída (`conversation_id`...) têm o mesmo nome das colunas das tabelas |
+| 7 (a aplicar) | Chamar `touchLastContact` em **toda** mensagem do paciente, inclusive no reenvio, e não só quando `inserted` | Se o `touchLastContact` falhar depois da RPC, a rota devolve 500, a Meta reenvia e o reenvio chega como duplicado. Pela regra do plano, o `last_contact_at` nunca seria gravado, e a sequência de reativação alcançaria quem acabou de escrever. Carimbar "agora" num reenvio atrasado é o erro menor |
+
 **Objetivo:** receber o webhook da Meta (por enquanto contra um mock) e registrar o que chegou: paciente no primeiro contato, conversa, mensagem cifrada, sessão de atendimento, eco da coexistência e eventos de conta. A IA ainda não entra.
 
 **Arquitetura:**
@@ -111,7 +142,7 @@
 **Interfaces:**
 - Produz: `ConteudoError`, `cifrarConteudo(clinicId, texto): string` e `decifrarConteudo(clinicId, blob): string`.
 
-- [ ] **Passo 1: teste que falha**
+- [x] **Passo 1: teste que falha**
 
 ```ts
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
@@ -241,9 +272,9 @@ describe("chave", () => {
 })
 ```
 
-- [ ] **Passo 2:** `npx vitest run lib/conversations/conteudo.test.ts`. Esperado: FALHA, porque o módulo não existe.
+- [x] **Passo 2:** `npx vitest run lib/conversations/conteudo.test.ts`. Esperado: FALHA, porque o módulo não existe.
 
-- [ ] **Passo 3: implementação**
+- [x] **Passo 3: implementação**
 
 ```ts
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto"
@@ -346,8 +377,8 @@ export function decifrarConteudo(clinicId: string, blob: string): string {
 }
 ```
 
-- [ ] **Passo 4:** rodar o teste de novo. Esperado: PASSA.
-- [ ] **Passo 5:** `.env.example`, logo abaixo de `TENANT_SECRETS_ENCRYPTION_KEY`:
+- [x] **Passo 4:** rodar o teste de novo. Esperado: PASSA.
+- [x] **Passo 5:** `.env.example`, logo abaixo de `TENANT_SECRETS_ENCRYPTION_KEY`:
 
 ```
 # Chave que cifra o CONTEÚDO das mensagens do WhatsApp em repouso (dado de
@@ -356,7 +387,7 @@ export function decifrarConteudo(clinicId: string, blob: string): string {
 MESSAGE_CONTENT_ENCRYPTION_KEY=
 ```
 
-- [ ] **Passo 6:** commit `feat(conversations): cifra do conteúdo da mensagem com chave própria e amarrada à clínica`.
+- [x] **Passo 6:** commit `feat(conversations): cifra do conteúdo da mensagem com chave própria e amarrada à clínica`.
 
 ---
 
@@ -369,7 +400,7 @@ MESSAGE_CONTENT_ENCRYPTION_KEY=
 - Consome: `comparacaoSegura` (`lib/security/tenant-secrets.ts`).
 - Produz: `assinaturaValida(corpo, cabecalho, segredo): boolean` e `desafioDaVerificacao(params, tokenEsperado): string | null`.
 
-- [ ] **Passo 1: teste que falha**
+- [x] **Passo 1: teste que falha**
 
 ```ts
 import { describe, it, expect } from "vitest"
@@ -441,8 +472,8 @@ describe("desafioDaVerificacao", () => {
 })
 ```
 
-- [ ] **Passo 2:** `npx vitest run lib/whatsapp/assinatura.test.ts`. Esperado: FALHA.
-- [ ] **Passo 3: implementação**
+- [x] **Passo 2:** `npx vitest run lib/whatsapp/assinatura.test.ts`. Esperado: FALHA.
+- [x] **Passo 3: implementação**
 
 ```ts
 import { createHmac } from "node:crypto"
@@ -486,8 +517,8 @@ export function desafioDaVerificacao(
 }
 ```
 
-- [ ] **Passo 4:** rodar o teste. Esperado: PASSA.
-- [ ] **Passo 5:** commit `feat(whatsapp): assinatura e handshake do webhook da Meta`.
+- [x] **Passo 4:** rodar o teste. Esperado: PASSA.
+- [x] **Passo 5:** commit `feat(whatsapp): assinatura e handshake do webhook da Meta`.
 
 ---
 
@@ -501,7 +532,7 @@ export function desafioDaVerificacao(
 - Produz: `MidiaDaMensagem`, `MensagemDoWebhook`, `EventoDeContaDoWebhook`, `EventoDoWebhook` e `interpretarWebhook(payload: unknown): EventoDoWebhook[]`.
 - As fábricas de teste produzem: `WABA_ID`, `mensagem()`, `webhookDeMensagens()`, `webhookDeEcos()`, `webhookDeConta()` e `assinar()`.
 
-- [ ] **Passo 1: fábricas no formato da Meta** (`tests/fixtures/meta-webhook.ts`)
+- [x] **Passo 1: fábricas no formato da Meta** (`tests/fixtures/meta-webhook.ts`)
 
 ```ts
 import { createHmac } from "node:crypto"
@@ -585,7 +616,7 @@ export function assinar(corpo: string, segredo: string): string {
 }
 ```
 
-- [ ] **Passo 2: teste que falha** (`lib/whatsapp/webhook.test.ts`)
+- [x] **Passo 2: teste que falha** (`lib/whatsapp/webhook.test.ts`)
 
 ```ts
 import { describe, it, expect } from "vitest"
@@ -724,8 +755,8 @@ describe("o que não é mensagem nem evento de conta", () => {
 })
 ```
 
-- [ ] **Passo 3:** `npx vitest run lib/whatsapp/webhook.test.ts`. Esperado: FALHA.
-- [ ] **Passo 4: implementação**
+- [x] **Passo 3:** `npx vitest run lib/whatsapp/webhook.test.ts`. Esperado: FALHA.
+- [x] **Passo 4: implementação**
 
 ```ts
 import type { EventoDaConta } from "./conexao"
@@ -894,8 +925,8 @@ export function interpretarWebhook(payload: unknown): EventoDoWebhook[] {
 }
 ```
 
-- [ ] **Passo 5:** rodar o teste. Esperado: PASSA.
-- [ ] **Passo 6:** commit `feat(whatsapp): leitura do webhook da Meta com mensagem, eco e evento de conta`.
+- [x] **Passo 5:** rodar o teste. Esperado: PASSA.
+- [x] **Passo 6:** commit `feat(whatsapp): leitura do webhook da Meta com mensagem, eco e evento de conta`.
 
 ---
 
@@ -909,7 +940,7 @@ export function interpretarWebhook(payload: unknown): EventoDoWebhook[] {
 - Consome: `AgentStatus` (`lib/agent-config/schema.ts`).
 - Produz: `EventoRegistrado` e `aplicarEventoDaConta(p): { novoStatus: AgentStatus | null; statusAntes: AgentStatus | null }`.
 
-- [ ] **Passo 1: teste que falha**
+- [x] **Passo 1: teste que falha**
 
 ```ts
 import { describe, it, expect } from "vitest"
@@ -991,8 +1022,8 @@ describe("conexaoDoWhatsapp", () => {
 })
 ```
 
-- [ ] **Passo 2:** `npx vitest run lib/whatsapp/conexao.test.ts`. Esperado: FALHA.
-- [ ] **Passo 3: implementação** (acrescentar a `lib/whatsapp/conexao.ts`, com `import type { AgentStatus } from "@/lib/agent-config/schema"` no topo)
+- [x] **Passo 2:** `npx vitest run lib/whatsapp/conexao.test.ts`. Esperado: FALHA.
+- [x] **Passo 3: implementação** (acrescentar a `lib/whatsapp/conexao.ts`, com `import type { AgentStatus } from "@/lib/agent-config/schema"` no topo)
 
 ```ts
 /** Evento de conta já registrado para um agente (`whatsapp_account_events`). */
@@ -1043,8 +1074,8 @@ export function aplicarEventoDaConta(p: {
 }
 ```
 
-- [ ] **Passo 4:** rodar o teste. Esperado: PASSA.
-- [ ] **Passo 5:** commit `feat(whatsapp): desconexão e reconexão da Meta sobre o status do agente como regra pura`.
+- [x] **Passo 4:** rodar o teste. Esperado: PASSA.
+- [x] **Passo 5:** commit `feat(whatsapp): desconexão e reconexão da Meta sobre o status do agente como regra pura`.
 
 ---
 
@@ -1057,7 +1088,7 @@ export function aplicarEventoDaConta(p: {
 - Consome: `ehErroDoPostgrest` (`lib/supabase/errors.ts`).
 - Produz: `ErroParaLog` e `erroParaLog(erro: unknown): ErroParaLog`.
 
-- [ ] **Passo 1: teste que falha**
+- [x] **Passo 1: teste que falha**
 
 ```ts
 import { describe, it, expect } from "vitest"
@@ -1102,8 +1133,8 @@ describe("erroParaLog", () => {
 })
 ```
 
-- [ ] **Passo 2:** `npx vitest run lib/security/erro-para-log.test.ts`. Esperado: FALHA.
-- [ ] **Passo 3: implementação**
+- [x] **Passo 2:** `npx vitest run lib/security/erro-para-log.test.ts`. Esperado: FALHA.
+- [x] **Passo 3: implementação**
 
 ```ts
 import { ehErroDoPostgrest } from "@/lib/supabase/errors"
@@ -1140,8 +1171,8 @@ export function erroParaLog(erro: unknown): ErroParaLog {
 }
 ```
 
-- [ ] **Passo 4:** rodar o teste. Esperado: PASSA.
-- [ ] **Passo 5:** commit `feat(security): erro para log só com tipo e código`.
+- [x] **Passo 4:** rodar o teste. Esperado: PASSA.
+- [x] **Passo 5:** commit `feat(security): erro para log só com tipo e código`.
 
 ---
 
@@ -1254,12 +1285,12 @@ Carregue `supabase-postgres-best-practices` antes. Siga o estilo das migrations 
   6. O mesmo `wa_message_id` existe em A e em B (a unicidade é por clínica). Repetido em A, devolve `inserted = false`.
   7. `author = 'ai'` na função é recusado (`22023`).
 
-- [ ] **Passo 1:** escrever `tests/rls/conversations.test.ts` com os casos acima.
-- [ ] **Passo 2:** rodar. Esperado: FALHA, porque as tabelas não existem.
-- [ ] **Passo 3:** escrever a migration.
-- [ ] **Passo 4:** aplicar com `supabase db push`. A CLI fica em `~/.local/bin` e precisa de `SUPABASE_DB_PASSWORD` e `SUPABASE_ACCESS_TOKEN` do `.env`. Conferir que só a migration nova foi aplicada.
-- [ ] **Passo 5:** `npx vitest run tests/rls/conversations.test.ts`. Esperado: PASSA. Rodar também `tests/rls/agents.test.ts` e `tests/rls/patients.test.ts`, que tocam as tabelas alteradas.
-- [ ] **Passo 6:** commit `feat(conversations): conversas, mensagens, sessões e eventos de conta com RLS por clínica`.
+- [x] **Passo 1:** escrever `tests/rls/conversations.test.ts` com os casos acima.
+- [x] **Passo 2:** rodar. Esperado: FALHA, porque as tabelas não existem.
+- [x] **Passo 3:** escrever a migration.
+- [x] **Passo 4:** aplicar com `supabase db push`. A CLI fica em `~/.local/bin` e precisa de `SUPABASE_DB_PASSWORD` e `SUPABASE_ACCESS_TOKEN` do `.env`. Conferir que só a migration nova foi aplicada.
+- [x] **Passo 5:** `npx vitest run tests/rls/conversations.test.ts`. Esperado: PASSA. Rodar também `tests/rls/agents.test.ts` e `tests/rls/patients.test.ts`, que tocam as tabelas alteradas.
+- [x] **Passo 6:** commit `feat(conversations): conversas, mensagens, sessões e eventos de conta com RLS por clínica`.
 
 ---
 
@@ -1277,7 +1308,7 @@ Carregue `supabase-postgres-best-practices` antes. Siga o estilo das migrations 
   - `receberMensagem(m: MensagemDoWebhook): Promise<ResultadoDaRecepcao | null>`;
   - `receberEventoDeConta(e: EventoDeContaDoWebhook): Promise<void>`.
 
-**`lib/conversations/recepcao.ts`** (`serviceContext`; toda query filtra `clinic_id` explicitamente):
+**`lib/conversations/recepcao.ts`** (`serviceContext`; toda query filtra `clinic_id` explicitamente; ver o ajuste da tarefa 7 no status, sobre o passo 5):
 1. Busca o agente por `whatsapp_phone_number_id = m.phoneNumberId` (`id`, `clinic_id`, `status`). Se não houver, devolve `null`: o número não é de nenhum agente nosso.
 2. Chama `identifyPatient(clinicId, { whatsapp_phone_number: "+" + m.waIdDoPaciente, name: m.nomeDoPerfil ?? undefined })`, que só grava o nome na criação.
 3. Cifra `m.texto` com `cifrarConteudo(clinicId, ...)` quando há texto; senão, `null`.
@@ -1348,7 +1379,7 @@ Carregue `supabase-postgres-best-practices` antes. Siga o estilo das migrations 
       - o `JSON.stringify` de todos os argumentos logados não contém o texto, o `wa_id`, o `+<wa_id>` nem o nome;
       - com a chave restaurada, o mesmo payload responde 200 e grava. O reenvio da Meta recupera.
 
-- [ ] **Passo 1:** escrever `tests/whatsapp/webhook.test.ts` com os casos acima.
+- [x] **Passo 1:** escrever `tests/whatsapp/webhook.test.ts` com os casos acima.
 - [ ] **Passo 2:** rodar. Esperado: FALHA, porque a rota não existe.
 - [ ] **Passo 3:** escrever `lib/whatsapp/conta.ts`, `lib/conversations/recepcao.ts` e a rota.
 - [ ] **Passo 4:** `npx vitest run tests/whatsapp/webhook.test.ts`. Esperado: PASSA.
