@@ -85,7 +85,7 @@ O webhook está em `app/api/whatsapp/webhook` desde a parte 1 do motor de conver
 ## Automação: tudo em código, sem ferramenta externa
 Não existe n8n no projeto. A conta foi encerrada em 2026-09-16 e a última referência em código (o webhook do chatbot da landing) foi removida na mesma data — junto com a dependência `axios`, que só existia para ele.
 
-Toda automação — webhook, orquestração de IA, agendamento, billing, e-mail — é código Next.js neste repositório, conforme a regra 5 do `CLAUDE.md`. Job agendado é Vercel Cron em `app/api/cron/*`. Não reintroduzir ferramenta de automação externa sem revisar essa regra.
+Toda automação — webhook, orquestração de IA, agendamento, billing, e-mail — é código Next.js neste repositório, conforme a regra 5 do `CLAUDE.md`. Job agendado que só mexe no banco é função SQL agendada pelo pg_cron do Supabase, na própria migration (nada a configurar fora do repositório; os jobs aparecem em `cron.job`). Job que precisa da aplicação fica em `app/api/cron/*`; sem Vercel Pro, que limita o cron a uma execução por dia, quem o dispara é o pg_cron com `pg_net`. Não reintroduzir ferramenta de automação externa sem revisar essa regra.
 
 ## Gerenciador de pacotes: npm
 Decidido em 2026-09-16. O repositório tinha `package-lock.json` e `pnpm-lock.yaml` ao mesmo tempo; o do pnpm tinha 4 linhas, nenhuma dependência, e não era tocado desde o primeiro commit — vestígio do scaffold inicial. Foi removido.

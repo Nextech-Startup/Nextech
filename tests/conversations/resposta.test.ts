@@ -57,8 +57,10 @@ const SUFIXO = String(Date.now())
 const PHONE = `9${SUFIXO}7`
 const PHONE_PAUSADO = `9${SUFIXO}8`
 const WABA = `3${SUFIXO}`
-// 2026-10-02T12:00:00Z: depois de 1º de outubro, quando o serviço passa a ser cobrado.
-const T0 = 1790942400
+// Amanhã, e nunca antes de 2026-10-02T12:00:00Z (depois de 1º de outubro,
+// quando o serviço passa a ser cobrado). No futuro porque o pg_cron do banco
+// real fecha a sessão parada há mais de 20 min.
+const T0 = Math.max(Math.floor(Date.now() / 1000) + 24 * 3600, 1790942400)
 const RESPOSTA = "Olá! Temos horário amanhã às 15h."
 
 let clinica: string

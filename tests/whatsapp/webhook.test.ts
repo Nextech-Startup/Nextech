@@ -48,7 +48,9 @@ const OUTRO_WABA = `6${SUFIXO}`
 // Segunda clínica, para o isolamento no caminho de escrita (service_role).
 const PHONE_B = `9${SUFIXO}4`
 const WABA_B = `5${SUFIXO}`
-const T0 = 1790000000 // 2026-09-21T14:13:20Z
+// Amanhã, calculado na execução: o pg_cron do banco real fecha a sessão
+// parada há mais de 20 min, e data fixa no passado quebraria o teste.
+const T0 = Math.floor(Date.now() / 1000) + 24 * 3600
 
 const envOriginal = {
   segredo: process.env.WHATSAPP_APP_SECRET,
