@@ -1,6 +1,7 @@
 import { requireClinicContext } from "@/lib/auth/context"
 import { cifrarSegredo } from "@/lib/security/tenant-secrets"
 import { ehErroDoPostgrest } from "@/lib/supabase/errors"
+import { MetaError, numeroPertenceAoWaba } from "@/lib/whatsapp/client"
 import {
   agentSchema,
   whatsappCredentialsSchema,
@@ -248,6 +249,9 @@ export async function deleteAgent(agentId: string): Promise<void> {
  * Nada nesta função loga o token, nem parte dele, nem seu tamanho. E o
  * retorno é o agente pelas colunas de leitura normais — que não incluem a
  * coluna do token, porque ela está fora do grant de SELECT.
+ *
+ * Antes de gravar, a Meta confirma que o número pertence ao WABA e que o
+ * token enxerga os dois (conferirPosse).
  */
 export async function connectWhatsapp(
   agentId: string,
@@ -255,6 +259,7 @@ export async function connectWhatsapp(
 ): Promise<Agent> {
   const { supabase, clinicId } = await contextoDeEdicao()
   const parsed = whatsappCredentialsSchema.parse(input)
+  await conferirPosse(parsed)
 
   const { data, error } = await supabase
     .from("agents")
@@ -272,6 +277,40 @@ export async function connectWhatsapp(
 
   if (error) traduzirErro(error)
   return data as unknown as Agent
+}
+
+/**
+ * Prova de posse do número (achado S1 da revisão de segurança do motor de
+ * conversa, parte 1). O `phone_number_id` e o WABA não são segredo: sem
+ * esta conferência, uma clínica que digitasse os de outra receberia as
+ * mensagens dela. A Meta só lista o número no WABA para um token com
+ * acesso aos dois.
+ *
+ * As mensagens são escritas aqui, e nunca a do erro da Meta, que pode citar
+ * o número; nenhuma delas leva o token.
+ */
+async function conferirPosse(c: {
+  whatsapp_phone_number_id: string
+  whatsapp_waba_id: string
+  whatsapp_access_token: string
+}): Promise<void> {
+  let pertence: boolean
+  try {
+    pertence = await numeroPertenceAoWaba({
+      wabaId: c.whatsapp_waba_id,
+      phoneNumberId: c.whatsapp_phone_number_id,
+      token: c.whatsapp_access_token,
+    })
+  } catch (erro) {
+    if (!(erro instanceof MetaError)) throw erro
+    if (erro.code === "configuracao") {
+      throw new AgentMutationError("A conexão com a Meta ainda não está configurada no Nextech. Fale com o suporte.")
+    }
+    throw new AgentMutationError("A Meta não confirmou estas credenciais. Confira o token e os IDs.")
+  }
+  if (!pertence) {
+    throw new AgentMutationError("Este número não pertence a esta conta do WhatsApp Business.")
+  }
 }
 
 /**
