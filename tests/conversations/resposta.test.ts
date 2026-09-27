@@ -24,6 +24,31 @@ import { logPermitido } from "@/tests/whatsapp/log"
  * que receberiam, e `dormir` não espera.
  */
 
+/**
+ * Falhas simuladas do `confirm_ai_reply`, para testar a repetição da
+ * confirmação depois do envio. Com `restantes = 0`, tudo vai ao banco real.
+ */
+const falhasDaConfirmacao = vi.hoisted(() => ({ restantes: 0, codigo: "08006" }))
+
+vi.mock("@/lib/auth/service-context", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/auth/service-context")>()
+  return {
+    serviceContext: () => {
+      const contexto = real.serviceContext()
+      const rpc = contexto.supabase.rpc.bind(contexto.supabase) as (...args: unknown[]) => unknown
+      contexto.supabase.rpc = ((fn: string, ...resto: unknown[]) => {
+        if (fn === "confirm_ai_reply" && falhasDaConfirmacao.restantes > 0) {
+          falhasDaConfirmacao.restantes -= 1
+          const erro = { code: falhasDaConfirmacao.codigo, message: "simulado", details: null, hint: null }
+          return Promise.resolve({ data: null, error: erro })
+        }
+        return rpc(fn, ...resto)
+      }) as unknown as typeof contexto.supabase.rpc
+      return contexto
+    },
+  }
+})
+
 const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
   auth: { persistSession: false },
 })
@@ -125,6 +150,8 @@ beforeAll(async () => {
     whatsapp_access_token_encrypted: tokenCifrado,
     persona_instructions: "Seja acolhedor.",
     greeting_message: "Olá! Aqui é a recepção.",
+    // Fora do padrão (sábado fechado): prova que o horário do agente chega ao prompt.
+    business_hours: { sab: { open: true, start: "09:00", end: "13:00" } },
   }
   const { error: e2 } = await admin
     .from("agents")
@@ -178,7 +205,7 @@ describe("resposta da IA (conversation-engine-v1, comportamento 5)", () => {
     // A persona, a saudação (primeira resposta) e o horário do agente.
     expect(mensagens[0].content).toContain("Seja acolhedor.")
     expect(mensagens[0].content).toContain("Olá! Aqui é a recepção.")
-    expect(mensagens[0].content).toContain("Horário de atendimento da equipe:")
+    expect(mensagens[0].content).toContain("- Sábado: 09:00 às 13:00")
     expect(mensagens.at(-1)).toEqual({ role: "user", content: "Queria marcar uma limpeza" })
     // O telefone do paciente não vai para o modelo.
     expect(JSON.stringify(mensagens)).not.toContain(waId)
@@ -231,6 +258,31 @@ describe("quando a IA fica calada (comportamentos 3 e 4)", () => {
     const r = await receber(novoWaId(), T0, "oi")
     await admin.from("conversations").update({ handled_by: "human", is_urgent: true }).eq("id", r.conversationId)
     expect(await responderConversa(r, dependencias({ agora: T0 + 15 }))).toBe("urgente")
+  })
+
+  it("número do agente trocado durante o agrupamento: não responde pelo número novo", async () => {
+    const r = await receber(novoWaId(), T0, "oi")
+    const novo = `9${SUFIXO}9`
+    const deps = dependencias({ agora: T0 + 15 })
+    deps.dormir.mockImplementationOnce(async () => {
+      const { error } = await admin
+        .from("agents")
+        .update({ whatsapp_phone_number_id: novo })
+        .eq("clinic_id", clinica)
+        .eq("whatsapp_phone_number_id", PHONE)
+      if (error) throw error
+    })
+    try {
+      // A decisão vale para o número em que a mensagem chegou, e não para o lido depois.
+      expect(await responderConversa(r, deps)).toBe("agente-fora-do-ar")
+      expect(deps.enviar).not.toHaveBeenCalled()
+    } finally {
+      await admin
+        .from("agents")
+        .update({ whatsapp_phone_number_id: PHONE })
+        .eq("clinic_id", clinica)
+        .eq("whatsapp_phone_number_id", novo)
+    }
   })
 
   it("agente pausado não responde", async () => {
@@ -342,6 +394,69 @@ describe("falha (conversation-engine-v1, comportamento 7)", () => {
     const c = await conversa(r.conversationId)
     expect(c.handled_by).toBe("human")
     expect(c.ai_failed_at).not.toBeNull()
+  })
+})
+
+describe("confirmação depois do envio", () => {
+  it("repete o erro passageiro e responde", async () => {
+    const r = await receber(novoWaId(), T0, "oi")
+    const deps = dependencias({ agora: T0 + 15 })
+    Object.assign(falhasDaConfirmacao, { restantes: 1, codigo: "08006" })
+    try {
+      expect(await responderConversa(r, deps)).toBe("respondida")
+    } finally {
+      falhasDaConfirmacao.restantes = 0
+    }
+    expect(deps.dormir).toHaveBeenCalledWith(500)
+    expect(deps.enviar).toHaveBeenCalledTimes(1)
+    const [m] = await respostasDaIa(r.conversationId)
+    expect(m.delivery_status).toBe("sent")
+    expect((await sessoes(r.conversationId))[0].ai_response_count).toBe(1)
+  })
+
+  it("falha sempre: o paciente recebeu, a conversa passa para a equipe e o log diz a etapa", async () => {
+    const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
+    const r = await receber(novoWaId(), T0, "oi")
+    const deps = dependencias({ agora: T0 + 15 })
+    Object.assign(falhasDaConfirmacao, { restantes: 3, codigo: "08006" })
+    try {
+      await expect(responderConversa(r, deps)).rejects.toMatchObject({ code: "08006" })
+      expect(falhasDaConfirmacao.restantes).toBe(0)
+      expect(deps.dormir).toHaveBeenCalledWith(500)
+      expect(deps.dormir).toHaveBeenCalledWith(2000)
+      expect(espiao).toHaveBeenCalledWith("[whatsapp-webhook]", {
+        etapa: "confirmacao",
+        conversa: r.conversationId,
+        tipo: "postgrest",
+        codigo: "08006",
+      })
+      for (const chamada of espiao.mock.calls) expect(logPermitido(chamada)).toBe(true)
+    } finally {
+      espiao.mockRestore()
+      falhasDaConfirmacao.restantes = 0
+    }
+    expect(deps.enviar).toHaveBeenCalledTimes(1)
+    // Fica pending, sem contagem: a varredura de pendentes do cron resolve.
+    const [m] = await respostasDaIa(r.conversationId)
+    expect(m.delivery_status).toBe("pending")
+    const c = await conversa(r.conversationId)
+    expect(c.handled_by).toBe("human")
+    expect(c.ai_failed_at).not.toBeNull()
+  })
+
+  it("erro definitivo não repete", async () => {
+    const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
+    const r = await receber(novoWaId(), T0, "oi")
+    const deps = dependencias({ agora: T0 + 15 })
+    // Uma falha só: se repetisse, a segunda chamada iria ao banco e responderia.
+    Object.assign(falhasDaConfirmacao, { restantes: 1, codigo: "22023" })
+    try {
+      await expect(responderConversa(r, deps)).rejects.toMatchObject({ code: "22023" })
+      expect(deps.dormir).not.toHaveBeenCalledWith(500)
+    } finally {
+      espiao.mockRestore()
+      falhasDaConfirmacao.restantes = 0
+    }
   })
 })
 

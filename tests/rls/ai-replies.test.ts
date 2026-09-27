@@ -201,7 +201,9 @@ describe("só o webhook executa as funções da resposta", () => {
 
 describe("reserva, confirmação e contagem (atendimento-billing-v1, regra 2)", () => {
   it("reserva uma vez por mensagem do paciente e devolve o telefone e a credencial lidos sob a trava", async () => {
-    const r = await reserva(A, A.primeira)
+    const c = await novaConversa()
+    const alvo = { ...A, conversa: c.conversa }
+    const r = await reserva(alvo, c.mensagem, "2026-09-21T14:00:10Z")
     expect(r.motivo).toBeNull()
     expect(r).toMatchObject({ phone_number_id: A.numero, access_token_encrypted: TOKEN_CIFRADO })
     expect(r.patient_phone).toMatch(/^\+5500/)
@@ -215,12 +217,15 @@ describe("reserva, confirmação e contagem (atendimento-billing-v1, regra 2)", 
       category: "SERVICE",
       within_24h_window: true,
       billable: false,
-      reply_to_message_id: A.primeira,
+      reply_to_message_id: c.mensagem,
       wa_message_id: null,
     })
 
     // A trava contra resposta dupla: a segunda reserva não entra.
-    expect(await reserva(A, A.primeira)).toMatchObject({ message_id: null, motivo: "ja-respondida" })
+    expect(await reserva(alvo, c.mensagem, "2026-09-21T14:00:10Z")).toMatchObject({
+      message_id: null,
+      motivo: "ja-respondida",
+    })
   })
 
   it("recusa responder a mensagem de outra clínica, de outra conversa da mesma clínica ou da própria IA", async () => {
@@ -232,8 +237,8 @@ describe("reserva, confirmação e contagem (atendimento-billing-v1, regra 2)", 
   })
 
   it("confirmar grava o envio e conta na sessão, uma vez só", async () => {
-    const m = await registrar(A, "2026-09-21T10:00:50Z")
-    const reservada = await reserva(A, m.message_id, "2026-09-21T10:00:55Z")
+    const c = await novaConversa("2026-09-21T10:00:50Z")
+    const reservada = await reserva({ ...A, conversa: c.conversa }, c.mensagem, "2026-09-21T10:00:55Z")
     const r = { id: reservada.message_id! }
     const { data, error } = await confirmar(admin, A.id, r.id, `wamid.enviada.${SUFIXO}.1`, "2026-09-21T10:01:00Z")
     expect(error).toBeNull()
@@ -242,33 +247,35 @@ describe("reserva, confirmação e contagem (atendimento-billing-v1, regra 2)", 
     const { data: enviada } = await admin.from("messages").select("*").eq("id", r.id).single()
     expect(enviada).toMatchObject({ delivery_status: "sent", wa_message_id: `wamid.enviada.${SUFIXO}.1` })
     expect(instante(enviada!.occurred_at)).toBe("2026-09-21T10:01:00.000Z")
-    const { data: c } = await admin.from("conversations").select("last_message_at").eq("id", A.conversa).single()
-    expect(instante(c!.last_message_at)).toBe("2026-09-21T10:01:00.000Z")
+    const { data: conv } = await admin.from("conversations").select("last_message_at").eq("id", c.conversa).single()
+    expect(instante(conv!.last_message_at)).toBe("2026-09-21T10:01:00.000Z")
 
     // Confirmar de novo não conta de novo.
     const repetida = await confirmar(admin, A.id, r.id, `wamid.enviada.${SUFIXO}.1`, "2026-09-21T10:01:00Z")
     expect(repetida.data).toEqual([])
-    expect((await sessoes(A.conversa))[0].ai_response_count).toBe(1)
+    expect((await sessoes(c.conversa))[0].ai_response_count).toBe(1)
   })
 
   it("a quinta resposta fecha a sessão por contagem, e a próxima mensagem abre outra", async () => {
+    const c = await novaConversa("2026-09-21T10:01:00Z")
+    const alvo = { ...A, conversa: c.conversa }
     let ultimo: unknown
-    for (let i = 0; i < 4; i++) {
-      const m = await registrar(A, `2026-09-21T10:0${2 + i}:00Z`)
-      const r = await reserva(A, m.message_id, `2026-09-21T10:0${2 + i}:10Z`)
-      const { data } = await confirmar(admin, A.id, r.message_id!, `wamid.enviada.${SUFIXO}.${i + 2}`, `2026-09-21T10:0${2 + i}:20Z`)
+    for (let i = 0; i < 5; i++) {
+      const m = i === 0 ? c.mensagem : (await registrar(c.base, `2026-09-21T10:0${1 + i}:00Z`)).message_id
+      const r = await reserva(alvo, m, `2026-09-21T10:0${1 + i}:10Z`)
+      const { data } = await confirmar(admin, A.id, r.message_id!, `wamid.enviada.${SUFIXO}.q${i}`, `2026-09-21T10:0${1 + i}:20Z`)
       ultimo = data
     }
     expect(ultimo).toEqual([{ ai_response_count: 5, session_closed: true }])
-    const [fechada] = await sessoes(A.conversa)
+    const [fechada] = await sessoes(c.conversa)
     expect(fechada).toMatchObject({ status: "closed_by_count", ai_response_count: 5 })
     expect(instante(fechada.closed_at)).toBe("2026-09-21T10:05:20.000Z")
 
     // A próxima mensagem do paciente abre outra sessão, e a resposta conta nela.
-    const nova = await registrar(A, "2026-09-21T10:14:00Z")
-    const r = await reserva(A, nova.message_id, "2026-09-21T10:14:10Z")
+    const nova = await registrar(c.base, "2026-09-21T10:14:00Z")
+    const r = await reserva(alvo, nova.message_id, "2026-09-21T10:14:10Z")
     await confirmar(admin, A.id, r.message_id!, `wamid.enviada.${SUFIXO}.9`, "2026-09-21T10:15:00Z")
-    const lista = await sessoes(A.conversa)
+    const lista = await sessoes(c.conversa)
     expect(lista).toHaveLength(2)
     expect(lista[1]).toMatchObject({ status: "open", ai_response_count: 1 })
   })
