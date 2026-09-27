@@ -12,7 +12,9 @@ Criar uma conta de clínica de demonstração em que todas as telas do painel ab
 
 1. **Conta de demonstração, e não dado de exemplo para todas as contas.** A marca é por clínica (`clinics.is_demo`), e por isso não há nada a desfazer quando entrar o primeiro cliente. Dá para demonstrar em produção.
 2. **Selo discreto no topo:** "Demonstração · dados fictícios", no cabeçalho do painel, em toda tela. O aviso grande de protótipo em cada página não aparece na conta de demonstração.
-3. **A conta que abre a demonstração é o `admin@nextech.ia.br`.** Hoje ele é só admin da plataforma, sem clínica. Passa a ser dono (`owner`) de uma clínica fictícia marcada como demonstração. O código já prevê quem é as duas coisas: o painel interno mostra o atalho para o painel da clínica.
+3. **A clínica de demonstração é a "Clínica Demonstração Nextech", que já existe** (`d09aa757-fc21-446a-8018-7586d88859e8`, criada em 2026-09-16, dono `clinica@nextech.ia.br`). Não se cria outra.
+   - O `admin@nextech.ia.br`, hoje só admin da plataforma e sem clínica, também vira `owner` dela. O código já prevê quem é as duas coisas: o painel interno mostra o atalho para o painel da clínica.
+   - Os dois logins abrem a demonstração. Para apresentar a terceiros, o `clinica@nextech.ia.br` é o mais limpo: não é admin da plataforma, e por isso não mostra o atalho do painel interno.
 
 ## Escopo v1
 
@@ -21,10 +23,10 @@ Criar uma conta de clínica de demonstração em que todas as telas do painel ab
 - `clinics.is_demo boolean not null default false`, por migration aditiva.
   - Só o `service_role` muda a coluna. O `authenticated` já só tem `update (legal_name, cnpj)` em `clinics`, e a coluna nova não entra nesse grant.
   - A RLS de `clinics` não muda: o membro lê a própria clínica, inclusive a marca.
-- **A clínica de demonstração é criada por um script idempotente** (`scripts/conta-demo.ts`, rodado com o `service_role` do `.env`). Rodar duas vezes não duplica nada. O script:
-  - cria a clínica "Clínica Demonstração" (nome fictício, sem CNPJ real) com `is_demo = true`;
-  - vincula o `admin@nextech.ia.br` como `owner`, achando o usuário pelo e-mail;
-  - preenche o Perfil da clínica com dado fictício (equipe, procedimentos, convênios, horário), que é a única tela real exibida na demonstração.
+- **A clínica de demonstração é preparada por um script idempotente** (`scripts/conta-demo.ts`, rodado com o `service_role` do `.env`, com o id da clínica como argumento). Rodar duas vezes não duplica nada. O script:
+  - marca `is_demo = true` e passa o plano para `healthtech`, para que nenhuma tela esconda recurso por plano (hoje ela está no `starter`);
+  - vincula o `admin@nextech.ia.br` como `owner`, achando o usuário pelo e-mail. O vínculo do `clinica@nextech.ia.br` não muda;
+  - preenche o Perfil da clínica com dado fictício (equipe, procedimentos, convênios, horário), só no que estiver vazio. Hoje ela não tem profissional, procedimento nem agente. É a única tela real exibida na demonstração.
 
 ### Contexto do tenant
 
@@ -76,8 +78,8 @@ As fixtures têm data fixa (`AGORA` = 28/09/2026, 14:32). Na demonstração, a "
 ## Edge cases
 
 - **Conta de demonstração com dado real:** a clínica de demonstração não tem agente conectado ao WhatsApp nem recebe mensagem. As telas de protótipo não mostram o dado real da clínica, nem se ele existir. Se um dia um número real for conectado a ela, o dado do paciente fica atrás da fixture: o script e o painel interno não conectam número na clínica de demonstração.
-- **Usuário em duas clínicas:** hoje `requireClinicContext()` pega o primeiro vínculo. O `admin@nextech.ia.br` fica com um só, a clínica de demonstração. Isso não muda nada para quem tem um vínculo.
-- **Link do painel interno visível na demonstração:** o `admin@nextech.ia.br` é admin da plataforma. Se o painel da clínica mostrar atalho para o painel interno, esse atalho aparece na frente de quem assiste. Uma conta dedicada (`demo@nextech.ia.br`, sem admin da plataforma) resolve, e fica em "Em aberto".
+- **Usuário em duas clínicas:** hoje `requireClinicContext()` pega o primeiro vínculo. O `admin@nextech.ia.br` e o `clinica@nextech.ia.br` ficam com um só, a clínica de demonstração. Isso não muda nada para quem tem um vínculo.
+- **Link do painel interno visível na demonstração:** entrando pelo `admin@nextech.ia.br`, o atalho do painel interno aparece no painel da clínica. Para apresentar a terceiros, use o `clinica@nextech.ia.br`.
 - **Métricas internas:** a clínica de demonstração aparece no painel interno com o selo "Demonstração" na lista de clínicas, para ninguém a confundir com cliente.
 
 ## LGPD
@@ -97,7 +99,8 @@ Não há métrica de produto. O sucesso é o Jhones conseguir abrir todas as tel
 ## Critério de aceite
 
 - [ ] A migration cria `clinics.is_demo` com `default false`. O `authenticated` não consegue alterar a coluna, e há teste de negação contra o banco real, com membro dono da clínica.
-- [ ] O script cria a clínica de demonstração e o vínculo de `owner` do `admin@nextech.ia.br`, e rodar de novo não duplica nada.
+- [ ] O script marca a "Clínica Demonstração Nextech" como demonstração, com plano `healthtech`, vincula o `admin@nextech.ia.br` como `owner` e preenche o perfil vazio. Rodar de novo não duplica nada nem sobrescreve o que já existe.
+- [ ] Os dois logins (`admin@nextech.ia.br` e `clinica@nextech.ia.br`) abrem o painel da clínica na demonstração.
 - [ ] `requireClinicContext()` devolve `isDemo`, e há teste com uma clínica marcada e outra não.
 - [ ] Na conta de demonstração, todo item do menu é navegável (sidebar, busca de comandos e "Minha conta"), e nenhum diz "em breve".
 - [ ] Nas outras contas, o menu não muda, e as rotas novas respondem 404. Há teste de rota para uma clínica comum.
@@ -108,7 +111,6 @@ Não há métrica de produto. O sucesso é o Jhones conseguir abrir todas as tel
 
 ## Em aberto
 
-- **Conta dedicada à demonstração** (`demo@nextech.ia.br`, sem ser admin da plataforma), se o atalho do painel interno atrapalhar a apresentação.
 - **Datas só-dia com significado fixo** (nascimento, por exemplo): o deslocamento muda a idade em poucos dias. Aceitável na demonstração, e fica registrado.
 
 ## Implementação
