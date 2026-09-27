@@ -15,6 +15,11 @@ export type ClinicContext = {
   userId: string
   /** E-mail da sessão. Vem do mesmo getUser() — não custa consulta extra. */
   email: string | null
+  /**
+   * Conta de demonstração (`clinics.is_demo`). Pergunta de interface, como
+   * o papel: decide o que a tela desenha, nunca o acesso a dado.
+   */
+  isDemo: boolean
   supabase: Awaited<ReturnType<typeof createServerClient>>
 }
 
@@ -47,7 +52,7 @@ export async function requireClinicContext(): Promise<ClinicContext> {
 
   const { data: membership } = await supabase
     .from("clinic_members")
-    .select("clinic_id, role")
+    .select("clinic_id, role, clinics(is_demo)")
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle()
@@ -56,11 +61,16 @@ export async function requireClinicContext(): Promise<ClinicContext> {
     throw new ClinicContextError("Usuário não vinculado a nenhuma clínica.")
   }
 
+  // Sem a marca na resposta, a clínica é tratada como comum: a tela real,
+  // ou 404 nas rotas que só existem na demonstração.
+  const clinica = membership.clinics as { is_demo?: boolean } | null
+
   return {
     clinicId: membership.clinic_id as string,
     role: membership.role as ClinicRole,
     userId: user.id,
     email: user.email ?? null,
+    isDemo: clinica?.is_demo === true,
     supabase,
   }
 }

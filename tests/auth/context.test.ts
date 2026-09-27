@@ -102,3 +102,48 @@ describe("requireClinicContext", () => {
     expect(requireClinicContext.length).toBe(0)
   })
 })
+
+describe("requireClinicContext: conta de demonstração", () => {
+  const sessao = () =>
+    mockGetUser.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null })
+
+  it("clínica marcada devolve isDemo verdadeiro", async () => {
+    sessao()
+    mockMembership({ clinic_id: "clinic-demo", role: "owner", clinics: { is_demo: true } })
+    const { requireClinicContext } = await import("@/lib/auth/context")
+    expect((await requireClinicContext()).isDemo).toBe(true)
+  })
+
+  it("clínica comum devolve isDemo falso", async () => {
+    sessao()
+    mockMembership({ clinic_id: "clinic-1", role: "owner", clinics: { is_demo: false } })
+    const { requireClinicContext } = await import("@/lib/auth/context")
+    expect((await requireClinicContext()).isDemo).toBe(false)
+  })
+
+  it("sem a marca na resposta, trata como clínica comum", async () => {
+    sessao()
+    mockMembership({ clinic_id: "clinic-1", role: "owner", clinics: null })
+    const { requireClinicContext } = await import("@/lib/auth/context")
+    expect((await requireClinicContext()).isDemo).toBe(false)
+  })
+
+  it("lê a marca na mesma consulta do vínculo", async () => {
+    sessao()
+    const select = vi.fn(() => ({
+      eq: () => ({
+        limit: () => ({
+          maybeSingle: async () => ({
+            data: { clinic_id: "clinic-1", role: "owner", clinics: { is_demo: true } },
+            error: null,
+          }),
+        }),
+      }),
+    }))
+    mockFrom.mockReturnValue({ select })
+    const { requireClinicContext } = await import("@/lib/auth/context")
+    await requireClinicContext()
+    expect(mockFrom).toHaveBeenCalledTimes(1)
+    expect(select).toHaveBeenCalledWith("clinic_id, role, clinics(is_demo)")
+  })
+})
