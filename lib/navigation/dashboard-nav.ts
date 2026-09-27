@@ -8,8 +8,11 @@ import type { NavGroup, ResolvedNavGroup, ResolvedNavItem } from "./schema"
  *
  * `roles` codifica a visibilidade decidida na seção 2 do desenho:
  *   owner        — tudo
- *   staff        — Operação e Automação, sem Gestão
+ *   staff        — Operação e Automação, menos Agentes; sem Gestão
  *   professional — só Agenda e Pacientes
+ *
+ * A página lê a mesma regra (`podeAcessar`, em ./acesso): ninguém vê no
+ * menu uma tela que a página recusaria.
  *
  * Esconder é usabilidade, não segurança: a barreira real continua sendo a
  * RLS. Um item ausente aqui nunca substitui a checagem no servidor.
@@ -38,10 +41,12 @@ export const DASHBOARD_NAV: readonly NavGroup[] = [
     label: "Automação",
     items: [
       {
+        // Só owner: configurar agente é mexer na persona e na credencial do
+        // WhatsApp. O staff não vê o item porque a página o recusaria.
         label: "Agentes",
         href: "/dashboard/agents",
         status: "pronto",
-        roles: ["owner", "staff"],
+        roles: ["owner"],
       },
       {
         label: "Sequências",

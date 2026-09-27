@@ -1,10 +1,10 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { requireClinicContext } from "@/lib/auth/context"
+import { podeAcessar } from "@/lib/navigation/acesso"
 import { getAgent } from "@/lib/agent-config/queries"
 import { FormularioDeAgente } from "../formulario"
-import { PageHeader } from "@/components/patterns/page-header"
-import { Vazio } from "@/components/patterns/vazio"
+import { PermissaoNegada } from "@/components/patterns/permissao-negada"
 
 export const metadata: Metadata = {
   title: "Configuração do agente",
@@ -12,6 +12,9 @@ export const metadata: Metadata = {
 }
 
 export const dynamic = "force-dynamic"
+
+// O editor segue a regra da lista: quem não abre a lista não abre um agente.
+const ROTA = "/dashboard/agents"
 
 export default async function AgentPage({
   params,
@@ -21,8 +24,8 @@ export default async function AgentPage({
   const { id } = await params
   const { role } = await requireClinicContext()
 
-  if (role !== "owner") {
-    return <SemPermissao />
+  if (!podeAcessar(role, ROTA)) {
+    return <PermissaoNegada titulo="Agentes" rota={ROTA} role={role} />
   }
 
   // `getAgent` filtra por clinic_id além da RLS, então o agente de outra
@@ -32,16 +35,4 @@ export default async function AgentPage({
   if (!agente) notFound()
 
   return <FormularioDeAgente agente={agente} />
-}
-
-function SemPermissao() {
-  return (
-    <div className="grid max-w-xl gap-6">
-      <PageHeader title="Agentes" />
-      <Vazio>
-        Só o responsável pela clínica configura os agentes. Fale com quem
-        administra a conta se precisar alterar algo aqui.
-      </Vazio>
-    </div>
-  )
 }

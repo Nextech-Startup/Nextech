@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowRight, CalendarCheck, Check, MessagesSquare, Repeat2, UserX } from "lucide-react"
 import { requireClinicContext } from "@/lib/auth/context"
+import { podeAcessar } from "@/lib/navigation/acesso"
 import { getCurrentClinic } from "@/lib/clinics/queries"
 import {
   getRegulatoryIdentity,
@@ -33,8 +34,9 @@ export default async function DashboardPage() {
   const { role } = await requireClinicContext()
 
   // Profissional não tem visão geral no menu (seção 2 do desenho de
-  // navegação), mas `/dashboard` é a raiz e ele cai aqui ao entrar.
-  if (role === "professional") return <AguardandoMinhasTelas />
+  // navegação), mas `/dashboard` é a raiz e ele cai aqui ao entrar: em vez
+  // de "sem acesso", diz o que vai aparecer para ele.
+  if (!podeAcessar(role, "/dashboard")) return <AguardandoMinhasTelas />
 
   const clinic = await getCurrentClinic()
   const ativa = clinic.status === "active"

@@ -1,6 +1,7 @@
 import { Suspense } from "react"
 import type { Metadata } from "next"
 import { requireClinicContext } from "@/lib/auth/context"
+import { podeAcessar } from "@/lib/navigation/acesso"
 import {
   getConsentText,
   getRegulatoryIdentity,
@@ -22,7 +23,7 @@ import {
 import { AbaConsentimento, AbaUrgencia } from "./abas-sensiveis"
 import { StatusBadge } from "@/components/patterns/status-badge"
 import { PageHeader } from "@/components/patterns/page-header"
-import { Vazio } from "@/components/patterns/vazio"
+import { PermissaoNegada } from "@/components/patterns/permissao-negada"
 
 export const metadata: Metadata = {
   title: "Perfil da clínica",
@@ -32,14 +33,16 @@ export const metadata: Metadata = {
 // Cadastro que muda a cada ação da própria tela — nunca cacheia.
 export const dynamic = "force-dynamic"
 
+const ROTA = "/dashboard/settings"
+
 export default async function SettingsPage() {
   const { role } = await requireClinicContext()
 
   // A sidebar já esconde este item de quem não é owner, e a RLS recusa a
   // escrita. Esconder é usabilidade; esta checagem é o que impede alguém
   // de chegar aqui digitando a URL e ver a equipe e o responsável técnico.
-  if (role !== "owner") {
-    return <SemPermissao />
+  if (!podeAcessar(role, ROTA)) {
+    return <PermissaoNegada titulo="Perfil da clínica" rota={ROTA} role={role} />
   }
 
   // Em paralelo: sete consultas independentes, uma por seção. Em série,
@@ -125,18 +128,6 @@ export default async function SettingsPage() {
       <Suspense fallback={<div className="h-10" />}>
         <Abas secoes={secoes} />
       </Suspense>
-    </div>
-  )
-}
-
-function SemPermissao() {
-  return (
-    <div className="grid max-w-xl gap-6">
-      <PageHeader title="Perfil da clínica" />
-      <Vazio>
-        Só o responsável pela clínica edita o perfil. Fale com quem administra a
-        conta se precisar alterar algum dado aqui.
-      </Vazio>
     </div>
   )
 }

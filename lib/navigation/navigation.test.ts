@@ -89,13 +89,12 @@ describe("filtro por papel", () => {
     expect(rotulos("staff")).not.toContain("Plano e cobrança")
   })
 
-  it("staff vê Operação e Automação inteiras", () => {
+  it("staff vê Operação e Automação, menos Agentes", () => {
     expect(rotulos("staff")).toEqual([
       "Visão geral",
       "Conversas",
       "Agenda",
       "Pacientes",
-      "Agentes",
       "Sequências",
       "Templates",
     ])

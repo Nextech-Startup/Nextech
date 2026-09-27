@@ -72,12 +72,14 @@ Decidido: **esconder o que o papel não acessa**. Interface limpa, e ninguém cl
 | Papel | Vê |
 |---|---|
 | `owner` | Tudo |
-| `staff` | Operação + Automação. Sem Configuração, sem billing |
+| `staff` | Operação + Automação, menos Agentes (configurar agente é do owner). Sem Gestão, sem billing |
 | `professional` | Só Agenda e Pacientes — os próprios |
 
 **Esconder é usabilidade, não segurança.** A barreira real continua sendo a RLS e a checagem de papel em `lib/`. Um sidebar filtrado sem RLS por trás seria segurança por obscuridade; aqui é o contrário — a RLS já existe e foi testada, e o sidebar só evita frustração.
 
 O filtro usa o `role` que `requireClinicContext()` já devolve. Nenhuma consulta nova.
+
+**Menu e página leem a mesma regra** (decidido em 2026-09-26, parte 3 do redesign): `podeAcessar(role, rota)`, em `lib/navigation/acesso.ts`, deriva dos `roles` do `DASHBOARD_NAV`. Antes, o staff via "Agentes" no menu e a página o recusava. Rota fora do mapa é recusada para todos, e `tests/architecture/estados.test.ts` exige que toda página do painel tenha regra no menu e, se nem todo papel a abre, confira o papel.
 
 ---
 
