@@ -80,7 +80,8 @@ export async function POST(request: Request) {
       if (evento.tipo === "mensagem") {
         const r = await receberMensagem(evento)
         // Reenvio (`nova: false`) já teve a resposta agendada da primeira vez.
-        if (r && r.autor === "patient" && r.nova && r.agenteAtivo) {
+        // O pedido de opt-out não tem resposta.
+        if (r && r.autor === "patient" && r.nova && r.agenteAtivo && !r.optOut) {
           after(() => responderEmSegundoPlano(r))
         }
       } else if (evento.tipo === "status") {

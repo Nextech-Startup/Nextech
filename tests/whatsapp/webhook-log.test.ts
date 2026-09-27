@@ -146,23 +146,26 @@ describe("a rota agenda a resposta da IA (motor de conversa, parte 2)", () => {
     nova: true,
     autor: "patient",
     agenteAtivo: true,
+    optOut: false,
     ...p,
   })
 
-  const quatro = () =>
+  const varias = (n: number) =>
     webhookDeMensagens({
       phoneNumberId: "1",
       waId: WA_ID,
-      mensagens: [1, 2, 3, 4].map((i) => mensagem(`wamid.${i}`, 1790000000 + i, "oi")),
+      mensagens: Array.from({ length: n }, (_, i) => mensagem(`wamid.${i + 1}`, 1790000001 + i, "oi")),
     })
 
-  it("só mensagem nova do paciente, com agente ativo, agenda uma resposta", async () => {
+  it("só mensagem nova do paciente, com agente ativo e sem opt-out, agenda uma resposta", async () => {
     vi.mocked(receberMensagem)
       .mockResolvedValueOnce(resultado())
       .mockResolvedValueOnce(resultado({ nova: false }))
       .mockResolvedValueOnce(resultado({ agenteAtivo: false }))
       .mockResolvedValueOnce(resultado({ autor: "human" }))
-    expect((await postar(quatro())).status).toBe(200)
+      .mockResolvedValueOnce(resultado({ optOut: true }))
+    expect((await postar(varias(5))).status).toBe(200)
+    expect(receberMensagem).toHaveBeenCalledTimes(5)
 
     expect(after).toHaveBeenCalledTimes(1)
     const [agendada] = vi.mocked(after).mock.calls[0] as unknown as [() => Promise<void>]

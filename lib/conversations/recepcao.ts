@@ -1,7 +1,8 @@
 import { serviceContext } from "@/lib/auth/service-context"
-import { identifyPatient, touchLastContact } from "@/lib/patients/mutations"
+import { identifyPatient, registrarOptOut, touchLastContact } from "@/lib/patients/mutations"
 import type { MensagemDoWebhook } from "@/lib/whatsapp/webhook"
 import { cifrarConteudo } from "./conteudo"
+import { pedidoDeOptOut } from "./opt-out"
 
 /**
  * O que a recepção devolve para quem decide a resposta (parte 2 do motor
@@ -17,6 +18,8 @@ export type ResultadoDaRecepcao = {
   nova: boolean
   autor: "patient" | "human"
   agenteAtivo: boolean
+  /** O paciente pediu para sair das sequências. Esta mensagem não tem resposta. */
+  optOut: boolean
 }
 
 type LinhaRegistrada = { conversation_id: string; message_id: string; inserted: boolean }
@@ -87,6 +90,11 @@ export async function receberMensagem(
   // de escrever. Carimbar "agora" num reenvio atrasado é o erro menor.
   if (m.autor === "patient") await touchLastContact(clinicId, paciente.id)
 
+  // Direito do paciente: vale com o agente pausado e com a equipe
+  // atendendo, e também no reenvio, pelo mesmo motivo do touchLastContact.
+  const optOut = m.autor === "patient" && pedidoDeOptOut(m.texto)
+  if (optOut) await registrarOptOut(clinicId, paciente.id)
+
   return {
     clinicId,
     phoneNumberId: m.phoneNumberId,
@@ -95,5 +103,6 @@ export async function receberMensagem(
     nova: registrada.inserted,
     autor: m.autor,
     agenteAtivo: agente.status === "active",
+    optOut,
   }
 }

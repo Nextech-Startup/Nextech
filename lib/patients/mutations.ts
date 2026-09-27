@@ -100,6 +100,28 @@ export async function touchLastContact(
 }
 
 /**
+ * O paciente pediu opt-out ("PARAR"). Vale imediatamente e para todas as
+ * sequências (lgpd-security, regra 8), e nunca volta a false por ação do
+ * sistema: só a clínica desfaz.
+ *
+ * Roda no webhook, sem sessão, como `touchLastContact`.
+ */
+export async function registrarOptOut(clinicId: string, patientId: string): Promise<void> {
+  const { supabase } = serviceContext()
+
+  const { error } = await supabase
+    .from("patients")
+    .update({ opted_out: true })
+    .eq("id", patientId)
+    // service_role ignora RLS: sem este filtro, um id de outra clínica
+    // tiraria das sequências um paciente que não pediu nada.
+    .eq("clinic_id", clinicId)
+    .eq("opted_out", false)
+
+  if (error) throw error
+}
+
+/**
  * Registra o consentimento do paciente ao texto da clínica.
  *
  * Não regrava se já existe: a data do primeiro aceite é a que vale como
