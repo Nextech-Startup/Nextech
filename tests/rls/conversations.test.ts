@@ -258,3 +258,99 @@ describe("integridade entre clínicas", () => {
     expect(error?.code).toBe("22023")
   })
 })
+
+describe("redação do conteúdo no direito de exclusão (LGPD)", () => {
+  let staff: Usuario
+
+  beforeAll(async () => {
+    // Uma mensagem de texto com conteúdo em cada clínica: é o que a
+    // redação apaga, e o que a outra clínica não pode tocar.
+    for (const c of [A, B]) {
+      const { error } = await admin.rpc("register_whatsapp_message", {
+        p_clinic_id: c.id,
+        p_agent_id: c.agente,
+        p_patient_id: c.paciente,
+        p_wa_message_id: `${WAMID_COMPARTILHADO}.texto`,
+        p_author: "patient",
+        p_media_type: "text",
+        p_content_encrypted: "blob-de-teste",
+        p_occurred_at: "2026-09-21T10:10:00Z",
+      })
+      if (error) throw error
+    }
+    staff = await criarUsuario("staff")
+    const { error } = await admin
+      .from("clinic_members")
+      .insert({ clinic_id: A.id, user_id: staff.id, role: "staff" })
+    if (error) throw error
+  })
+
+  afterAll(async () => {
+    if (staff) await admin.auth.admin.deleteUser(staff.id)
+  })
+
+  async function conteudos(clinicId: string) {
+    const { data } = await admin
+      .from("messages")
+      .select("content_encrypted, content_redacted_at")
+      .eq("clinic_id", clinicId)
+      .eq("media_type", "text")
+    return data!
+  }
+
+  it("quem não é owner da clínica do paciente é recusado, e nada muda", async () => {
+    const donoDeA = await comoUsuario(A.usuario)
+    const outraClinica = await donoDeA.rpc("redact_patient_messages", { p_patient_id: B.paciente })
+    expect(outraClinica.error?.code).toBe("42501")
+
+    const equipe = await comoUsuario(staff)
+    const naoOwner = await equipe.rpc("redact_patient_messages", { p_patient_id: A.paciente })
+    expect(naoOwner.error?.code).toBe("42501")
+
+    const anonimo = await anonClient().rpc("redact_patient_messages", { p_patient_id: A.paciente })
+    expect(anonimo.error?.code).toBe("42501")
+
+    for (const c of [A, B]) {
+      expect(await conteudos(c.id)).toEqual([
+        { content_encrypted: "blob-de-teste", content_redacted_at: null },
+      ])
+    }
+  })
+
+  it("o owner redige as mensagens do próprio paciente, e só elas", async () => {
+    const donoDeA = await comoUsuario(A.usuario)
+    const { data, error } = await donoDeA.rpc("redact_patient_messages", { p_patient_id: A.paciente })
+    expect(error).toBeNull()
+    // As três mensagens da conversa: a do paciente, o eco e a de texto.
+    expect(data).toBe(3)
+
+    const { data: deA } = await admin
+      .from("messages")
+      .select("content_encrypted, content_redacted_at")
+      .eq("clinic_id", A.id)
+    expect(deA!.every((m) => m.content_encrypted === null && m.content_redacted_at !== null)).toBe(true)
+    expect(await conteudos(B.id)).toEqual([
+      { content_encrypted: "blob-de-teste", content_redacted_at: null },
+    ])
+
+    // Idempotente: o segundo pedido não recarimba nada.
+    const segunda = await donoDeA.rpc("redact_patient_messages", { p_patient_id: A.paciente })
+    expect(segunda.data).toBe(0)
+  })
+
+  it("o check só aceita texto sem conteúdo quando ele foi redigido", async () => {
+    const { data: m } = await admin
+      .from("messages")
+      .select("id")
+      .eq("clinic_id", B.id)
+      .eq("media_type", "text")
+      .single()
+    const semRedacao = await admin.from("messages").update({ content_encrypted: null }).eq("id", m!.id)
+    expect(semRedacao.error?.code).toBe("23514")
+    const redigidaComConteudo = await admin
+      .from("messages")
+      .update({ content_redacted_at: "2026-09-27T00:00:00Z" })
+      .eq("id", m!.id)
+    expect(redigidaComConteudo.error?.code).toBe("23514")
+  })
+})
