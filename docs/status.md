@@ -11,11 +11,11 @@
 | **3a — Fundação multi-tenant** | ✅ concluída |
 | **3b — Motor de conversa** | 🟡 partes 1, 2 e 3 de 5 ✅ (dados e recepção; decisão e resposta da IA; urgência, opt-out, manutenção pelo pg_cron e qualificação); falta: parte 4 (tela de Conversas) e parte 5 (preview e áudio) |
 | **3c — Shell de navegação** | ✅ concluída |
-| **Conta de demonstração** | ⬜ spec escrita (`docs/specs/demo-account-v1.md`); **é a próxima sessão**. Depois dela, a parte 4 da 3b |
+| **Conta de demonstração** | ✅ concluída (`docs/specs/demo-account-v1.md`): todas as telas do painel na "Clínica Demonstração Nextech", com dado de exemplo e selo. **Próxima sessão:** parte 4 da 3b (tela de Conversas) |
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**1129 testes passando** · 21 migrations aplicadas · em produção em `app.nextech.ia.br`
+**1322 testes passando** · 23 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 ---
 
@@ -203,6 +203,20 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 
 ---
 
+## Conta de demonstração ✅ (2026-09-27)
+
+Spec `docs/specs/demo-account-v1.md`; plano `docs/superpowers/plans/2026-09-27-conta-de-demonstracao.md`.
+
+- **Dado:** `clinics.is_demo` (migration `20260927240000`), que o `authenticated` não altera. `requireClinicContext()` devolve `isDemo`, lido na mesma consulta do vínculo.
+- **Telas:** dez rotas novas em `app/(dashboard)/dashboard/`, que fora da demonstração mostram a página de não encontrado. Visão geral e Agentes desviam para o protótipo só na demonstração. As fixtures passaram para `app/_fixtures/`.
+- **Datas:** `lib/demo/relogio.ts` traz o dia das fixtures para hoje, com a mesma hora, e gira o expediente junto.
+- **Menu:** na demonstração, todo item abre, inclusive Minha conta, e o selo fica no cabeçalho. O filtro por papel continua. Na mesma entrega, só o item mais específico do menu acende (antes, Perfil e Equipe acendiam juntos).
+- **Segurança:** a clínica de demonstração não conecta WhatsApp nem publica agente, por trigger no banco (`NX004`, migration `20260927250000`). O script só prepara clínica em rascunho, sem paciente, sem agente no WhatsApp e com todas as contas `@nextech.ia.br`, e registra o preparo na trilha. Nenhum identificador real nas fixtures.
+- **Na clínica real:** o script rodou três vezes. A primeira criou o vínculo do `admin@` e preencheu equipe, procedimentos, convênios e política; as seguintes deram "ja-existia" e "ja-tinha", e a terceira já passou pelas travas e gravou `clinic.prepare_demo`.
+- **Revisão visual:** 14 rotas, pelos dois logins, nos dois temas, em 1440 e 390px, sem rolagem horizontal. Também o menu de uma clínica comum, criada só para a captura e apagada no fim.
+
+---
+
 ## Acessos
 
 | Conta | Credencial | Onde entra |
@@ -216,6 +230,7 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 
 ### Precisam de ação do Jhones
 
+- [ ] **Prioridade (segurança, alto, anterior à conta de demonstração): conexão do WhatsApp sem prova de posse pelo PostgREST.** O `authenticated` tem insert e update em `whatsapp_phone_number_id`, `whatsapp_waba_id` e `whatsapp_access_token_encrypted` de `agents` (`20260916240000_agent_config.sql`). Assim, o dono de uma clínica grava direto o número de outra, sem o `conferirPosse`, que só existe na aplicação. Se essa outra estiver desconectada, as mensagens dos pacientes dela passam a ser gravadas na clínica dele, mesmo com o agente em rascunho. Correção proposta: revogar as três colunas do `authenticated` e gravar a conexão no servidor, depois da prova de posse (contexto de serviço ou RPC). Muda grant de tabela existente, por isso pede confirmação. Achado da conferência de segurança da conta de demonstração (2026-09-27); é bloqueio de go-live
 - [ ] **DNS de `nextech.ia.br` sem `www`** — não resolve. Precisa de registro `A` para `76.76.21.21` ou o ALIAS que a Vercel indicar; CNAME não funciona em domínio raiz
 - [ ] **Proteção de deployment do `staging`** — hoje exige login da Vercel (302 para SSO). Desativar em Settings → Deployment Protection, se quiser acesso direto
 - [ ] **Credenciais da Meta** — iniciar o processo, que leva tempo e não trava código
@@ -231,6 +246,10 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 - [ ] **`MESSAGE_CONTENT_ENCRYPTION_KEY` na Vercel**, nos três ambientes, uma chave por ambiente. Sem ela, o webhook responde 500 a toda mensagem. Passo a passo em `docs/infra-setup.md`, seção da Meta
 
 - [x] ~~**Revisar o PR #4**~~ — mergeado em 2026-09-16 (commit `80f2423`), com fase 3c, `patient-v1` e `clinic-profile-v1`. `main` e `staging` estão no mesmo ponto
+
+- [ ] **Perfil da clínica de demonstração em rascunho:** mostra "4 pendências" porque a identidade regulatória está vazia; um CNPJ ou registro inventado pode ser de alguém. Opções: (1) preencher com valor que não possa existir, se o schema aceitar; (2) deixar como está
+- [ ] **Plano na demonstração:** Plano e cobrança conta a história do Pro perto do limite (2 de 3 agentes), e Agentes mostra 4 agentes no HealthTech. Opções: (1) alinhar as fixtures no HealthTech; (2) alinhar no Pro, com Agentes mostrando o limite; (3) deixar
+- [ ] **Revogar privilégios residuais de `clinics`** (observação da revisão de segurança): o `anon` tem INSERT, UPDATE e DELETE de tabela, e o `authenticated` tem INSERT; hoje só a RLS barra. `revoke insert, update, delete on public.clinics from anon; revoke insert on public.clinics from authenticated;` Muda grant de tabela existente, por isso pede confirmação
 
 ### Design
 
@@ -248,13 +267,16 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 - [x] **Redesign do painel, quarta parte**: concluída em 2026-09-26 na `staging`
   (protótipos de Consumo, Conexões, Saúde, Conversas de suporte e Auditoria; acesso de
   suporte com justificativa por clínica, 30 min, motivo e número do chamado)
-- [ ] **Minha conta e Integrações reais**: os protótipos existem, e os itens seguem
-  "em breve" no menu. Minha conta espera o Resend; Integrações, as fases 3b, 5 e 6
+- [ ] **Minha conta e Integrações reais**: abrem com o protótipo só na conta de
+  demonstração; nas outras, seguem "em breve". Minha conta espera o Resend;
+  Integrações, as fases 3b, 5 e 6
 - [ ] **Clínicas "Completa Ltda" no banco**: duas, sem responsável, parecem resíduo
   de teste antigo. Confirmar e apagar
 
 ### Dívida técnica conhecida
 
+- [ ] **Script da demonstração, reforços opcionais** (segunda conferência de segurança, sem bloqueio): (1) uma clínica recém-criada, ainda sem membro, passa pelas travas; exigir ao menos um membro da equipe fecharia isso; (2) contar como da equipe só o e-mail confirmado (`email_confirmed_at`). E, de QA: a Visão geral real é conferida no teste pelo tipo `div`, e não pelo cabeçalho
+- [ ] **Usuário em duas clínicas:** `requireClinicContext()` usa `limit(1)` sem ordem, e o convite do painel interno não recusa quem já responde por outra clínica. Convidar o e-mail de um cliente para a demonstração faria o painel dele alternar entre as duas. O script da demonstração já recusa. Achado B2 da revisão de segurança, anterior a esta entrega
 - [ ] **Staging escreve no banco de produção** — há um único projeto Supabase. Aceitável até o primeiro cliente real, não depois
 - [x] ~~**`patients.insurance_id` sem FK**~~ — fechada em `clinic-profile-v1`, com `on delete set null`: perder o convênio nunca leva junto o paciente
 - [ ] **`professional` vê todos os pacientes da clínica** — a policy de `patients` não estreita por profissional porque o vínculo paciente ↔ profissional não existe na v1. Apertar depois é seguro; afrouxar não seria

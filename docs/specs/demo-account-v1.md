@@ -98,20 +98,37 @@ Não há métrica de produto. O sucesso é o Jhones conseguir abrir todas as tel
 
 ## Critério de aceite
 
-- [ ] A migration cria `clinics.is_demo` com `default false`. O `authenticated` não consegue alterar a coluna, e há teste de negação contra o banco real, com membro dono da clínica.
-- [ ] O script marca a "Clínica Demonstração Nextech" como demonstração, com plano `healthtech`, vincula o `admin@nextech.ia.br` como `owner` e preenche o perfil vazio. Rodar de novo não duplica nada nem sobrescreve o que já existe.
-- [ ] Os dois logins (`admin@nextech.ia.br` e `clinica@nextech.ia.br`) abrem o painel da clínica na demonstração.
-- [ ] `requireClinicContext()` devolve `isDemo`, e há teste com uma clínica marcada e outra não.
-- [ ] Na conta de demonstração, todo item do menu é navegável (sidebar, busca de comandos e "Minha conta"), e nenhum diz "em breve".
-- [ ] Nas outras contas, o menu não muda, e as rotas novas respondem 404. Há teste de rota para uma clínica comum.
-- [ ] O selo "Demonstração · dados fictícios" aparece no cabeçalho só na conta de demonstração.
-- [ ] O deslocamento de datas é função pura com teste: mesma hora, dia deslocado, fuso de São Paulo, e datas só-dia deslocadas também.
-- [ ] A trava de fixtures em `tests/architecture/` tem a regra nova e falha se uma página do painel importar fixture sem ler `isDemo`.
-- [ ] Olhado no navegador, nos dois temas, em 1440px e 390px, sem rolagem horizontal no celular: todas as telas da tabela na conta de demonstração, e o menu de uma conta comum.
+- [x] A migration cria `clinics.is_demo` com `default false`. O `authenticated` não consegue alterar a coluna, e há teste de negação contra o banco real, com membro dono da clínica.
+- [x] O script marca a "Clínica Demonstração Nextech" como demonstração, com plano `healthtech`, vincula o `admin@nextech.ia.br` como `owner` e preenche o perfil vazio. Rodar de novo não duplica nada nem sobrescreve o que já existe.
+- [x] Os dois logins (`admin@nextech.ia.br` e `clinica@nextech.ia.br`) abrem o painel da clínica na demonstração.
+- [x] `requireClinicContext()` devolve `isDemo`, e há teste com uma clínica marcada e outra não.
+- [x] Na conta de demonstração, todo item do menu é navegável (sidebar, busca de comandos e "Minha conta"), e nenhum diz "em breve".
+- [x] Nas outras contas, o menu não muda, e as rotas novas respondem 404. Há teste de rota para uma clínica comum.
+- [x] O selo "Demonstração · dados fictícios" aparece no cabeçalho só na conta de demonstração.
+- [x] O deslocamento de datas é função pura com teste: mesma hora, dia deslocado, fuso de São Paulo, e datas só-dia deslocadas também.
+- [x] A trava de fixtures em `tests/architecture/` tem a regra nova e falha se uma página do painel importar fixture sem ler `isDemo`.
+- [x] Olhado no navegador, nos dois temas, em 1440px e 390px, sem rolagem horizontal no celular: todas as telas da tabela na conta de demonstração, e o menu de uma conta comum.
 
 ## Em aberto
 
 - **Datas só-dia com significado fixo** (nascimento, por exemplo): o deslocamento muda a idade em poucos dias. Aceitável na demonstração, e fica registrado.
+- **Dia da semana** (implementação, 2026-09-27):
+  - Deslocar N dias muda o dia da semana. O expediente da agenda gira junto (`girarDiasDaSemana`), para o "hoje" nunca aparecer como dia fechado. Numa demonstração no sábado, a segunda das fixtures cai no sábado, e a clínica aparece fechada em dois dias úteis na visão da semana.
+  - O dia da semana escrito nas falas do chat ("amanhã, terça") não acompanha o deslocamento.
+  - Datas escritas por extenso ("qui 1 out") saíram das fixtures, com trava em `tests/demo/fixtures.test.ts`.
+- **O "agora" da demonstração** é o `AGORA` das fixtures trazido para hoje (14:32), e não o relógio real. Com isso, "há 5 min" e a janela de 24h continuam coerentes, e a Visão geral diz "Agora, 14:32" a qualquer hora.
+- **"Respondem 404" nas outras contas:** a tela é "Página não encontrada", com `noindex`, e a fixture não é lida. O status HTTP é 200, porque o `loading.tsx` de `/dashboard` faz o streaming da resposta (documentação do Next). É o mesmo comportamento de `/dashboard/agents/[id]` com id de outra clínica. Um 404 HTTP exigiria barrar a rota no middleware, com consulta ao banco.
+- **Perfil da clínica em rascunho:** o script preenche equipe, procedimentos, convênios e política de agendamento, como esta spec pede. A identidade regulatória (CNPJ e responsável técnico) fica vazia, porque um número inventado pode coincidir com o de uma empresa ou profissional real. Com isso, o Perfil mostra "rascunho · 4 pendências". Decisão do Jhones em aberto.
+- **Plano nos protótipos:** Plano e cobrança conta a história de uma clínica no Pro, perto do limite (2 de 3 agentes). Agentes mostra 4 agentes no HealthTech. A divergência vem das fixtures dos protótipos. Decisão do Jhones em aberto.
+
+## Segurança (implementação, 2026-09-27)
+
+Achados da revisão de segurança, tratados na mesma entrega:
+
+- **A clínica de demonstração não conecta WhatsApp nem publica agente**, por trigger no banco (`agents_block_demo`, `NX004`), em qualquer caminho, inclusive `service_role`. Uma clínica com agente conectado ou ativo também não vira demonstração. Sem isso, o dono da demonstração, cuja senha é usada diante de terceiros, conectaria um número pelo PostgREST, e mensagem de paciente real ficaria atrás de um painel que só mostra dado de exemplo.
+- **O script recusa clínica de cliente**: ativa, com paciente, com agente no WhatsApp ou com alguma conta fora da equipe (`@nextech.ia.br`), inclusive a que ganharia o vínculo. Cada preparo fica na trilha de auditoria (`clinic.prepare_demo`).
+- **Nenhum identificador real nas fixtures**: e-mail só em domínio `.example`, celular na faixa `90000` e nenhum número de conselho.
+- **A senha do `clinica@nextech.ia.br` é de dono**, com escrita total na clínica de demonstração. Nunca é entregue a quem assiste.
 
 ## Implementação
 

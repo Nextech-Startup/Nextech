@@ -2,6 +2,45 @@
 
 > **Para quem executa:** SUB-SKILL OBRIGATÓRIA: `superpowers:executing-plans`, tarefa por tarefa, sem subagentes. Os passos usam checkbox (`- [ ]`).
 
+## Status da execução: ✅ concluído em 2026-09-27
+
+- **Feito:** tarefas 1 a 9, na `staging`.
+  - `482b1a7`: este plano;
+  - `193116c`, `72ae7db`, `3c71d75`, `cde9dac`, `c58c2b0`, `65f9914` e `db7ef98`: tarefas 1 a 7;
+  - `1407682`, `fff52c7`, `514a3e6` e `741a3a1`: correções da revisão visual;
+  - `7249249`, `2de86a5`, `19edf9b` e `0d2f6b4`: correções das revisões de segurança e de QA;
+  - `0a0258b`: correções das conferências;
+  - `95583cb`: consultas independentes do script em paralelo. Na suíte inteira, com o banco remoto lento, um caso passava dos 30 s;
+  - o `docs:` que fecha a entrega.
+- **Testes:** 1322 passando em 107 arquivos no `95583cb`, com o commit e a saída 0 no próprio arquivo da suíte (11 min; o banco remoto estava lento). `tsc` limpo. `npm run build` passando no `0d2f6b4`; depois dele, só `scripts/` e `tests/` mudaram.
+- **Revisões:** `security-reviewer` e `qa-reviewer`, cada um com revisão, conferência e conferência das correções da conferência.
+- **Banco:** duas migrations, `20260927240000_clinic_is_demo.sql` e `20260927250000_demo_clinic_no_whatsapp.sql`, as duas com `--dry-run` antes. O banco tem 23. O script rodou três vezes na clínica real.
+
+**Desvios do plano, achados na execução:**
+- **Tarefa 6:** o teste de completude das fixtures com 7 dias dava falso alarme (uma data de 21/09 cai em 28/09). Ele passou a comparar toda data `AAAA-MM-DD` do JSON, antes e depois, com 45 dias.
+- **Revisão visual:**
+  - Visão geral e Minha conta mostravam a clínica e a pessoa da fixture. A pessoa logada passou a ser a persona das fixtures, com o e-mail, o papel e a clínica da sessão.
+  - Havia datas por extenso nas fixtures ("qui 1 out"), que não andavam com o deslocamento.
+  - Na Equipe, Perfil e Equipe acendiam juntos no menu. Agora só o item mais específico acende.
+- **Revisão de segurança:**
+  - M2: a clínica de demonstração podia conectar WhatsApp. Agora há um trigger `NX004` no banco.
+  - M1: o script aceitava clínica de cliente. Agora recusa e registra o preparo na trilha.
+  - B3: as fixtures tinham identificadores que podiam ser reais.
+  - B1: o 404 com streaming responde HTTP 200. Foi medido e mantido, porque é o mesmo comportamento de `agents/[id]`; está registrado na spec.
+  - Na conferência, a clínica de cliente em onboarding ainda passava pelas travas. Agora toda conta envolvida precisa ser `@nextech.ia.br`.
+  - Também na conferência: o alto anterior à entrega (escrita direta do `authenticated` nas colunas do WhatsApp) foi para o topo das pendências, porque muda grant de tabela existente.
+  - A segunda conferência (sobre `0a0258b`) fechou tudo, sem achado novo que bloqueie. Ficaram duas observações opcionais de segurança e uma de QA, anotadas em `docs/status.md`.
+- **Revisão de QA:**
+  - as rotas reais passaram a ter teste numa clínica comum;
+  - o papel é conferido em toda rota;
+  - a ligação do shell tem teste (`shellDaClinica`, `mostraSelo`);
+  - Pacientes e Equipe são conferidos com a fixture deslocada.
+
+### O que a próxima sessão precisa saber
+
+- **Próxima etapa:** parte 4 da 3b, a tela real de Conversas. A rota `/dashboard/conversations` já existe só para a demonstração. A tela real entra pelo ramo de fora da demonstração, e a trava de `tests/architecture/rotas.test.ts` muda quando o item virar `pronto`.
+- **Decisões do Jhones em aberto:** o Perfil da demonstração aparece em rascunho, e o plano diverge entre Plano e cobrança e Agentes. As duas estão em `docs/status.md`, com as opções.
+
 **Objetivo:** na "Clínica Demonstração Nextech", todas as telas do painel abrem com o dado de exemplo dos protótipos, com um selo "Demonstração · dados fictícios". As outras contas não mudam.
 
 **Arquitetura:**
@@ -65,7 +104,7 @@ As decisões de produto são do Jhones e estão na spec (2026-09-27). As de impl
 - `girarDiasDaSemana(dias: readonly number[], deslocamento: number): number[]`;
 - `relogioDaDemonstracao(agoraFixo: string, agoraReal?: Date | string): RelogioDaDemonstracao`, com `{ dias, agora, deslocar }`.
 
-- [ ] **Passo 1: testes que falham**
+- [x] **Passo 1: testes que falham**
 
 Acrescentar a `lib/formatters/formatters.test.ts` (e `diasEntre` no import):
 
@@ -192,9 +231,9 @@ describe("girarDiasDaSemana", () => {
 })
 ```
 
-- [ ] **Passo 2:** `npx vitest run lib/demo lib/formatters` falha (módulo e função inexistentes).
+- [x] **Passo 2:** `npx vitest run lib/demo lib/formatters` falha (módulo e função inexistentes).
 
-- [ ] **Passo 3: implementação**
+- [x] **Passo 3: implementação**
 
 Em `lib/formatters/data.ts`, depois de `somarDias`:
 
@@ -281,8 +320,8 @@ export function relogioDaDemonstracao(
 }
 ```
 
-- [ ] **Passo 4:** `npx vitest run lib/demo lib/formatters` passa.
-- [ ] **Passo 5:** commit `feat(demo): relógio da demonstração desloca as datas das fixtures para hoje`.
+- [x] **Passo 4:** `npx vitest run lib/demo lib/formatters` passa.
+- [x] **Passo 5:** commit `feat(demo): relógio da demonstração desloca as datas das fixtures para hoje`.
 
 ---
 
@@ -292,9 +331,9 @@ export function relogioDaDemonstracao(
 
 **Produz:** `ClinicContext.isDemo: boolean`.
 
-- [ ] **Passo 1:** carregar a skill `supabase-postgres-best-practices`.
+- [x] **Passo 1:** carregar a skill `supabase-postgres-best-practices`.
 
-- [ ] **Passo 2: migration.** Cabeçalho explicando o porquê (spec, pergunta de interface, grant de coluna de `20260916192544` que não inclui a coluna nova, teste que prova). Corpo:
+- [x] **Passo 2: migration.** Cabeçalho explicando o porquê (spec, pergunta de interface, grant de coluna de `20260916192544` que não inclui a coluna nova, teste que prova). Corpo:
 
 ```sql
 alter table public.clinics
@@ -306,7 +345,7 @@ comment on column public.clinics.is_demo is
 
 `add column` com default constante não reescreve a tabela (Postgres 11+). Sem índice: a coluna só é lida junto com o vínculo.
 
-- [ ] **Passo 3: testes que falham.**
+- [x] **Passo 3: testes que falham.**
 
 Em `tests/auth/context.test.ts`, acrescentar:
 
@@ -485,10 +524,10 @@ describe("clinics.is_demo", () => {
 })
 ```
 
-- [ ] **Passo 4:** `npx vitest run tests/auth/context.test.ts` falha (sem `isDemo`); `supabase db push --dry-run` mostra só esta migration.
-- [ ] **Passo 5: implementação** em `lib/auth/context.ts`: `select("clinic_id, role, clinics(is_demo)")`; `isDemo: clinica?.is_demo === true` (falha fechada: sem a marca, é clínica comum); campo documentado no tipo como pergunta de interface, nunca de acesso a dado.
-- [ ] **Passo 6:** aplicar (`echo y | supabase db push`), rodar `tests/auth/context.test.ts` e depois, sozinho, `tests/rls/demo.test.ts`. Passam.
-- [ ] **Passo 7:** commit `feat(demo): clinics.is_demo e isDemo no contexto da clínica` (migration, código e testes juntos).
+- [x] **Passo 4:** `npx vitest run tests/auth/context.test.ts` falha (sem `isDemo`); `supabase db push --dry-run` mostra só esta migration.
+- [x] **Passo 5: implementação** em `lib/auth/context.ts`: `select("clinic_id, role, clinics(is_demo)")`; `isDemo: clinica?.is_demo === true` (falha fechada: sem a marca, é clínica comum); campo documentado no tipo como pergunta de interface, nunca de acesso a dado.
+- [x] **Passo 6:** aplicar (`echo y | supabase db push`), rodar `tests/auth/context.test.ts` e depois, sozinho, `tests/rls/demo.test.ts`. Passam.
+- [x] **Passo 7:** commit `feat(demo): clinics.is_demo e isDemo no contexto da clínica` (migration, código e testes juntos).
 
 ---
 
@@ -508,7 +547,7 @@ Comportamento, nesta ordem (valida tudo antes de escrever):
 
 A linha de comando (`npx tsx scripts/conta-demo.ts <clinicId> [email]`, e-mail padrão `admin@nextech.ia.br`) lê o `.env`, monta o client com o `service_role` e imprime o relatório. O erro sai com `code` e `hint`, nunca o objeto cru.
 
-- [ ] **Passo 1: testes que falham** (`tests/rls/conta-demo.test.ts`, só `service_role`, sem login):
+- [x] **Passo 1: testes que falham** (`tests/rls/conta-demo.test.ts`, só `service_role`, sem login):
 
 ```ts
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
@@ -678,10 +717,10 @@ describe("prepararContaDeDemonstracao", () => {
 
 Se a política de agendamento for uma linha por clínica com unique, "preenchido" é o insert dela; se `scheduling_policies` exigir colunas além das descritas, o teste do "não sobrescreve" ajusta o insert de profissional às colunas obrigatórias, conferidas na migration.
 
-- [ ] **Passo 2:** o teste falha (módulo inexistente).
-- [ ] **Passo 3:** implementar `preparar.ts`, `perfil.ts` e `conta-demo.ts`. Se `tests/` não resolver `@/scripts/...`, importar por caminho relativo.
-- [ ] **Passo 4:** `npx vitest run tests/rls/conta-demo.test.ts` passa, sozinho.
-- [ ] **Passo 5:** commit `feat(demo): script idempotente prepara a clínica de demonstração`.
+- [x] **Passo 2:** o teste falha (módulo inexistente).
+- [x] **Passo 3:** implementar `preparar.ts`, `perfil.ts` e `conta-demo.ts`. Se `tests/` não resolver `@/scripts/...`, importar por caminho relativo.
+- [x] **Passo 4:** `npx vitest run tests/rls/conta-demo.test.ts` passa, sozinho.
+- [x] **Passo 5:** commit `feat(demo): script idempotente prepara a clínica de demonstração`.
 
 ---
 
@@ -697,7 +736,7 @@ Se a política de agendamento for uma linha por clínica com unique, "preenchido
 - `Painel = { tipo: "clinica"; role: ClinicRole; demo: boolean } | { tipo: "interno" }`;
 - `usuario.conta?: string` no `PanelShell`, repassado ao `UserMenu`.
 
-- [ ] **Passo 1: testes que falham.** Em `lib/navigation/navigation.test.ts` (importar `hrefDaMinhaConta`):
+- [x] **Passo 1: testes que falham.** Em `lib/navigation/navigation.test.ts` (importar `hrefDaMinhaConta`):
 
 ```ts
 describe("conta de demonstração", () => {
@@ -765,9 +804,9 @@ describe("Minha conta", () => {
 
 Em `components/shell/trilha.test.ts`, um caso: na demonstração, `/dashboard/conversations` tem trilha com o grupo e o item (o formato exato segue os casos que já existem no arquivo); fora dela, a mesma rota continua sem trilha.
 
-- [ ] **Passo 2:** os testes falham.
+- [x] **Passo 2:** os testes falham.
 
-- [ ] **Passo 3: implementação do menu** em `lib/navigation/dashboard-nav.ts`:
+- [x] **Passo 3: implementação do menu** em `lib/navigation/dashboard-nav.ts`:
 
 ```ts
 /**
@@ -824,12 +863,12 @@ export function resolveDashboardNav(
 
 `acesso.ts`: o padrão de `grupos` em `itemDaRota`, `papeisDaRota` e `podeAcessar` passa a ser `ROTAS_DO_PAINEL`. `landing.ts`: `primeiraRotaVisivel(role, demo = false)` compara `statusNoPainel(item, demo) === "pronto"`.
 
-- [ ] **Passo 4: shell.** `gruposDoPainel` repassa `{ demo: painel.demo }`. O layout passa `demo: ctx.isDemo`, `marca = primeiraRotaVisivel(ctx.role, ctx.isDemo)` e `usuario.conta = hrefDaMinhaConta(ctx.isDemo) ?? undefined`. O `UserMenu` com `conta` vira `DropdownMenuItem asChild` com `Link`; sem ela, fica o item desabilitado "em breve" de hoje.
+- [x] **Passo 4: shell.** `gruposDoPainel` repassa `{ demo: painel.demo }`. O layout passa `demo: ctx.isDemo`, `marca = primeiraRotaVisivel(ctx.role, ctx.isDemo)` e `usuario.conta = hrefDaMinhaConta(ctx.isDemo) ?? undefined`. O `UserMenu` com `conta` vira `DropdownMenuItem asChild` com `Link`; sem ela, fica o item desabilitado "em breve" de hoje.
 
-- [ ] **Passo 5: selo.** Carregar `frontend-design` e `ui-ux`. `SeloDeDemonstracao` no `ShellHeader`, só com `painel.tipo === "clinica" && painel.demo`, antes da busca. Texto "Demonstração · dados fictícios" com `aria-label` completo; em telas estreitas, a forma curta cabe em 390px junto com o gatilho do menu, a trilha (que trunca), a busca e o tema. Só tokens (`brand`, `ink-*`, `hairline`), sem `[var(--x)]`.
+- [x] **Passo 5: selo.** Carregar `frontend-design` e `ui-ux`. `SeloDeDemonstracao` no `ShellHeader`, só com `painel.tipo === "clinica" && painel.demo`, antes da busca. Texto "Demonstração · dados fictícios" com `aria-label` completo; em telas estreitas, a forma curta cabe em 390px junto com o gatilho do menu, a trilha (que trunca), a busca e o tema. Só tokens (`brand`, `ink-*`, `hairline`), sem `[var(--x)]`.
 
-- [ ] **Passo 6:** `npx vitest run lib/navigation components/shell tests/architecture` passa; `npx tsc --noEmit` limpo.
-- [ ] **Passo 7:** commit `feat(demo): menu navegável, Minha conta e selo na conta de demonstração`.
+- [x] **Passo 6:** `npx vitest run lib/navigation components/shell tests/architecture` passa; `npx tsc --noEmit` limpo.
+- [x] **Passo 7:** commit `feat(demo): menu navegável, Minha conta e selo na conta de demonstração`.
 
 ---
 
@@ -837,9 +876,9 @@ export function resolveDashboardNav(
 
 **Arquivos:** `git mv "app/(admin)/admin/design-system/_fixtures" app/_fixtures`; imports das telas do admin passam a `@/app/_fixtures/<x>`; alterar `tests/architecture/prototipos.test.ts` e `tests/architecture/rotas.test.ts`.
 
-- [ ] **Passo 1: mover** e trocar os imports (`../../_fixtures/`, `../../../_fixtures/` → `@/app/_fixtures/`). `npx tsc --noEmit` limpo.
+- [x] **Passo 1: mover** e trocar os imports (`../../_fixtures/`, `../../../_fixtures/` → `@/app/_fixtures/`). `npx tsc --noEmit` limpo.
 
-- [ ] **Passo 2: trava de fixtures.** Em `prototipos.test.ts`, trocar o primeiro caso por:
+- [x] **Passo 2: trava de fixtures.** Em `prototipos.test.ts`, trocar o primeiro caso por:
 
 ```ts
 const TELAS_DO_ADMIN = "app/(admin)/admin/design-system/telas"
@@ -882,7 +921,7 @@ describe("dado fictício", () => {
 
 Os casos "componente e lib não importam nada de app/" e "toda tela de protótipo mostra o aviso" ficam como estão, com `TELAS_DO_ADMIN` no lugar de `${PROTOTIPOS}/telas`.
 
-- [ ] **Passo 3: trava de rotas.** Em `rotas.test.ts`, os itens incluem `MENU_DO_USUARIO`, e o primeiro caso vira:
+- [x] **Passo 3: trava de rotas.** Em `rotas.test.ts`, os itens incluem `MENU_DO_USUARIO`, e o primeiro caso vira:
 
 ```ts
 /** As páginas de uma rota do painel e das rotas filhas dela. */
@@ -908,8 +947,8 @@ it("item 'em breve' só tem página de demonstração", () => {
 
 `/dashboard/settings/team` é filha de `/dashboard/settings` (pronto), mas é item próprio em breve: `paginasDaRota("/dashboard/settings/team")` a cobre. A varredura de `/dashboard/settings` não entra, porque o item é pronto.
 
-- [ ] **Passo 4: prova de que as travas pegam** (mutação, sem commit): criar `app/(dashboard)/dashboard/conversations/page.tsx` importando `@/app/_fixtures/conversas` sem `isDemo`. Os dois casos novos falham. Apagar o arquivo.
-- [ ] **Passo 5:** `npx vitest run tests/architecture` passa; commit `refactor(demo): fixtures em app/_fixtures, com a trava da conta de demonstração`.
+- [x] **Passo 4: prova de que as travas pegam** (mutação, sem commit): criar `app/(dashboard)/dashboard/conversations/page.tsx` importando `@/app/_fixtures/conversas` sem `isDemo`. Os dois casos novos falham. Apagar o arquivo.
+- [x] **Passo 5:** `npx vitest run tests/architecture` passa; commit `refactor(demo): fixtures em app/_fixtures, com a trava da conta de demonstração`.
 
 ---
 
@@ -930,7 +969,7 @@ Particularidades:
 - **Visão geral, Agentes e agente:** depois da guarda de papel que já existe, `if (isDemo) return <…protótipo…>`, antes de qualquer consulta real. Em `agents/[id]`, id fora de `DETALHES_DOS_AGENTES` dá `notFound()` na demonstração.
 - **`loading.tsx`:** o mesmo padrão dos `loading.tsx` que já existem no painel.
 
-- [ ] **Passo 1: teste que falha.**
+- [x] **Passo 1: teste que falha.**
 
 **Arquivo:** `tests/demo/rotas.test.ts`
 
@@ -1094,10 +1133,10 @@ describe("na conta de demonstração", () => {
 
 Um teste de completude em `tests/demo/fixtures.test.ts`: com 7 dias de deslocamento (semana inteira, nenhuma data cai noutra da própria fixture), `JSON.stringify` de cada fixture exportada, deslocada, não contém `"2026-09-28`. Pega data que o deslocamento não alcança, como chave de objeto ou formato fora do padrão.
 
-- [ ] **Passo 2:** os testes falham (páginas inexistentes).
-- [ ] **Passo 3:** criar as 10 rotas com `loading.tsx` e os três desvios. Se `fichaDoPaciente("p-01")` não existir, usar o primeiro id de `PACIENTES` no teste.
-- [ ] **Passo 4:** `npx vitest run tests/demo tests/architecture` passa; o caso de contagem de páginas com fixture em `prototipos.test.ts` ganha `expect(...length).toBeGreaterThanOrEqual(13)`.
-- [ ] **Passo 5:** `npx tsc --noEmit` limpo; commit `feat(demo): telas do painel com o dado de exemplo na conta de demonstração`.
+- [x] **Passo 2:** os testes falham (páginas inexistentes).
+- [x] **Passo 3:** criar as 10 rotas com `loading.tsx` e os três desvios. Se `fichaDoPaciente("p-01")` não existir, usar o primeiro id de `PACIENTES` no teste.
+- [x] **Passo 4:** `npx vitest run tests/demo tests/architecture` passa; o caso de contagem de páginas com fixture em `prototipos.test.ts` ganha `expect(...length).toBeGreaterThanOrEqual(13)`.
+- [x] **Passo 5:** `npx tsc --noEmit` limpo; commit `feat(demo): telas do painel com o dado de exemplo na conta de demonstração`.
 
 ---
 
@@ -1105,24 +1144,24 @@ Um teste de completude em `tests/demo/fixtures.test.ts`: com 7 dias de deslocame
 
 **Arquivos:** `lib/admin/queries.ts` (`listClinics` lê `is_demo`), o tipo do resumo, `app/(admin)/admin/page.tsx` (selo ao lado do nome), e o teste que já cobre `listClinics`, com um caso para a marca.
 
-- [ ] Teste que falha, implementação, teste passando, commit `feat(demo): lista de clínicas do painel interno marca a demonstração`.
+- [x] Teste que falha, implementação, teste passando, commit `feat(demo): lista de clínicas do painel interno marca a demonstração`.
 
 ---
 
 ### Tarefa 8: Banco e navegador
 
-- [ ] `npx tsx scripts/conta-demo.ts d09aa757-fc21-446a-8018-7586d88859e8`: conferir o relatório; rodar de novo e ver tudo "ja-existia"/"ja-tinha".
-- [ ] Conferir pela API de gestão: `is_demo`, `plan`, vínculos do `admin@` e do `clinica@`.
-- [ ] Captura com `docs/design/shot-referencia.mjs` (cópia no scratchpad, `playwright-core@1`): todas as telas da tabela da spec pelos dois logins, e o menu de uma clínica comum. Nos dois temas, em 1440px e 390px, sem rolagem horizontal. Carregar `frontend-design` e `ui-ux` antes de avaliar. Clínica comum criada para a captura é apagada no fim.
+- [x] `npx tsx scripts/conta-demo.ts d09aa757-fc21-446a-8018-7586d88859e8`: conferir o relatório; rodar de novo e ver tudo "ja-existia"/"ja-tinha".
+- [x] Conferir pela API de gestão: `is_demo`, `plan`, vínculos do `admin@` e do `clinica@`.
+- [x] Captura com `docs/design/shot-referencia.mjs` (cópia no scratchpad, `playwright-core@1`): todas as telas da tabela da spec pelos dois logins, e o menu de uma clínica comum. Nos dois temas, em 1440px e 390px, sem rolagem horizontal. Carregar `frontend-design` e `ui-ux` antes de avaliar. Clínica comum criada para a captura é apagada no fim.
 
 ---
 
 ### Tarefa 9: Revisões e documentação
 
-- [ ] `npx vitest run` inteiro, com o commit no topo e `echo exit=$?` no fim; `npx tsc --noEmit`; `npm run build`.
-- [ ] `qa-reviewer` e `security-reviewer`; tratar achados; pedir conferência das correções, e das correções da conferência.
-- [ ] Marcar este plano como concluído; atualizar `docs/roadmap.md`, `docs/status.md`, "Em aberto" da spec (decisão 2) e a memória.
-- [ ] `git status` limpo, `git push origin staging`.
+- [x] `npx vitest run` inteiro, com o commit no topo e `echo exit=$?` no fim; `npx tsc --noEmit`; `npm run build`.
+- [x] `qa-reviewer` e `security-reviewer`; tratar achados; pedir conferência das correções, e das correções da conferência.
+- [x] Marcar este plano como concluído; atualizar `docs/roadmap.md`, `docs/status.md`, "Em aberto" da spec (decisão 2) e a memória.
+- [x] `git status` limpo, `git push origin staging`.
 
 ## Verificação final
 

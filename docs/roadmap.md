@@ -192,8 +192,14 @@ Com isto, o redesign cobre todas as telas do produto como protótipo. As telas r
 - abrir a Auditoria não gera registro;
 - o recorte "Acessos de suporte" e o filtro por tipo chegam com a fase 3b.
 
-### Conta de demonstração ⬜ (spec em 2026-09-27; próxima sessão)
-Spec: `docs/specs/demo-account-v1.md`. A "Clínica Demonstração Nextech", que já existe, marcada com `clinics.is_demo`, com o `clinica@nextech.ia.br` e o `admin@nextech.ia.br` como donos, em que todas as telas abrem com o dado de exemplo dos protótipos e um selo "Demonstração · dados fictícios". As outras contas não mudam. É para mostrar o MVP a clínicas interessadas enquanto não há cliente (decisões do Jhones). A implementação fica para uma sessão própria.
+### Conta de demonstração ✅ (2026-09-27)
+Spec: `docs/specs/demo-account-v1.md`. Plano: `docs/superpowers/plans/2026-09-27-conta-de-demonstracao.md`.
+
+A "Clínica Demonstração Nextech" está marcada com `clinics.is_demo`, com o `clinica@nextech.ia.br` e o `admin@nextech.ia.br` como donos. Nela, todas as telas do painel abrem com o dado de exemplo dos protótipos, trazido para hoje, e um selo "Demonstração · dados fictícios". As outras contas não mudam: o menu segue com "em breve", e as rotas novas mostram a página de não encontrado.
+
+- **Para demonstrar:** entrar com o `clinica@nextech.ia.br`, que não mostra o atalho do painel interno.
+- **Preparo:** `npm run demo:preparar <id da clínica>`. É idempotente e recusa clínica de cliente.
+- **Quando entrar o primeiro cliente:** cada tela de protótipo vira real com a sua fase, e a demonstração continua com a fixture.
 
 ## Fase 4 — Templates e sequências
 - `whatsapp-templates-v1.md`, `message-sequences-v1.md`
