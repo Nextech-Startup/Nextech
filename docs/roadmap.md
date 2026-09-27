@@ -20,13 +20,13 @@ Divisão decidida no documento de arquitetura (`docs/superpowers/specs/2026-09-1
 
 Ao fim de 3a: a clínica existe, tem perfil e equipe, e um agente configurado — que ainda não conversa. **Fase concluída em 2026-09-16** (PR #6), com 371 testes.
 
-### Fase 3b — Motor de conversa 🟡 (partes 1, 2 e 3 de 5; falta a qualificação na 3)
+### Fase 3b — Motor de conversa 🟡 (partes 1, 2 e 3 de 5)
 Spec escrita em `docs/specs/conversation-engine-v1.md`. Dividida em cinco partes, por dependência (decisão do Jhones, 2026-09-27):
 1. ✅ **Dados e recepção** (2026-09-27): conversas, mensagens cifradas, sessões de atendimento e eventos de conta, com RLS por clínica; webhook da Meta com assinatura, eco da coexistência e reenvio idempotente, contra mock. Plano em `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-1.md`.
 2. ✅ **Decisão e resposta da IA** (2026-09-27): retomada em 24h, janela e agente ativo; agrupamento de 10 s, OpenRouter com retenção zero, envio, contagem e fechamento por contagem, colunas de custo, status de entrega e prova de posse do número na conexão. Plano em `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-2.md`.
-3. 🟡 **Urgência, opt-out e qualificação**, com o cron de timeout da sessão. **Pré-requisito do go-live.**
+3. ✅ **Urgência, opt-out e qualificação**, com o cron de timeout da sessão. **Pré-requisito do go-live.**
    - ✅ Urgência, opt-out e manutenção (2026-09-27): triagem na recepção com o protocolo da própria clínica, escalada numa transação, opt-out que vale com o agente pausado, e o pg_cron fechando sessões vencidas e varrendo respostas órfãs a cada 5 min. Plano em `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3.md`.
-   - ⬜ Qualificação (`qualified_at`), na próxima sessão: muda o retorno do OpenRouter.
+   - ✅ Qualificação (2026-09-27): a mesma chamada ao OpenRouter devolve a resposta e a intenção de agendar por saída estruturada (`require_parameters`, com o ZDR fixo). `qualified_at` é gravado uma vez por conversa e alimenta o funil. Plano em `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3-qualificacao.md`.
 4. ⬜ **Tela real de Conversas**, com Realtime, aviso de desconexão e acesso de suporte.
 5. ⬜ **Preview do agente e áudio.**
 

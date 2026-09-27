@@ -9,12 +9,12 @@
 | 1 — Specs do MVP | ✅ concluída — 9 specs |
 | 2 — Repo, CLAUDE.md, skills | ✅ concluída |
 | **3a — Fundação multi-tenant** | ✅ concluída |
-| **3b — Motor de conversa** | 🟡 partes 1, 2 e 3 de 5 (dados e recepção; decisão e resposta da IA; urgência, opt-out e manutenção pelo pg_cron); próxima: qualificação, que fecha a parte 3 |
+| **3b — Motor de conversa** | 🟡 partes 1, 2 e 3 de 5 (dados e recepção; decisão e resposta da IA; urgência, opt-out, manutenção pelo pg_cron e qualificação); próxima: parte 4, tela de Conversas |
 | **3c — Shell de navegação** | ✅ concluída |
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**1104 testes passando** · 20 migrations aplicadas · em produção em `app.nextech.ia.br`
+**1129 testes passando** · 21 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 ---
 
@@ -147,9 +147,9 @@ Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-2.md`.
 - **Prova de posse do número na conexão** (`connectWhatsapp`), que fecha o achado S1 da parte 1.
 - **Contra mock:** OpenRouter e Meta são simulados nos testes, sem chamar a rede.
 
-### Parte 3: urgência, opt-out e manutenção ✅ (2026-09-27)
+### Parte 3: urgência, opt-out, manutenção e qualificação ✅ (2026-09-27)
 
-Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3.md`. A qualificação ficou para a próxima sessão.
+Planos: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3.md` e `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3-qualificacao.md`.
 - **Na recepção, antes do 200:**
   - o opt-out ("PARAR" e afins, como mensagem inteira) grava `patients.opted_out`, com o agente pausado e no reenvio;
   - a triagem de urgência compara o texto com as regras ativas da clínica, por início de palavra.
@@ -161,6 +161,13 @@ Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3.md`. A quali
 - **Reenvio:** a mensagem que ficou sem resposta (falha depois de gravar) volta a ser respondida no reenvio da Meta.
 - **Banco:** migrations `20260927180000_urgency_escalation.sql`, `20260927190000_engine_maintenance.sql`, `20260927200000_engine_maintenance_locks.sql`, `20260927210000_session_timeout_grace.sql` e `20260927220000_confirm_stale_session.sql`.
 - **Revisões:** `security-reviewer` e `qa-reviewer`, com conferência. Os achados e as decisões estão no status da execução do plano.
+- **Qualificação (`qualified_at`):**
+  - a mesma chamada ao OpenRouter devolve `{ resposta, intencao_de_agendar }` por saída estruturada, com `require_parameters`;
+  - o `zdr` e o `deny` seguem fixos, e o JSON é validado do nosso lado;
+  - a gravação acontece logo depois da geração, uma vez só, e vale mesmo que a resposta não saia;
+  - resposta cortada pelo limite de tokens nunca sai: vira falha da IA;
+  - é a fonte do funil do `dashboard-overview-v1.md`.
+- **Correção da conferência:** a `confirm_ai_reply` não fecha mais a sessão vencida (migration `20260927230000`). A mensagem atrasada volta a cair no mesmo atendimento.
 
 **Herda de `agent-config-v1`:** o **preview de conversa** (comportamento 3 e
 critério de aceite 3 daquela spec) não foi entregue — depende deste motor. A
@@ -214,7 +221,8 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 - [x] ~~**Prova de posse do número na conexão**~~: entrou na parte 2 da 3b. `connectWhatsapp` confere na Graph API que o número pertence ao WABA
 - [ ] **Antes de assinar o webhook da Meta em produção (bloqueio de go-live):**
   - ~~a triagem de urgência, o opt-out e a varredura das respostas `pending`~~: entraram na parte 3 da 3b;
-  - a qualificação, que fecha a parte 3;
+  - ~~a qualificação~~: entrou na parte 3 da 3b;
+  - **conferir o `OPENROUTER_MODEL` de produção:** a resposta exige endpoint com ZDR e saída estruturada ao mesmo tempo. Sem nenhum, todo pedido falha fechado e toda conversa vai para a equipe. Em 2026-09-27, o `google/gemini-2.5-flash` tinha 4 endpoints assim, todos do Google Vertex. Observação da revisão de segurança da qualificação;
   - a parte 4 (tela de Conversas): sem ela, desfazer a urgência e ver o alerta só é possível direto no banco. Uma conversa urgente, inclusive por falso positivo, fica com a IA calada até alguém desfazer;
   - a triagem de áudio, que vem com a transcrição (parte 5). Até lá, áudio com relato de urgência não escala;
   - o limite de atendimentos do plano (fase 7). Até lá, a IA responde sem conferir o limite

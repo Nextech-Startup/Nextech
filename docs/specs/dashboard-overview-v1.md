@@ -25,4 +25,4 @@ Tela inicial do painel da clínica — visão operacional do que está acontecen
 - [ ] Estado vazio (clínica nova) não quebra nem mostra número zerado enganoso.
 
 ## Em aberto
-- Fonte exata do "lead qualificado" pro funil — depende de como a IA marca um contato como qualificado, ainda não especificado em nenhum spec anterior. Decidir isso faz parte do desenho do motor de conversa (fase 3 do roadmap).
+- ~~Fonte exata do "lead qualificado" pro funil~~ — decidido no motor de conversa (parte 3, 2026-09-27): `conversations.qualified_at`, gravado uma vez por conversa quando o modelo detecta intenção de agendar (`conversation-engine-v1.md`, comportamento 6). Conversa atendida só pela equipe nunca qualifica, porque o modelo não roda nela: o funil mede o que a IA viu.

@@ -85,6 +85,10 @@ A conversa é marcada com `qualified_at` quando o paciente demonstra intenção 
 
 `qualified_at` é gravado uma única vez por conversa, no primeiro sinal — para o funil medir conversão, não recorrência.
 
+**Implementado na parte 3 (2026-09-27):** a mesma chamada que gera a resposta devolve `{ resposta, intencao_de_agendar }` por saída estruturada (decisão do Jhones). A gravação acontece logo depois da geração e vale mesmo que a resposta não saia. Limites:
+- conversa atendida só pela equipe nunca qualifica, porque o modelo não roda nela;
+- o paciente pode "se qualificar" por injeção de prompt. O impacto fica restrito ao funil da própria conversa.
+
 #### 7. Falha da IA
 **Decidido:** retry curto, depois handoff silencioso.
 
@@ -112,7 +116,7 @@ A conversa é marcada com `qualified_at` quando o paciente demonstra intenção 
 - [x] Após 24h sem mensagem humana, a IA volta a responder. *(Parte 2: `decidirResposta`, contando do mais recente entre `human_took_over_at` e `ai_failed_at`.)*
 - [x] Conversa marcada como urgente nunca é retomada automaticamente pela IA. *(Parte 2: `decidirResposta` e a reserva recusam a conversa urgente. Parte 3: a escalada derruba a resposta da IA que estava em curso, com teste de ponta a ponta.)*
 - [x] Palavra-chave de urgência dispara o `protocol_message` da clínica e escala. *(Parte 3: detectada na recepção, com o texto da regra ativa da própria clínica, também com a equipe atendendo. Um protocolo por escalada, com teste de ponta a ponta.)*
-- [ ] Intenção de agendar grava `qualified_at` uma única vez.
+- [x] Intenção de agendar grava `qualified_at` uma única vez. *(Parte 3: `is null` no filtro, com teste de ponta a ponta em `tests/conversations/resposta.test.ts`: grava a hora da detecção, uma segunda intenção não muda, e vale com a reserva recusada.)*
 - [x] Falha do OpenRouter após 3 tentativas escala para humano sem enviar nada ao paciente. *(Parte 2: 1 s e 4 s de espera, `fail_ai_reply`, com teste.)*
 - [ ] Opt-out interrompe todas as sequências do paciente, não só a que ele respondeu. *(Parte 3: a recepção grava `patients.opted_out`, que vale para todas as sequências, com o agente pausado e no reenvio. Parar a matrícula ativa é da fase 4, quando as sequências existirem.)*
 - [x] Conteúdo de mensagem nunca aparece em log — inclusive em caminho de erro. *(Recepção, parte 1: teste com a chave ausente confere que o log não tem texto, telefone nem nome. Cada parte seguinte reconfirma no seu caminho.)*
@@ -159,7 +163,7 @@ Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-2.md`.
 
 ### Parte 3: urgência, opt-out e manutenção (2026-09-27)
 
-Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3.md`. A qualificação ficou para a próxima sessão: ela muda o retorno do OpenRouter.
+Planos: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3.md` (urgência, opt-out e manutenção) e `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3-qualificacao.md` (qualificação).
 
 - **Detecção na recepção, antes do 200.** O opt-out e a urgência não esperam a resposta da IA: se a gravação falhar, a rota devolve 500 e a Meta reenvia, e a marca nunca se perde num `after()` que morreu.
 - **Urgência:**
@@ -174,6 +178,10 @@ Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3.md`. A quali
   - `close_stale_attendance_sessions` fecha a sessão parada há mais de 1h20 (20 min mais 1 h de folga para mensagem atrasada, decisão do Jhones), com `closed_at` = última mensagem + 20 min, a fórmula da recepção;
   - `sweep_stale_ai_replies` passa a `failed` (`sem-confirmacao`) a resposta `pending` há mais de 5 min e a conversa para a equipe, travando a conversa antes das mensagens e com `skip locked`.
   - a confirmação da resposta (`confirm_ai_reply`) não conta a resposta na sessão vencida que o cron ainda não fechou, e não a fecha: quem fecha é a recepção, pelo `occurred_at` da mensagem, ou o cron. Fechar pelo relógio do envio faria a mensagem atrasada abrir outro atendimento.
+- **Qualificação (decisões do Jhones):**
+  - **Mesma chamada, com saída estruturada**, e não uma segunda chamada: o dado de saúde sai uma vez só. O pedido leva `response_format` com `json_schema` estrito e `provider.require_parameters: true`, para que um provedor que ignore o schema nunca seja escolhido. O `zdr: true` e o `data_collection: "deny"` continuam fixos. Em 2026-09-27, os 4 endpoints ZDR do Gemini 2.5 Flash (Google Vertex) aceitavam saída estruturada.
+  - **O JSON é validado do nosso lado** (`lerSaidaDoModelo`): o rigor do `strict` varia por provedor. Fora do formato é falha passageira da IA (`saida-invalida`), com as mesmas tentativas e o mesmo caminho para a equipe. Resposta cortada pelo limite de tokens (`finish_reason: "length"`) também é falha (`resposta-truncada`), e o texto cortado nunca sai.
+  - **Gravação logo depois da geração**, com `where qualified_at is null`: mede a intenção do paciente, e não a nossa resposta. A falha ao gravar loga só o código, e a resposta segue.
 - **Reenvio sem resposta:** se a recepção falha depois de gravar a mensagem, o reenvio da Meta agenda a resposta enquanto a mensagem não tiver resposta nem reserva (decisão do Jhones). No caso raro de o lote ter voltado 500 por outro evento, o modelo pode ser chamado duas vezes; a reserva garante um envio só.
 
 ## Planos afetados
@@ -200,7 +208,8 @@ mensagem do histórico.
 - **Agrupamento de mensagens**: a janela de ~10s é um chute inicial. Precisa de ajuste com conversa real — curta demais responde em duplicidade, longa demais parece lento.
 - **Tamanho do histórico** enviado ao modelo: afeta custo por atendimento e qualidade. Medir antes de fixar.
 - **Cache de prompt do Gemini via OpenRouter**: mecanismo diferente do `cache_control` da Anthropic. Confirmar a sintaxe atual antes de implementar (skill `integrations`).
-- **Detecção de qualificação**: sai da mesma chamada que gera a resposta, ou de uma segunda chamada? Uma só é mais barata; duas são mais confiáveis. Decidir medindo.
+- **Qualidade da qualificação:** decidida pela mesma chamada (parte 3). Com tráfego real, medir a taxa de `saida-invalida` e `resposta-truncada` no log e conferir por amostragem, na tela de Conversas, se a marcação bate com a intenção.
+- **Raciocínio do Gemini dentro dos 600 tokens:** na maioria dos provedores, o `max_tokens` soma raciocínio e saída. Se o raciocínio esgotar o limite, a resposta volta cortada (`resposta-truncada`) e a conversa vai para a equipe. Medir antes de configurar o `reasoning`.
 - **`billable` contra o `pricing` da Meta:** o status de entrega traz `pricing.billable` e a categoria que a Meta cobrou. Conferir o que gravamos com isso quando houver tráfego real, antes de fechar o preço dos planos.
 - **Lista de opt-out:** fixa no código (`parar`, `pare`, `sair`, `stop`, `descadastrar`, como mensagem inteira). Revisar com conversa real: pedido escrito como frase ("não quero mais receber") hoje não conta.
 - **Triagem de áudio:** só com a transcrição (parte 5). Até lá, áudio com relato de urgência não escala.

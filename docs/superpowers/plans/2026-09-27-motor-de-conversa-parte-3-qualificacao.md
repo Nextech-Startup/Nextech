@@ -2,7 +2,37 @@
 
 > **Para quem executa:** SUB-SKILL OBRIGATÓRIA: `superpowers:executing-plans`, tarefa por tarefa, sem subagentes. Os passos usam checkbox (`- [ ]`).
 
-## Status da execução: ⬜ não iniciado
+## Status da execução: ✅ concluído em 2026-09-27
+
+- **Feito:** tarefas 1 a 4, na `staging` local, sem push.
+  - `229f7f7`: pendência da sessão anterior, os achados da terceira conferência de segurança (sobre `236a928`);
+  - `cb052c9`: este plano;
+  - `a0314ae`, `1691e03` e `9189e93`: tarefas 1 a 3;
+  - `396576a` e `1a43fe5`: lacunas da revisão de QA e o nome de um caso, pedido na conferência;
+  - o `docs:` que fecha a parte.
+- **Banco:** uma migration de correção, `20260927230000_confirm_stale_session_no_close.sql`, aplicada depois do `--dry-run`. O banco tem 21. A qualificação não tem migration.
+- **Testes:** 1129 passando em 100 arquivos no `1a43fe5`, com o commit e a saída 0 gravados no próprio arquivo da suíte. `tsc` limpo, e `npm run build` passando no `9189e93` (depois dele, só testes mudaram).
+- **Revisões:** `security-reviewer` com a conferência do `229f7f7` e a revisão da qualificação; `qa-reviewer` com revisão e conferência.
+
+**Pendência da sessão anterior** (conferência de segurança do `236a928`):
+- média: a `confirm_ai_reply` fechava a sessão vencida pelo relógio do envio, e a mensagem atrasada que chegava depois abria outro atendimento. Agora ela só não conta a resposta; quem fecha é a recepção ou o cron. Teste com a mensagem atrasada caindo na mesma sessão;
+- baixa: a reserva gravada com a resposta perdida na rede passava por resposta de outra execução. A marca `reservando` fica ligada desde o pedido da reserva.
+
+**Segurança** (sobre `229f7f7` a `9189e93`; nenhum achado):
+- a conferência do `229f7f7` fechou os dois achados;
+- **observação:** o `reservando` troca um alerta atrasado por um possível alerta falso (duas falhas raras ao mesmo tempo). É o lado seguro, e há teste que fixa a troca (`396576a`);
+- **observação:** sem endpoint com ZDR e saída estruturada, todo pedido falha fechado. Foi para os bloqueios de go-live em `docs/status.md`: conferir o `OPENROUTER_MODEL` de produção;
+- **observação:** o paciente pode induzir uma resposta longa que vira `resposta-truncada` e passa a conversa para a equipe. Antes, o texto cortado ia ao paciente. Fica na medição com tráfego real.
+
+**QA** (sobre `9189e93`):
+- bloqueante: a escrita da qualificação é do `service_role`, fora da RLS, e remover o filtro de id passava em todos os testes. Entrou um caso com a conversa vizinha da mesma clínica e a de outra clínica, conferido por mutação;
+- menores: duas execuções qualificando, o erro lançado ao gravar e a troca do `reservando`, todos com caso.
+
+### O que a próxima sessão precisa saber
+
+- **Próxima etapa:** parte 4 da 3b, a tela real de Conversas (Realtime, assumir e devolver, desfazer urgência, alertas de urgência e de falha).
+- **Contrato com o modelo:** `Dependencias.gerar` devolve `SaidaDoModelo` (`{ texto, intencaoDeAgendar }`). O preview do agente (parte 5) deve usar o mesmo `FORMATO_DA_RESPOSTA`, porque o system prompt pede o JSON.
+- **Antes do go-live:** conferir o `OPENROUTER_MODEL` de produção (ZDR e saída estruturada no mesmo endpoint).
 
 **Objetivo:** gravar `conversations.qualified_at` na primeira intenção de agendar que o modelo detectar. Com isso, a parte 3 fecha, e sai um pré-requisito do go-live.
 
@@ -226,9 +256,9 @@ it("pede o JSON com o critério da qualificação (comportamento 6)", () => {
 })
 ```
 
-- [ ] **Passo 1:** escrever os testes. **Passo 2:** rodar (FALHA): `npx vitest run lib/agent-config/saida.test.ts lib/agent-config/prompt.test.ts`.
-- [ ] **Passo 3:** implementar. **Passo 4:** rodar (PASSA) os mesmos arquivos.
-- [ ] **Passo 5:** commit `feat(agent-config): contrato de saída do modelo com a intenção de agendar`.
+- [x] **Passo 1:** escrever os testes. **Passo 2:** rodar (FALHA): `npx vitest run lib/agent-config/saida.test.ts lib/agent-config/prompt.test.ts`.
+- [x] **Passo 3:** implementar. **Passo 4:** rodar (PASSA) os mesmos arquivos.
+- [x] **Passo 5:** commit `feat(agent-config): contrato de saída do modelo com a intenção de agendar`.
 
 ### Tarefa 2: Saída estruturada no cliente do OpenRouter
 
@@ -281,9 +311,9 @@ it("resposta cortada pelo limite de tokens: resposta-truncada, que repete, e o t
 
 O primeiro caso do arquivo, que é sem formato, ganha `expect(corpo.response_format).toBeUndefined()`, e o `provider` continua `{ data_collection: "deny", zdr: true }`.
 
-- [ ] **Passo 1:** testes. **Passo 2:** rodar (FALHA) `npx vitest run lib/ai/client.test.ts`.
-- [ ] **Passo 3:** implementar. **Passo 4:** rodar (PASSA).
-- [ ] **Passo 5:** commit `feat(ai): saída estruturada e corte por limite de tokens no cliente do OpenRouter`.
+- [x] **Passo 1:** testes. **Passo 2:** rodar (FALHA) `npx vitest run lib/ai/client.test.ts`.
+- [x] **Passo 3:** implementar. **Passo 4:** rodar (PASSA).
+- [x] **Passo 5:** commit `feat(ai): saída estruturada e corte por limite de tokens no cliente do OpenRouter`.
 
 ### Tarefa 3: Qualificação na resposta
 
@@ -415,29 +445,29 @@ describe("qualificação (conversation-engine-v1, comportamento 6)", () => {
 })
 ```
 
-- [ ] **Passo 1:** testes e fixtures. **Passo 2:** rodar (FALHA): `lib/conversations/dependencias.test.ts` e depois `tests/conversations/resposta.test.ts`.
-- [ ] **Passo 3:** implementar. **Passo 4:** rodar (PASSA), um de cada vez:
+- [x] **Passo 1:** testes e fixtures. **Passo 2:** rodar (FALHA): `lib/conversations/dependencias.test.ts` e depois `tests/conversations/resposta.test.ts`.
+- [x] **Passo 3:** implementar. **Passo 4:** rodar (PASSA), um de cada vez:
   - `lib/conversations/dependencias.test.ts`;
   - `tests/conversations/resposta.test.ts`;
   - `tests/conversations/urgencia.test.ts`;
   - `tests/whatsapp/webhook.test.ts`.
-- [ ] **Passo 5:** `npx tsc --noEmit` e commit `feat(conversations): qualificação de lead pela intenção de agendar`.
+- [x] **Passo 5:** `npx tsc --noEmit` e commit `feat(conversations): qualificação de lead pela intenção de agendar`.
 
 ### Tarefa 4: Documentação
 
-- [ ] **`conversation-engine-v1.md`:**
+- [x] **`conversation-engine-v1.md`:**
   - comportamento 6 com a implementação;
   - o critério de aceite marcado, com a referência dos testes;
   - "Em aberto": a detecção de qualificação sai (decidida), e entram o orçamento de raciocínio do Gemini dentro dos 600 tokens e a medição de `saida-invalida` e `resposta-truncada`;
   - a seção "Parte 3" ganha a qualificação e os dois limites (decisão 7).
-- [ ] **`dashboard-overview-v1.md`:** a fonte do "lead qualificado" deixa de estar em aberto e passa a ser `conversations.qualified_at`, com os limites.
-- [ ] **`docs/roadmap.md` e `docs/status.md`:** a parte 3 fica ✅, e a qualificação sai dos bloqueios de go-live. Atualizar também o número de testes.
-- [ ] **Este plano:** "Status da execução", ajustes, revisões e "O que a próxima sessão precisa saber".
-- [ ] **Memória:** `nextech-arquitetura-decisoes.md`, com a qualificação.
-- [ ] **Commit** `docs: fecha a parte 3 do motor de conversa com a qualificação`.
+- [x] **`dashboard-overview-v1.md`:** a fonte do "lead qualificado" deixa de estar em aberto e passa a ser `conversations.qualified_at`, com os limites.
+- [x] **`docs/roadmap.md` e `docs/status.md`:** a parte 3 fica ✅, e a qualificação sai dos bloqueios de go-live. Atualizar também o número de testes.
+- [x] **Este plano:** "Status da execução", ajustes, revisões e "O que a próxima sessão precisa saber".
+- [x] **Memória:** `nextech-arquitetura-decisoes.md`, com a qualificação.
+- [x] **Commit** `docs: fecha a parte 3 do motor de conversa com a qualificação`.
 
 ## Verificação final (antes da tarefa 4)
 
-- [ ] `npx vitest run` inteiro, com a saída em arquivo, o commit no topo e `echo exit=$?` no fim.
-- [ ] `npx tsc --noEmit` e `npm run build`.
-- [ ] Revisão do `qa-reviewer` e do `security-reviewer`. O `security-reviewer` também confere o `229f7f7`, as correções da terceira conferência. Tratar os achados e pedir a conferência das correções.
+- [x] `npx vitest run` inteiro, com a saída em arquivo, o commit no topo e `echo exit=$?` no fim.
+- [x] `npx tsc --noEmit` e `npm run build`.
+- [x] Revisão do `qa-reviewer` e do `security-reviewer`. O `security-reviewer` também confere o `229f7f7`, as correções da terceira conferência. Tratar os achados e pedir a conferência das correções.
