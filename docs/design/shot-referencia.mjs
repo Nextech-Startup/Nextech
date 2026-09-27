@@ -81,7 +81,11 @@ if (args[0] === "--cores") {
     const { ctx, page, erros } = await abrir(papel, rota, tema, largura)
     const nome = `${papel}${rota.replace(/[/?=&]+/g, "_")}_${tema}_${largura}.png`
     await page.screenshot({ path: `${saida}/${nome}`, fullPage: true })
-    console.log(`${nome}${erros.length ? "  ERROS: " + erros.slice(0, 3).join(" | ") : ""}`)
+    // Rolagem horizontal no celular é defeito; login é sessão que não pegou.
+    const larg = await page.evaluate(() => document.documentElement.scrollWidth)
+    const rolagem = larg > Number(largura) ? `  ROLAGEM-H: ${larg}px` : ""
+    const status = page.url().includes("/login") ? "  (caiu no login)" : ""
+    console.log(`${nome}${rolagem}${status}${erros.length ? "  ERROS: " + erros.slice(0, 3).join(" | ") : ""}`)
     await ctx.close()
   }
 }

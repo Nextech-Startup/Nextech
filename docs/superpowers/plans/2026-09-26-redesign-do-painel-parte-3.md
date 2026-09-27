@@ -2,7 +2,39 @@
 
 > **Para quem executa:** SUB-SKILL OBRIGATÓRIA: `superpowers:executing-plans`, tarefa por tarefa, nesta sessão e sem subagentes. Carregue `frontend-design` antes de desenhar cada tela, e `dataviz` antes do funil. Os passos usam checkbox (`- [ ]`).
 
-## Status da execução: em andamento
+## Status da execução: em andamento (tarefas 1 a 6 concluídas em 2026-09-26)
+
+- **Feito:** tarefas 1 a 6, na `staging` local, sem push. Commits `fb26305` a `1e34217`, mais o `14d4fab` (correção da matriz de Equipe).
+- **Testes:** 646 passando (eram 569 no fim da parte 2). `tsc` limpo. O `npm run build` fica para a tarefa 11.
+- **Falta:** tarefas 7 (Agentes com operação), 8 (diagnóstico de integração), 9 (Integrações), 10 (Minha conta) e 11 (galeria, verificação final e docs).
+- **Ambiente:** o `next dev` continua devolvendo 500 ("Jest worker") em toda rota dinâmica. Rotas estáticas funcionam. Antes da tarefa 7, reinicie o `npm run dev`. Se o erro voltar, confira as rotas dinâmicas (`/admin/design-system/telas/agentes/[id]` e o `not-found` em `/dashboard/agents/<uuid-inexistente>`) num `next start -p 3100` depois do build.
+- **Ainda sem conferência no navegador:** o `not-found` real dentro do shell (tarefa 2, passo 7), por causa do 500 acima. Fica para a tarefa 11.
+
+Ajustes feitos durante a execução, além do que o plano descrevia:
+
+| Tarefa | Ajuste | Por quê |
+|---|---|---|
+| 1 | `components/team/capacidades.ts`: "Ver sequências e templates" (tela `/dashboard/sequences`) fica com o staff; "Ver, configurar e publicar agentes" (tela `/dashboard/agents`) é só do owner | A matriz do protótipo de Equipe dizia que o staff via a lista de agentes. Já não era verdade na página, e o teste que amarra matriz e menu pegou a divergência depois da decisão |
+| 2 | Vitrine com `estados/falha-de-exemplo.tsx` (`"use client"`) | A página de servidor não pode passar a função `retry` |
+| 5 | `formatarPercentual` em `lib/formatters/numero.ts` (+ teste), fora da lista de módulos do plano | Visão geral e funil formatam porcentagem; espalhar `Math.round` pelos componentes seria duplicar regra |
+| 5 | `KpiCard` ganhou `rodape` opcional | Seção 6: todo número diz de onde vem |
+| 5 | `hrefDoPeriodo` virou `Record<Periodo, string>`, e entrou `hrefDaConversa?` | Record é mais simples que função; a fila de espera abre a conversa |
+| 5 | Quem espera e a agenda do dia são derivados de `_fixtures/conversas.ts` e `agenda.ts` (2 esperando, 5 consultas restantes) | As telas contam a mesma história; os alertas linkam para os protótipos de Conversas e Templates |
+| 5 | Clínica "Clínica Sorriso Recife" (odontologia e estética, domínio `clinicasorriso.com.br`, responsável Ana Paula Souza). Agentes: Recepção Odonto (no ar), Estética (atenção), Implantes (desconectado pela Meta) e Ortodontia (rascunho) | Coerência com as fixtures da parte 2. Nutrição e Fisioterapia destoariam numa clínica odontológica |
+| 5 | O KPI `pendente` fica só no teste, não na fixture | Pendente num período só pareceria defeito |
+| 5 | KPIs numa grade de 6 colunas (três de 2 e duas de 3) | Cinco cartões em três colunas deixavam um buraco |
+| 5 | Etapas do funil como locuções ("Com consulta marcada") e linha-resumo "24% das conversas terminaram com consulta realizada"; atividade recente limitada a 6 | O cartão do funil terminava bem antes da atividade, e a frase precisa ler bem com qualquer etapa |
+| 5 | Barras do funil em `bg-ink-2` sobre `bg-surface-2` | Não há tokens `chart-*`; é o mesmo par do `MedidorDeUso` |
+| 6 | `f?.open` em `faixa()` | `BusinessHours` tipa cada dia como opcional; `lerBusinessHours` completa os sete em runtime |
+
+### O que a próxima sessão precisa saber
+
+- `components/agents/tipos.ts` já tem `AgenteEmOperacao`. O status mora em `sinais.status`, sem campo `status` no topo. A tarefa 7 só acrescenta `RegistroDeAlteracao`, `TesteDeConversa` e `DetalheDoAgente`.
+- `_fixtures/agentes.ts` já tem os 4 agentes (`ag-odonto`, `ag-estetica`, `ag-implantes`, `ag-ortodontia`), com número, sinais e volume. A tarefa 7 acrescenta o detalhe (configuração publicada e atual, histórico e teste) numa exportação nova, sem mudar `AGENTES`, que a visão geral importa.
+- Autor humano no histórico e dona da conta em Minha conta: **Ana Paula Souza** (`ana.paula@clinicasorriso.com.br`), a mesma de `_fixtures/equipe.ts`.
+- `components/agents/saude-do-agente.tsx` exporta `SaudeDoAgente`, `TOM_DA_SAUDE` e `ROTULO_DA_SAUDE`.
+- **Revisão visual:** `docs/design/shot-referencia.mjs` agora avisa `ROLAGEM-H` quando a página passa da largura e `(caiu no login)` quando a sessão não pegou. O script também tem o papel `clinica` (`clinica@nextech.ia.br`, owner), útil para as rotas reais.
+- Antes de commitar, leia o resultado do `vitest`. Um `grep` no fim do encadeamento devolve sucesso mesmo com teste falhando.
 
 ## Decisões do Jhones (2026-09-26)
 
@@ -96,7 +128,7 @@ Confira também que não há rolagem horizontal em 390px. Antes de trocar de bra
 - Produz: `itemDaRota(pathname, grupos?) → NavItem | null`, `papeisDaRota(pathname, grupos?) → readonly ClinicRole[] | null`, `podeAcessar(role, pathname, grupos?) → boolean` e `quemAcessa(papeis) → string`.
 - Produz: `<PermissaoNegada titulo rota role />`.
 
-- [ ] **Passo 1: teste que falha** (`lib/navigation/acesso.test.ts`)
+- [x] **Passo 1: teste que falha** (`lib/navigation/acesso.test.ts`)
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -193,9 +225,9 @@ describe("quemAcessa", () => {
 })
 ```
 
-- [ ] **Passo 2:** `npx vitest run lib/navigation/acesso.test.ts`. Esperado: FALHA, porque o módulo não existe.
+- [x] **Passo 2:** `npx vitest run lib/navigation/acesso.test.ts`. Esperado: FALHA, porque o módulo não existe.
 
-- [ ] **Passo 3: implementação** (`lib/navigation/acesso.ts`)
+- [x] **Passo 3: implementação** (`lib/navigation/acesso.ts`)
 
 ```ts
 import type { ClinicRole } from "@/lib/auth/context"
@@ -264,11 +296,11 @@ export function quemAcessa(papeis: readonly ClinicRole[]): string {
 }
 ```
 
-- [ ] **Passo 4:** `npx vitest run lib/navigation`. Esperado: `acesso.test.ts` passa. `navigation.test.ts` falha só em "staff vê Operação e Automação inteiras".
+- [x] **Passo 4:** `npx vitest run lib/navigation`. Esperado: `acesso.test.ts` passa. `navigation.test.ts` falha só em "staff vê Operação e Automação inteiras".
 
-- [ ] **Passo 5: menu.** Em `dashboard-nav.ts`, Agentes passa a `roles: ["owner"]`, com o comentário: configurar agente (persona, credencial do WhatsApp) é do owner, e o staff não vê o que não pode abrir. Atualize o comentário do topo e o teste de navegação: a lista do staff fica sem "Agentes", e o nome do teste diz isso. `npx vitest run lib/navigation`. Esperado: PASSA.
+- [x] **Passo 5: menu.** Em `dashboard-nav.ts`, Agentes passa a `roles: ["owner"]`, com o comentário: configurar agente (persona, credencial do WhatsApp) é do owner, e o staff não vê o que não pode abrir. Atualize o comentário do topo e o teste de navegação: a lista do staff fica sem "Agentes", e o nome do teste diz isso. `npx vitest run lib/navigation`. Esperado: PASSA.
 
-- [ ] **Passo 6: `PermissaoNegada`** (`components/patterns/permissao-negada.tsx`, server component).
+- [x] **Passo 6: `PermissaoNegada`** (`components/patterns/permissao-negada.tsx`, server component).
   - **Props:** `{ titulo: string; rota: string; role: ClinicRole }`. Calcula `papeisDaRota(rota)` e `primeiraRotaVisivel(role)` por dentro, para a página só passar o que sabe.
   - **Estrutura:**
     - `PageHeader` com `titulo`;
@@ -281,14 +313,14 @@ export function quemAcessa(papeis: readonly ClinicRole[]): string {
     - staff em `/dashboard/agents` mostra "o responsável pela clínica" e `href="/dashboard"`;
     - professional em `/dashboard/settings` não tem link, porque `primeiraRotaVisivel` é `null`.
 
-- [ ] **Passo 7: páginas.** Cada página declara `const ROTA = "/dashboard/agents"` (ou a sua) e troca o `if (role !== "owner") return <SemPermissao />` por `if (!podeAcessar(role, ROTA)) return <PermissaoNegada titulo="Agentes" rota={ROTA} role={role} />`.
+- [x] **Passo 7: páginas.** Cada página declara `const ROTA = "/dashboard/agents"` (ou a sua) e troca o `if (role !== "owner") return <SemPermissao />` por `if (!podeAcessar(role, ROTA)) return <PermissaoNegada titulo="Agentes" rota={ROTA} role={role} />`.
   - `/dashboard`: `if (!podeAcessar(role, "/dashboard")) return <AguardandoMinhasTelas />`. O professional continua vendo "Sua área está chegando", porque a raiz é onde ele cai ao entrar.
   - `/dashboard/agents/[id]`: guarda com `ROTA = "/dashboard/agents"`. A regra do editor é a da lista.
   - Apague os três `SemPermissao`.
 
-- [ ] **Passo 8:** `npx vitest run lib/navigation components/patterns && npx tsc --noEmit`. Esperado: PASSA.
+- [x] **Passo 8:** `npx vitest run lib/navigation components/patterns && npx tsc --noEmit`. Esperado: PASSA.
 
-- [ ] **Passo 9: commit.** `feat(nav): acesso por papel com uma regra só e permissão negada padronizada`
+- [x] **Passo 9: commit.** `feat(nav): acesso por papel com uma regra só e permissão negada padronizada`
 
 ---
 
@@ -311,7 +343,7 @@ export function quemAcessa(papeis: readonly ClinicRole[]): string {
   - `<EsqueletoDeFormulario campos? />`;
   - `<FalhaNaTela retry digest? voltarPara />`.
 
-- [ ] **Passo 1: guarda de arquitetura que falha** (`tests/architecture/estados.test.ts`)
+- [x] **Passo 1: guarda de arquitetura que falha** (`tests/architecture/estados.test.ts`)
 
 ```ts
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
@@ -388,9 +420,9 @@ describe("acesso por papel nas rotas reais", () => {
 })
 ```
 
-- [ ] **Passo 2:** `npx vitest run tests/architecture/estados.test.ts`. Esperado: FALHA em loading e error. O bloco de acesso já passa, por causa da tarefa 1.
+- [x] **Passo 2:** `npx vitest run tests/architecture/estados.test.ts`. Esperado: FALHA em loading e error. O bloco de acesso já passa, por causa da tarefa 1.
 
-- [ ] **Passo 3: padrões.**
+- [x] **Passo 3: padrões.**
   - **`esqueleto.tsx`** (server):
     - `Carregando` envolve os filhos num `div` com `role="status"`, `aria-live="polite"` e `aria-busy="true"`, mais `<span className="sr-only">Carregando {rotulo}</span>`. Seção 7: nada de spinner sem contexto.
     - Os esqueletos usam `components/ui/skeleton` com `aria-hidden` e reproduzem a forma da tela:
@@ -409,7 +441,7 @@ describe("acesso por papel nas rotas reais", () => {
     - `FalhaNaTela` mostra o digest quando existe e omite "Código do erro" quando não existe;
     - `FalhaNaTela` tem o link para `voltarPara`.
 
-- [ ] **Passo 4: rotas.**
+- [x] **Passo 4: rotas.**
 
   | Arquivo | Conteúdo |
   |---|---|
@@ -422,17 +454,17 @@ describe("acesso por papel nas rotas reais", () => {
   | `dashboard/error.tsx` e `admin/error.tsx` | `"use client"`, `({ error, retry })` e `<FalhaNaTela retry={retry} digest={error.digest} voltarPara="/dashboard" />` (ou `/admin`) |
   | `dashboard/not-found.tsx` | `PageHeader` "Página não encontrada" e `Vazio`: "O endereço pode estar errado, ou o item foi removido." Ação: link "Ir para o início". Pega o `notFound()` do editor de agente dentro do shell |
 
-- [ ] **Passo 5: vitrine** (`/admin/design-system/estados`, sem dado fictício e, por isso, sem `AvisoDePrototipo`).
+- [x] **Passo 5: vitrine** (`/admin/design-system/estados`, sem dado fictício e, por isso, sem `AvisoDePrototipo`).
   - Mostra, em seções: dois esqueletos compostos (lista e formulário), `FalhaNaTela` com digest de exemplo e `PermissaoNegada` (staff em `/dashboard/agents`).
   - Na galeria, um link "Estados das rotas reais" leva a ela.
 
-- [ ] **Passo 6:** `npx vitest run tests/architecture components/patterns && npx tsc --noEmit`. Esperado: PASSA.
+- [x] **Passo 6:** `npx vitest run tests/architecture components/patterns && npx tsc --noEmit`. Esperado: PASSA.
 
-- [ ] **Passo 7: visual.** Capture `/admin/design-system/estados` em `dark:1440`, `light:1440` e `dark:390`. Confira no `next dev`:
+- [x] **Passo 7: visual.** Capture `/admin/design-system/estados` em `dark:1440`, `light:1440` e `dark:390`. Confira no `next dev`:
   - `/dashboard/agents/00000000-0000-0000-0000-000000000000` mostra o `not-found` dentro do shell;
   - o carregamento de `/dashboard` pisca o esqueleto sem salto de layout.
 
-- [ ] **Passo 8: commit.** `feat(estados): loading, erro e página inexistente nas rotas reais`
+- [x] **Passo 8: commit.** `feat(estados): loading, erro e página inexistente nas rotas reais`
 
 ---
 
@@ -445,7 +477,7 @@ describe("acesso por papel nas rotas reais", () => {
 **Interfaces:**
 - Produz: `ConexaoDoWhatsapp`, `ROTULO_DA_CONEXAO`, `EventoDaConta`, `conexaoDoWhatsapp()`, `SinaisDoAgente`, `NivelDeSaude`, `Saude`, `saudeDoAgente()` e `<SaudeDoAgente saude />`.
 
-- [ ] **Passo 1: teste que falha** (`lib/agent-config/saude.test.ts`)
+- [x] **Passo 1: teste que falha** (`lib/agent-config/saude.test.ts`)
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -539,9 +571,9 @@ describe("saudeDoAgente", () => {
 })
 ```
 
-- [ ] **Passo 2:** `npx vitest run lib/agent-config/saude.test.ts`. Esperado: FALHA, porque os módulos não existem.
+- [x] **Passo 2:** `npx vitest run lib/agent-config/saude.test.ts`. Esperado: FALHA, porque os módulos não existem.
 
-- [ ] **Passo 3: implementação**
+- [x] **Passo 3: implementação**
 
 `lib/whatsapp/conexao.ts`:
 
@@ -654,9 +686,9 @@ export function saudeDoAgente(s: SinaisDoAgente, agora: string): Saude {
 }
 ```
 
-- [ ] **Passo 4:** `npx vitest run lib/agent-config/saude.test.ts`. Esperado: PASSA.
+- [x] **Passo 4:** `npx vitest run lib/agent-config/saude.test.ts`. Esperado: PASSA.
 
-- [ ] **Passo 5: `SaudeDoAgente`** (`components/agents/saude-do-agente.tsx`).
+- [x] **Passo 5: `SaudeDoAgente`** (`components/agents/saude-do-agente.tsx`).
   - **Props:** `{ saude: Saude; compacto?: boolean }`.
   - **Tons e rótulos:**
 
@@ -669,7 +701,7 @@ export function saudeDoAgente(s: SinaisDoAgente, agora: string): Saude {
 
   - **Estrutura:** `StatusBadge` mais o motivo em `text-xs text-ink-3`. Com `compacto`, só o selo, com o motivo em `title` e `sr-only`.
 
-- [ ] **Passo 6: commit.** `feat(agents): saúde do agente e conexão do WhatsApp como regra pura`
+- [x] **Passo 6: commit.** `feat(agents): saúde do agente e conexão do WhatsApp como regra pura`
 
 ---
 
@@ -684,7 +716,7 @@ export function saudeDoAgente(s: SinaisDoAgente, agora: string): Saude {
   - `EtapaDoFunil`, `EtapaCalculada`, `taxa()` e `calcularFunil()`;
   - `Comparacao` e `compararPeriodos()`.
 
-- [ ] **Passo 1: teste que falha** (`lib/overview/overview.test.ts`)
+- [x] **Passo 1: teste que falha** (`lib/overview/overview.test.ts`)
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -802,9 +834,9 @@ describe("compararPeriodos", () => {
 })
 ```
 
-- [ ] **Passo 2:** `npx vitest run lib/overview`. Esperado: FALHA, porque os módulos não existem.
+- [x] **Passo 2:** `npx vitest run lib/overview`. Esperado: FALHA, porque os módulos não existem.
 
-- [ ] **Passo 3: implementação**
+- [x] **Passo 3: implementação**
 
 `lib/overview/alertas.ts`:
 
@@ -926,9 +958,9 @@ export function compararPeriodos(p: {
 }
 ```
 
-- [ ] **Passo 4:** `npx vitest run lib/overview`. Esperado: PASSA.
+- [x] **Passo 4:** `npx vitest run lib/overview`. Esperado: PASSA.
 
-- [ ] **Passo 5: commit.** `feat(overview): ordem dos alertas, funil e comparação de período`
+- [x] **Passo 5: commit.** `feat(overview): ordem dos alertas, funil e comparação de período`
 
 ---
 
@@ -958,7 +990,7 @@ export function compararPeriodos(p: {
   - `VisaoGeral`: `{ clinica; alertas: Alerta[]; aguardando; agendaDoDia; novosPacientes: { hoje: number; semana: number }; resumos: Record<Periodo, ResumoDoPeriodo>; agentes; atividade }`.
 - **Tela:** `TelaDeVisaoGeral({ dados, periodo, agora, hrefDoPeriodo: (p: Periodo) => string })`.
 
-- [ ] **Passo 1: fixture.** Clínica Pro na segunda às 14:32. Deve ter:
+- [x] **Passo 1: fixture.** Clínica Pro na segunda às 14:32. Deve ter:
   - 4 alertas, um de cada tipo exceto limite do plano, fora de ordem na fixture para o teste provar a ordenação. A urgência é "Paciente relatou dor no peito" e leva a `/dashboard/conversations?c=...`;
   - 5 conversas aguardando, com esperas de 4 min a 1 h 40;
   - 7 agendamentos no dia, 3 já passados;
@@ -969,7 +1001,7 @@ export function compararPeriodos(p: {
   - esta tarefa cria `_fixtures/agentes.ts` com os quatro agentes (nome, status e sinais), e a visão geral importa de lá. A tarefa 7 acrescenta volume, histórico e teste;
   - 8 atividades.
 
-- [ ] **Passo 2: teste de componente que falha** (`visao-geral.test.tsx`, com `renderToStaticMarkup`):
+- [x] **Passo 2: teste de componente que falha** (`visao-geral.test.tsx`, com `renderToStaticMarkup`):
   - os títulos dos alertas aparecem na ordem da prioridade (índice no HTML crescente);
   - o KPI de atendimentos (112 contra 100) mostra "+12%" e o texto "comparado a";
   - o indicador sem anterior mostra "Sem base de comparação";
@@ -979,7 +1011,7 @@ export function compararPeriodos(p: {
 
   O teste usa uma fixture própria, pequena, dentro do arquivo. Componente não importa `_fixtures`.
 
-- [ ] **Passo 3: tela.** Hierarquia de cima para baixo, pela ordem "o que precisa de mim agora" → "como vai o mês":
+- [x] **Passo 3: tela.** Hierarquia de cima para baixo, pela ordem "o que precisa de mim agora" → "como vai o mês":
   1. **`PageHeader`:** "Visão geral", com descrição = nome da clínica e ação = `FiltroSegmentado` do período ("Últimos 7 dias" e "Este mês"), via `?periodo=`.
   2. **Alertas** (`AlertasDaOperacao`):
      - lista ordenada, sem cartão em volta; cada linha tem ícone por tipo, título, detalhe, "há X" e a ação como link;
@@ -1004,16 +1036,16 @@ export function compararPeriodos(p: {
   - Cal Sans só no título e nos números de destaque;
   - verde só no KPI "melhor".
 
-- [ ] **Passo 4: rota.** `telas/visao-geral/page.tsx`:
+- [x] **Passo 4: rota.** `telas/visao-geral/page.tsx`:
   - lê `searchParams` (Promise) e valida o `periodo`, com `mes` por padrão;
   - `<AvisoDePrototipo entrega="motor de conversa (fase 3b) e agenda (fase 5)" />`;
   - `hrefDoPeriodo` monta `?periodo=`.
 
-- [ ] **Passo 5:** `npx vitest run components/overview lib/overview && npx tsc --noEmit`. Esperado: PASSA.
+- [x] **Passo 5:** `npx vitest run components/overview lib/overview && npx tsc --noEmit`. Esperado: PASSA.
 
-- [ ] **Passo 6: visual.** Capture `telas/visao-geral` e `telas/visao-geral?periodo=7d` nos 3 tamanhos, critique com a seção 12, ajuste e registre os ajustes na tabela do status.
+- [x] **Passo 6: visual.** Capture `telas/visao-geral` e `telas/visao-geral?periodo=7d` nos 3 tamanhos, critique com a seção 12, ajuste e registre os ajustes na tabela do status.
 
-- [ ] **Passo 7: commit.** `feat(overview): protótipo da visão geral com alertas, agora, período e funil`
+- [x] **Passo 7: commit.** `feat(overview): protótipo da visão geral com alertas, agora, período e funil`
 
 ---
 
@@ -1025,7 +1057,7 @@ export function compararPeriodos(p: {
 **Interfaces:**
 - Produz: `ConfiguracaoPublicavel`, `Alteracao` e `alteracoesNaoPublicadas(publicada, atual) → Alteracao[]`.
 
-- [ ] **Passo 1: teste que falha**
+- [x] **Passo 1: teste que falha**
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -1099,9 +1131,9 @@ describe("alteracoesNaoPublicadas", () => {
 })
 ```
 
-- [ ] **Passo 2:** `npx vitest run lib/agent-config/alteracoes.test.ts`. Esperado: FALHA.
+- [x] **Passo 2:** `npx vitest run lib/agent-config/alteracoes.test.ts`. Esperado: FALHA.
 
-- [ ] **Passo 3: implementação** (`lib/agent-config/alteracoes.ts`)
+- [x] **Passo 3: implementação** (`lib/agent-config/alteracoes.ts`)
 
 ```ts
 import {
@@ -1179,9 +1211,9 @@ export function alteracoesNaoPublicadas(
 }
 ```
 
-- [ ] **Passo 4:** `npx vitest run lib/agent-config`. Esperado: PASSA.
+- [x] **Passo 4:** `npx vitest run lib/agent-config`. Esperado: PASSA.
 
-- [ ] **Passo 5: commit.** `feat(agents): alterações não publicadas como regra pura`
+- [x] **Passo 5: commit.** `feat(agents): alterações não publicadas como regra pura`
 
 ---
 
@@ -1196,7 +1228,7 @@ export function alteracoesNaoPublicadas(
 **Interfaces:**
 - Consome: `saudeDoAgente`, `SaudeDoAgente`, `StatusDoAgente`, `alteracoesNaoPublicadas`, `LinhaDoTempo`, `PreviaDoWhatsApp`, `ChatBubble`, `formatarTelefone`, `tempoRelativo`, `LIMITE_DE_AGENTES` e `ROTULO_DO_PLANO`.
 - **Tipos** (`tipos.ts`):
-  - `AgenteEmOperacao`: `{ id; nome; especialidade: MedicalSpecialty; status: AgentStatus; numero: string | null; sinais: SinaisDoAgente; volume7d: { conversas; mensagens; passadasParaHumano }; publicadoEm: string | null }`.
+  - `AgenteEmOperacao` (**já existe**, tarefa 5): `{ id; nome; especialidade: MedicalSpecialty; numero: string | null; publicadoEm: string | null; sinais: SinaisDoAgente; volume7d: { conversas; mensagens; passadasParaHumano } }`. O status é `sinais.status`.
   - `RegistroDeAlteracao`: `{ id; instante; autor; acao: "criou" | "editou" | "publicou" | "pausou" | "conectou" | "desconectado-pela-meta"; detalhe? }`.
   - `TesteDeConversa`: `{ turnos: { lado: "paciente" | "clinica"; texto; hora }[]; usados: number; limite: number }`.
   - `DetalheDoAgente`: `AgenteEmOperacao & { publicada: ConfiguracaoPublicavel | null; atual: ConfiguracaoPublicavel; historico: RegistroDeAlteracao[]; teste: TesteDeConversa }`.
@@ -1211,7 +1243,7 @@ export function alteracoesNaoPublicadas(
   - rascunho, sem número.
 
   O detalhe de cada um tem:
-  - histórico de 5 a 7 registros, com autores "Ana Ribeiro" e "Sistema" (este no evento da Meta);
+  - histórico de 5 a 7 registros, com autores "Ana Paula Souza" e "Sistema" (este no evento da Meta);
   - teste com 4 turnos, 4 de 10 usados.
 
   A clínica está no plano HealthTech (sem limite de agentes). No Pro, o trigger barraria o quarto agente, e a lista perderia um dos quatro níveis de saúde. Visão geral e Integrações usam estes mesmos quatro agentes.
@@ -1508,7 +1540,7 @@ export function estadoDoWhatsapp(conexao: ConexaoDoWhatsapp): EstadoDaIntegracao
   - `TelaMinhaConta({ conta, agora, acaoDesabilitada })`;
   - `EscolhaDeTema()`, `"use client"`, com `next-themes`.
 
-- [ ] **Passo 1: fixture.** "Ana Ribeiro", responsável, último acesso há 5 min e senha alterada há 3 meses.
+- [ ] **Passo 1: fixture.** "Ana Paula Souza" (`ana.paula@clinicasorriso.com.br`), responsável na "Clínica Sorriso Recife", último acesso há 2 min (14:30, como em `_fixtures/equipe.ts`) e senha alterada há 3 meses.
 
 - [ ] **Passo 2: teste de componente que falha** (`minha-conta.test.tsx`):
   - mostra nome, e-mail, "Responsável" e o nome da clínica;
