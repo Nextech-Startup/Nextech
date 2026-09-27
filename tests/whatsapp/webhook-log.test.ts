@@ -147,6 +147,8 @@ describe("a rota agenda a resposta da IA (motor de conversa, parte 2)", () => {
     autor: "patient",
     agenteAtivo: true,
     optOut: false,
+    urgente: false,
+    protocolo: null,
     ...p,
   })
 

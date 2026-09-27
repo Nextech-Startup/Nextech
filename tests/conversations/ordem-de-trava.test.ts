@@ -44,6 +44,10 @@ describe("ordem de trava: paciente, agente, conversa", () => {
     expect(travas(ultimaDefinicao("reserve_ai_reply"))).toEqual(["patients", "agents", "conversations"])
   })
 
+  it("escalate_urgent_conversation", () => {
+    expect(travas(ultimaDefinicao("escalate_urgent_conversation"))).toEqual(["patients", "agents", "conversations"])
+  })
+
   it("o teste reconhece a ordem antiga, que tinha o ciclo", () => {
     const antiga = readFileSync(join(PASTA, "20260927160000_ai_reply_revalidation.sql"), "utf8")
     const i = antiga.search(/function\s+public\.reserve_ai_reply\(/)

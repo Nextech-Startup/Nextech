@@ -3,6 +3,7 @@ import { identifyPatient, registrarOptOut, touchLastContact } from "@/lib/patien
 import type { MensagemDoWebhook } from "@/lib/whatsapp/webhook"
 import { cifrarConteudo } from "./conteudo"
 import { pedidoDeOptOut } from "./opt-out"
+import { triarUrgencia, type ProtocoloReservado } from "./urgencia"
 
 /**
  * O que a recepção devolve para quem decide a resposta (parte 2 do motor
@@ -20,6 +21,10 @@ export type ResultadoDaRecepcao = {
   agenteAtivo: boolean
   /** O paciente pediu para sair das sequências. Esta mensagem não tem resposta. */
   optOut: boolean
+  /** A mensagem casou uma regra de urgência: a IA não responde a ela. */
+  urgente: boolean
+  /** A conversa acabou de escalar: o protocolo da clínica precisa sair. */
+  protocolo: ProtocoloReservado | null
 }
 
 type LinhaRegistrada = { conversation_id: string; message_id: string; inserted: boolean }
@@ -37,6 +42,7 @@ type LinhaRegistrada = { conversation_id: string; message_id: string; inserted: 
  */
 export async function receberMensagem(
   m: MensagemDoWebhook,
+  agora: () => string = () => new Date().toISOString(),
 ): Promise<ResultadoDaRecepcao | null> {
   const { supabase } = serviceContext()
 
@@ -95,6 +101,24 @@ export async function receberMensagem(
   const optOut = m.autor === "patient" && pedidoDeOptOut(m.texto)
   if (optOut) await registrarOptOut(clinicId, paciente.id)
 
+  // Triagem de urgência antes de qualquer IA, com o agente no ar (agente
+  // pausado: o Nextech não age na conversa). Também no reenvio: a escalada
+  // é idempotente, e o reenvio é a chance de escalar se a primeira
+  // tentativa falhou depois de gravar a mensagem. Áudio só com a
+  // transcrição (parte 5).
+  const triagem =
+    m.autor === "patient" && m.texto && agente.status === "active"
+      ? await triarUrgencia({
+          clinicId,
+          conversationId: registrada.conversation_id,
+          messageId: registrada.message_id,
+          phoneNumberId: m.phoneNumberId,
+          texto: m.texto,
+          ultimaDoPaciente: m.ocorridaEm,
+          agora: agora(),
+        })
+      : { urgente: false, protocolo: null }
+
   return {
     clinicId,
     phoneNumberId: m.phoneNumberId,
@@ -104,5 +128,7 @@ export async function receberMensagem(
     autor: m.autor,
     agenteAtivo: agente.status === "active",
     optOut,
+    urgente: triagem.urgente,
+    protocolo: triagem.protocolo,
   }
 }
