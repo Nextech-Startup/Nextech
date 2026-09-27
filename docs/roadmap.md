@@ -192,6 +192,9 @@ Com isto, o redesign cobre todas as telas do produto como protótipo. As telas r
 - abrir a Auditoria não gera registro;
 - o recorte "Acessos de suporte" e o filtro por tipo chegam com a fase 3b.
 
+### Conta de demonstração ⬜ (spec em 2026-09-27)
+Spec: `docs/specs/demo-account-v1.md`. Uma clínica fictícia marcada com `clinics.is_demo`, com o `admin@nextech.ia.br` como dono, em que todas as telas abrem com o dado de exemplo dos protótipos e um selo "Demonstração · dados fictícios". As outras contas não mudam. É para mostrar o MVP a clínicas interessadas enquanto não há cliente (decisões do Jhones). A implementação fica para uma sessão própria.
+
 ## Fase 4 — Templates e sequências
 - `whatsapp-templates-v1.md`, `message-sequences-v1.md`
 - Depende da fase 3b (precisa do agente e do paciente conversando)
