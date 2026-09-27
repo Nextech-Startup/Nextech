@@ -22,7 +22,7 @@ const ROTA = "/dashboard/settings/team"
  * (spec demo-account-v1). A tela real depende do convite por e-mail.
  */
 export default async function EquipePage() {
-  const { role, isDemo } = await requireClinicContext()
+  const { role, isDemo, email } = await requireClinicContext()
   if (!isDemo) notFound()
   if (!podeAcessar(role, ROTA)) {
     return <PermissaoNegada titulo="Equipe e acessos" rota={ROTA} role={role} />
@@ -32,7 +32,8 @@ export default async function EquipePage() {
 
   return (
     <TelaDeEquipe
-      membros={relogio.deslocar(MEMBROS)}
+      // A linha "Você" leva o e-mail da sessão, o mesmo de Minha conta.
+      membros={relogio.deslocar(MEMBROS).map((m) => (m.voce && email ? { ...m, email } : m))}
       convites={relogio.deslocar(CONVITES)}
       alteracoes={relogio.deslocar(ALTERACOES)}
       agora={relogio.agora}

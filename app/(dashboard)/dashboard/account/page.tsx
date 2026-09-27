@@ -32,14 +32,13 @@ export default async function MinhaContaPage() {
   const relogio = relogioDaDemonstracao(AGORA)
   const clinica = await getCurrentClinic()
 
-  // Quem está logado, com que papel e em que clínica vêm da sessão, e não da
-  // fixture: o menu do usuário mostra o mesmo e-mail, e a conta não pode
-  // dizer outro. O nome ainda não existe no cadastro.
+  // A pessoa logada é a persona das fixtures (o mesmo nome da equipe e do
+  // histórico dos agentes), com o e-mail, o papel e a clínica da sessão: o
+  // menu do usuário mostra esse e-mail, e a conta não pode dizer outro.
   return (
     <TelaMinhaConta
       conta={{
         ...relogio.deslocar(MINHA_CONTA),
-        nome: null,
         email: email ?? "",
         papel: role,
         clinica: clinica.legal_name,

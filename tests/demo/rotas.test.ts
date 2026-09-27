@@ -77,10 +77,10 @@ const NOVAS: Rota[] = [
   { rota: "/dashboard/patients/[id]", carregar: () => import("@/app/(dashboard)/dashboard/patients/[id]/page"), id: paciente, confere: ["paciente", d(fichaDoPaciente(paciente))] },
   { rota: "/dashboard/sequences", carregar: () => import("@/app/(dashboard)/dashboard/sequences/page"), busca: { s: sequencia.id }, confere: ["aberta", d(sequencia)] },
   { rota: "/dashboard/templates", carregar: () => import("@/app/(dashboard)/dashboard/templates/page"), busca: { t: template.id }, confere: ["aberto", d(template)] },
-  { rota: "/dashboard/settings/team", carregar: () => import("@/app/(dashboard)/dashboard/settings/team/page"), confere: ["membros", d(MEMBROS)] },
+  { rota: "/dashboard/settings/team", carregar: () => import("@/app/(dashboard)/dashboard/settings/team/page"), confere: ["membros", d(MEMBROS).map((m) => (m.voce ? { ...m, email: EMAIL } : m))] },
   { rota: "/dashboard/integrations", carregar: () => import("@/app/(dashboard)/dashboard/integrations/page"), confere: ["painel", d(INTEGRACOES)] },
   { rota: "/dashboard/billing", carregar: () => import("@/app/(dashboard)/dashboard/billing/page"), confere: ["resumo", d(COBRANCA)] },
-  { rota: "/dashboard/account", carregar: () => import("@/app/(dashboard)/dashboard/account/page"), confere: ["conta", { ...d(MINHA_CONTA), nome: null, email: EMAIL, papel: "owner", clinica: CLINICA }] },
+  { rota: "/dashboard/account", carregar: () => import("@/app/(dashboard)/dashboard/account/page"), confere: ["conta", { ...d(MINHA_CONTA), email: EMAIL, papel: "owner", clinica: CLINICA }] },
 ]
 
 const EXISTENTES: Rota[] = [
