@@ -38,6 +38,9 @@ const FIXTURES: Record<string, unknown> = {
 const DIA = /\d{4}-\d{2}-\d{2}/g
 const dias = (valor: unknown) => JSON.stringify(valor).match(DIA) ?? []
 
+const MESES = "jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez"
+const DIA_E_MES = new RegExp(`\\b\\d{1,2}/\\d{2}\\b|\\b\\d{1,2} (de )?(${MESES})\\b`, "gi")
+
 describe("fixtures da conta de demonstração", () => {
   // Toda data que aparece no dado, em qualquer lugar (valor, chave de objeto
   // ou texto), anda o mesmo número de dias. Uma data num formato que o
@@ -45,6 +48,12 @@ describe("fixtures da conta de demonstração", () => {
   it.each(Object.entries(FIXTURES))("%s: toda data anda junto", (_nome, fixture) => {
     const antes = dias(fixture)
     expect(dias(deslocarDatas(fixture, 45))).toEqual(antes.map((d) => somarDias(d, 45)))
+  })
+
+  // Data escrita no texto ("qui 1 out", "01/10") não anda com o deslocamento
+  // e desmentiria a agenda. O texto cita o procedimento; a tela mostra quando.
+  it.each(Object.entries(FIXTURES))("%s: nenhuma data escrita por extenso", (_nome, fixture) => {
+    expect(JSON.stringify(fixture).match(DIA_E_MES) ?? []).toEqual([])
   })
 
   it("as fixtures têm datas para deslocar", () => {

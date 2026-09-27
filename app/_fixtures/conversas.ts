@@ -104,7 +104,7 @@ export const CONVERSAS: ConversaAberta[] = [
       msg("patient", d("11:02"), "Mandei a foto aqui"),
       nota("Carla", d("11:05"), "Carteirinha conferida. Bradesco Saúde cobre a manutenção; atualizei no cadastro."),
       msg("human", d("11:10"), "Perfeito, Mariana! Quinta às 16:00 confirmado.", "Carla"),
-      evento("consulta_agendada", d("11:10"), "qui 1 out às 16:00"),
+      evento("consulta_agendada", d("11:10"), "manutenção do aparelho com a Dra. Ana Lima"),
     ],
   }),
   conversa({
@@ -156,7 +156,7 @@ export const CONVERSAS: ConversaAberta[] = [
       evento("qualificado", d("14:25")),
       msg("patient", d("14:29"), "Amanhã às 10h. Aceita SulAmérica?"),
       msg("ai", d("14:30"), "Aceita sim! Limpeza marcada para amanhã, terça, às 10:00 com a Dra. Ana Lima. Te lembro na véspera."),
-      evento("consulta_agendada", d("14:30"), "ter 29 set às 10:00"),
+      evento("consulta_agendada", d("14:30"), "limpeza com a Dra. Ana Lima"),
     ],
   }),
   conversa({

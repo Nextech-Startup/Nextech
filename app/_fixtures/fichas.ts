@@ -11,7 +11,7 @@ const EXTRAS: Record<string, Omit<ContatoDoPaciente, "id">[]> = {
   "pac-01": [
     { tipo: "consulta", em: "2026-04-02T09:00:00-03:00", detalhe: "Instalação do aparelho com a Dra. Ana Lima" },
     { tipo: "conversa", em: "2026-09-28T10:48:00-03:00", detalhe: "Recepção Odonto, assumida pela Carla" },
-    { tipo: "consulta", em: "2026-09-28T11:10:00-03:00", detalhe: "Manutenção marcada para qui 1 out às 16:00" },
+    { tipo: "consulta", em: "2026-09-28T11:10:00-03:00", detalhe: "Manutenção do aparelho com a Dra. Ana Lima" },
   ],
   "pac-03": [
     { tipo: "sequencia_entrou", em: "2026-05-20T08:00:00-03:00", detalhe: "Recall semestral de limpeza, passo 1 de 2" },

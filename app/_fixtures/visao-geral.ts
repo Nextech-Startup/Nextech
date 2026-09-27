@@ -82,7 +82,7 @@ export const VISAO_GERAL: VisaoGeral = {
         { id: "conversao", rotulo: "Conversão em agendamento", atual: 0.286, anterior: 0.27, unidade: "taxa", melhorQuando: "maior", fonte: "Atendimentos que terminaram em consulta marcada" },
         { id: "automatizado", rotulo: "Resolvido pela IA", atual: 0.78, anterior: 0.74, unidade: "taxa", melhorQuando: "maior", fonte: "Atendimentos sem passar para a equipe" },
         { id: "faltas", rotulo: "Faltas", atual: 0.087, anterior: 0.071, unidade: "taxa", melhorQuando: "menor", fonte: "Consultas marcadas como falta na agenda" },
-        { id: "reativados", rotulo: "Pacientes reativados", atual: 6, anterior: null, unidade: "contagem", melhorQuando: "maior", fonte: "Voltaram por uma sequência, ativa desde 23 set" },
+        { id: "reativados", rotulo: "Pacientes reativados", atual: 6, anterior: null, unidade: "contagem", melhorQuando: "maior", fonte: "Voltaram por uma sequência de reativação" },
       ],
       funil: [
         { id: "conversas", rotulo: "Conversas", total: 412 },
@@ -99,7 +99,7 @@ export const VISAO_GERAL: VisaoGeral = {
         { id: "conversao", rotulo: "Conversão em agendamento", atual: 0.301, anterior: 0.298, unidade: "taxa", melhorQuando: "maior", fonte: "Atendimentos que terminaram em consulta marcada" },
         { id: "automatizado", rotulo: "Resolvido pela IA", atual: 0.81, anterior: 0.77, unidade: "taxa", melhorQuando: "maior", fonte: "Atendimentos sem passar para a equipe" },
         { id: "faltas", rotulo: "Faltas", atual: 0.062, anterior: 0.091, unidade: "taxa", melhorQuando: "menor", fonte: "Consultas marcadas como falta na agenda" },
-        { id: "reativados", rotulo: "Pacientes reativados", atual: 6, anterior: null, unidade: "contagem", melhorQuando: "maior", fonte: "Voltaram por uma sequência, ativa desde 23 set" },
+        { id: "reativados", rotulo: "Pacientes reativados", atual: 6, anterior: null, unidade: "contagem", melhorQuando: "maior", fonte: "Voltaram por uma sequência de reativação" },
       ],
       funil: [
         { id: "conversas", rotulo: "Conversas", total: 103 },

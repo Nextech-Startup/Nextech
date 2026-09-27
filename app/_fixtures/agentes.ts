@@ -161,7 +161,7 @@ export const DETALHES_DOS_AGENTES: DetalheDoAgente[] = [
     ],
     teste: teste([
       ["Oi, queria marcar uma limpeza", "Olá! Temos horário na quarta às 9h ou na quinta às 15h. Qual fica melhor?"],
-      ["Quinta às 15h", "Combinado: limpeza na quinta, 01/10, às 15h, com a Dra. Ana Lima. Posso confirmar?"],
+      ["Quinta às 15h", "Combinado: limpeza na quinta às 15h, com a Dra. Ana Lima. Posso confirmar?"],
     ]),
   },
   {
