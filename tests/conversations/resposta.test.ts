@@ -326,7 +326,7 @@ describe("contagem e entrega", () => {
 describe("o que muda durante a geração (revisão de segurança da parte 2, B1 e B2)", () => {
   // O `gerar` falso faz a mudança antes de devolver o texto: é o que
   // acontece de verdade nos até ~65 s de modelo.
-  const gerandoEnquanto = (mudanca: () => Promise<unknown>) =>
+  const gerandoEnquanto = (mudanca: () => PromiseLike<unknown>) =>
     vi.fn(async (_mensagens: MensagemDoModelo[]) => {
       await mudanca()
       return RESPOSTA
