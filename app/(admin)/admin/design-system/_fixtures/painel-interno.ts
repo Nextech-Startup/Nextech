@@ -1,5 +1,15 @@
-import type { ClinicaDoPainel, ConexoesDoPainel, ConsumoDaClinica, SaudeDaOperacao } from "@/components/admin/tipos"
+import type {
+  ClinicaDoPainel,
+  ConexoesDoPainel,
+  ConsumoDaClinica,
+  ConversaDeSuporte,
+  ResumoDeSuporte,
+  SaudeDaOperacao,
+} from "@/components/admin/tipos"
+import type { AcessoDeSuporte } from "@/lib/admin/acesso-de-suporte"
+import { formatarTelefone } from "@/lib/formatters/telefone"
 import { AGENTES } from "./agentes"
+import { CONVERSAS } from "./conversas"
 import { INTEGRACOES } from "./integracoes"
 import { TEMPLATES } from "./templates"
 
@@ -108,4 +118,51 @@ export const SAUDE: SaudeDaOperacao = {
     { nome: "Envio de sequências", intervaloMs: 5 * MIN, ultimaExecucao: "2026-09-28T14:31:00-03:00", ultimoResultado: "erro" },
     { nome: "Lembretes de consulta", intervaloMs: 60 * MIN, ultimaExecucao: "2026-09-28T11:00:00-03:00", ultimoResultado: "ok" },
   ],
+}
+
+/**
+ * As conversas da Sorriso Recife na lista de suporte: as mesmas de
+ * Conversas, com o estado que importa para quem investiga um chamado.
+ */
+export const CONVERSAS_DE_SUPORTE: ConversaDeSuporte[] = CONVERSAS.map((c) => ({
+  id: c.id,
+  paciente: c.paciente.nome ?? formatarTelefone(c.paciente.telefone),
+  agente: c.agente,
+  // Paciente esperando resposta pesa mais do que quem atende: é o que o chamado costuma relatar.
+  estado: c.itens.some((i) => i.tipo === "evento" && i.evento === "falha_da_ia")
+    ? "falha"
+    : c.ultima.autor === "patient"
+      ? "aguardando"
+      : c.atendidaPor === "human"
+        ? "humano"
+        : "ia",
+  ultimaAtividade: c.ultima.em,
+}))
+
+const conta = (estado: ConversaDeSuporte["estado"]) => CONVERSAS_DE_SUPORTE.filter((c) => c.estado === estado).length
+
+/** Só números: é o que se vê de cada clínica antes da justificativa. */
+export const RESUMOS_DE_SUPORTE: ResumoDeSuporte[] = [
+  {
+    ...clinica("cl-sorriso"),
+    abertas: CONVERSAS_DE_SUPORTE.length,
+    aguardando: conta("aguardando"),
+    comFalha: conta("falha"),
+  },
+  { ...clinica("cl-odonto-vida"), abertas: 9, aguardando: 1, comFalha: 0 },
+  { ...clinica("cl-pele-viva"), abertas: 21, aguardando: 4, comFalha: 2 },
+  { ...clinica("cl-movimento"), abertas: 14, aguardando: 0, comFalha: 0 },
+  { ...clinica("cl-nutri"), abertas: 0, aguardando: 0, comFalha: 0 },
+  { ...clinica("cl-mente-serena"), abertas: 33, aguardando: 3, comFalha: 0 },
+]
+
+/**
+ * Marina Costa, da equipe Nextech, liberou o acesso à Sorriso Recife às
+ * 14:20 pelo chamado 4821. Vale até 14:50. A trilha de Auditoria registra
+ * este acesso e as duas conversas abertas em seguida.
+ */
+export const ACESSO_DE_EXEMPLO: AcessoDeSuporte = {
+  clinicaId: "cl-sorriso",
+  concedidoEm: "2026-09-28T14:20:00-03:00",
+  justificativa: { motivo: "ia-nao-respondeu", chamado: "4821" },
 }

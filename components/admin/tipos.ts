@@ -21,3 +21,17 @@ export type ConexoesDoPainel = ClinicaDoPainel & {
 
 /** O que pode parar o atendimento de todas as clínicas de uma vez. */
 export type SaudeDaOperacao = { webhooks: JanelaDeEventos; ia: JanelaDeEventos; crons: ExecucaoDeCron[] }
+
+/** O que se vê de uma clínica antes da justificativa: só números. */
+export type ResumoDeSuporte = ClinicaDoPainel & { abertas: number; aguardando: number; comFalha: number }
+
+export type EstadoDaConversaDeSuporte = "falha" | "aguardando" | "humano" | "ia"
+
+/** Uma conversa na lista de suporte. Só aparece com acesso vigente. */
+export type ConversaDeSuporte = {
+  id: string
+  paciente: string
+  agente: string
+  estado: EstadoDaConversaDeSuporte
+  ultimaAtividade: string
+}
