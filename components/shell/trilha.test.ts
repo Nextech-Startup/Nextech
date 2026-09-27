@@ -62,6 +62,14 @@ describe("montarTrilha", () => {
     ])
   })
 
+  it("na demonstração, Equipe e acessos tem a própria trilha, e não a do Perfil", () => {
+    const rota = "/dashboard/settings/team"
+    expect(montarTrilha(resolveDashboardNav("owner", rota, { demo: true }), rota)).toEqual([
+      { label: "Gestão" },
+      { label: "Equipe e acessos" },
+    ])
+  })
+
   it("painel interno tem um grupo só e não o repete na trilha", () => {
     expect(montarTrilha(resolveAdminNav("/admin"), "/admin")).toEqual([
       { label: "Clínicas" },

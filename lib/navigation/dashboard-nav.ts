@@ -146,21 +146,26 @@ export function resolveDashboardNav(
   pathname: string,
   { demo = false, grupos = DASHBOARD_NAV }: { demo?: boolean; grupos?: readonly NavGroup[] } = {},
 ): ResolvedNavGroup[] {
-  return grupos
+  const visiveis = grupos
     .map((grupo) => ({
       label: grupo.label,
       items: grupo.items
         .filter((item) => !item.roles || item.roles.includes(role))
-        .map((item): ResolvedNavItem => {
-          const status = statusNoPainel(item, demo)
-          return {
-            label: item.label,
-            href: item.href,
-            status,
-            // Item "em breve" não é navegável, então nunca é o destino atual.
-            active: status === "pronto" && isItemActive(item.href, pathname),
-          }
-        }),
+        .map((item) => ({ label: item.label, href: item.href, status: statusNoPainel(item, demo) })),
     }))
     .filter((grupo) => grupo.items.length > 0)
+
+  // Só o item mais específico acende, como em `itemDaRota`: em
+  // /dashboard/settings/team, Equipe e acessos, e não Perfil da clínica.
+  // Item "em breve" não é navegável, então nunca é o destino atual.
+  let ativo: string | null = null
+  for (const item of visiveis.flatMap((g) => g.items)) {
+    if (item.status !== "pronto" || !isItemActive(item.href, pathname)) continue
+    if (!ativo || item.href.length > ativo.length) ativo = item.href
+  }
+
+  return visiveis.map((grupo) => ({
+    label: grupo.label,
+    items: grupo.items.map((item): ResolvedNavItem => ({ ...item, active: item.href === ativo })),
+  }))
 }

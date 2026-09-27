@@ -326,3 +326,21 @@ describe("conta de demonstração", () => {
     expect(primeiraRotaVisivel("owner", true)).toBe("/dashboard")
   })
 })
+
+describe("item ativo mais específico", () => {
+  // Na demonstração, Perfil da clínica e Equipe e acessos são os dois
+  // navegáveis, e /dashboard/settings é prefixo de /dashboard/settings/team.
+  it("em Equipe e acessos, só Equipe acende", () => {
+    const ativos = resolveDashboardNav("owner", "/dashboard/settings/team", { demo: true })
+      .flatMap((g) => g.items)
+      .filter((i) => i.active)
+    expect(ativos.map((i) => i.label)).toEqual(["Equipe e acessos"])
+  })
+
+  it("no Perfil da clínica, só o Perfil acende", () => {
+    const ativos = resolveDashboardNav("owner", "/dashboard/settings", { demo: true })
+      .flatMap((g) => g.items)
+      .filter((i) => i.active)
+    expect(ativos.map((i) => i.label)).toEqual(["Perfil da clínica"])
+  })
+})
