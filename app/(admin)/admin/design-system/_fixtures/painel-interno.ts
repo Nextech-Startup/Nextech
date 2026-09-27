@@ -7,6 +7,7 @@ import type {
   SaudeDaOperacao,
 } from "@/components/admin/tipos"
 import type { AcessoDeSuporte } from "@/lib/admin/acesso-de-suporte"
+import type { RegistroDaTrilha } from "@/lib/admin/auditoria"
 import { formatarTelefone } from "@/lib/formatters/telefone"
 import { AGENTES } from "./agentes"
 import { CONVERSAS } from "./conversas"
@@ -166,3 +167,44 @@ export const ACESSO_DE_EXEMPLO: AcessoDeSuporte = {
   concedidoEm: "2026-09-28T14:20:00-03:00",
   justificativa: { motivo: "ia-nao-respondeu", chamado: "4821" },
 }
+
+const NOME = Object.fromEntries(CLINICAS.map((c) => [c.id, c.nome]))
+const JUSTIFICATIVA_DO_EXEMPLO = { ...ACESSO_DE_EXEMPLO.justificativa }
+
+const r = (
+  id: string,
+  instante: string,
+  autor: string,
+  acao: RegistroDaTrilha["acao"],
+  clinicaId: string | null,
+  extra: Partial<Pick<RegistroDaTrilha, "alvo" | "metadata">> = {},
+): RegistroDaTrilha => ({
+  id,
+  instante,
+  autor,
+  acao,
+  clinica: clinicaId ? NOME[clinicaId] : null,
+  alvo: extra.alvo ?? null,
+  metadata: extra.metadata ?? {},
+})
+
+/**
+ * Três dias da trilha. Hoje, o acesso de `ACESSO_DE_EXEMPLO` (Marina, às
+ * 14:20) e as duas conversas abertas em seguida. O alvo é um id como os do
+ * banco (uuid), que a tela encurta.
+ * Ontem, um acesso de Rafael à Pele Viva por falha de envio.
+ */
+export const TRILHA: RegistroDaTrilha[] = [
+  r("t-12", "2026-09-28T14:27:00-03:00", "Marina Costa", "conversation.view", "cl-sorriso", { alvo: "5b0e8d44-19c2-4f07", metadata: JUSTIFICATIVA_DO_EXEMPLO }),
+  r("t-11", "2026-09-28T14:23:00-03:00", "Marina Costa", "conversation.view", "cl-sorriso", { alvo: "c3a9f2e1-77aa-4b1c", metadata: JUSTIFICATIVA_DO_EXEMPLO }),
+  r("t-10", ACESSO_DE_EXEMPLO.concedidoEm, "Marina Costa", "conversation.list", "cl-sorriso", { metadata: JUSTIFICATIVA_DO_EXEMPLO }),
+  r("t-09", "2026-09-28T09:02:00-03:00", "Rafael Nunes", "clinic.list", null, { metadata: { total: 6 } }),
+  r("t-08", "2026-09-27T17:48:00-03:00", "Rafael Nunes", "conversation.view", "cl-pele-viva", { alvo: "9d41c07b-2f6e-4a8d", metadata: { motivo: "falha-de-envio", chamado: "4790" } }),
+  r("t-07", "2026-09-27T17:45:00-03:00", "Rafael Nunes", "conversation.list", "cl-pele-viva", { metadata: { motivo: "falha-de-envio", chamado: "4790" } }),
+  r("t-06", "2026-09-27T11:30:00-03:00", "Marina Costa", "clinic.update_status", "cl-odonto-vida", { metadata: { status: "active" } }),
+  r("t-05", "2026-09-27T10:00:00-03:00", "Marina Costa", "clinic.list", null, { metadata: { total: 6 } }),
+  r("t-04", "2026-09-26T16:12:00-03:00", "Rafael Nunes", "member.invite", "cl-nutri", { metadata: { role: "owner", usuario_novo: true } }),
+  r("t-03", "2026-09-26T16:10:00-03:00", "Rafael Nunes", "clinic.create", "cl-nutri"),
+  r("t-02", "2026-09-26T09:40:00-03:00", "Marina Costa", "clinic.update_status", "cl-movimento", { metadata: { status: "active" } }),
+  r("t-01", "2026-09-26T09:00:00-03:00", "Marina Costa", "clinic.list", null, { metadata: { total: 5 } }),
+]
