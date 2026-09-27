@@ -2,23 +2,18 @@
 
 > **Para quem executa:** SUB-SKILL OBRIGATÓRIA: `superpowers:executing-plans`, tarefa por tarefa, sem subagentes. A pedido do Jhones, a execução acontece na mesma sessão do plano. Carregue `supabase-postgres-best-practices` antes da tarefa 6. Os passos usam checkbox (`- [ ]`).
 
-## Status da execução: 🟡 em andamento (pausado em 2026-09-27)
+## Status da execução: ✅ concluído em 2026-09-27
 
-- **Feito:** tarefas 1 a 6, na `staging` local, sem push. Commits:
-  - `8f28917`: plano;
-  - `aec264a`: cifra do conteúdo;
-  - `723936d`: assinatura;
-  - `9629ad7`: leitura do payload;
-  - `d9e9a88`: evento de conta;
-  - `845c2fb`: erro para log;
-  - `f11e57b`: migration e RLS.
-- **Banco:** a migration `20260927120000_conversation_engine.sql` já está **aplicada** (`supabase db push`, só ela entrou). `tests/rls/conversations.test.ts` passou: 20 testes contra o banco real. `tests/rls/agents.test.ts`, `tests/rls/patients.test.ts` e `lib/patients` também passaram (86), depois do `unique (id, clinic_id)` em `agents` e `patients`.
-- **Testes novos até aqui:** 65 unitários (15 da cifra, 12 da assinatura, 22 do payload, 11 do evento de conta e 5 do erro para log) e 20 de RLS. A suíte inteira ainda não rodou depois destas mudanças.
-- **Env:** `MESSAGE_CONTENT_ENCRYPTION_KEY` foi gerada no `.env` local e documentada no `.env.example`. Na Vercel, ainda falta criar nos três ambientes (ação do Jhones).
-- **Onde parou, na tarefa 7:**
-  - o passo 1 está feito: `tests/whatsapp/webhook.test.ts` foi escrito com os 15 casos. **Ele não está commitado** e falha, como o passo 2 espera, porque a rota ainda não existe;
-  - a próxima sessão retoma no passo 3: `lib/whatsapp/conta.ts`, `lib/conversations/recepcao.ts` e `app/api/whatsapp/webhook/route.ts`;
-  - depois, a verificação final e a tarefa 8.
+- **Feito:** tarefas 1 a 8, mais a 7b (achados das revisões), na `staging` local, sem push. Os commits vão de `8f28917` (plano) até o `docs:` que fecha a parte, passando por `bd9d8be` (webhook), `a56c225`, `ffb49ca`, `9e7d8ed`, `c45e5a3`, `6487839` e `c30e3e7` (tarefa 7b).
+- **Banco:** três migrations aplicadas com `supabase db push`, uma de cada vez, conferidas com `--dry-run`:
+  - `20260927120000_conversation_engine.sql`;
+  - `20260927130000_message_redaction.sql`;
+  - `20260927140000_patient_anonymization.sql`.
+
+  O banco tem 11 migrations.
+- **Testes:** 926 passando em 81 arquivos (eram 781 antes da parte), com a saída inteira lida. `tsc` limpo e `npm run build` passando.
+- **Revisões:** `security-reviewer` e `qa-reviewer`, os dois duas vezes: a revisão e a conferência das correções. Os achados e as decisões estão na tarefa 7b.
+- **Env:** `MESSAGE_CONTENT_ENCRYPTION_KEY` está só no `.env` local. Na Vercel é ação do Jhones (`docs/status.md`).
 
 Ajustes feitos durante a execução, além do que o plano descrevia:
 
@@ -31,7 +26,21 @@ Ajustes feitos durante a execução, além do que o plano descrevia:
 | 6 | `force row level security` nas quatro tabelas | Mesmo padrão de `patients` |
 | 6 | A função também recusa `p_wa_message_id` nulo (`22023`) | A recepção sempre tem o id da Meta; sem ele, a idempotência não existe |
 | 6 | `#variable_conflict use_column` na função | As colunas de saída (`conversation_id`...) têm o mesmo nome das colunas das tabelas |
-| 7 (a aplicar) | Chamar `touchLastContact` em **toda** mensagem do paciente, inclusive no reenvio, e não só quando `inserted` | Se o `touchLastContact` falhar depois da RPC, a rota devolve 500, a Meta reenvia e o reenvio chega como duplicado. Pela regra do plano, o `last_contact_at` nunca seria gravado, e a sequência de reativação alcançaria quem acabou de escrever. Carimbar "agora" num reenvio atrasado é o erro menor |
+| 7 | Chamar `touchLastContact` em **toda** mensagem do paciente, inclusive no reenvio, e não só quando `inserted` | Se o `touchLastContact` falhar depois da RPC, a rota devolve 500, a Meta reenvia e o reenvio chega como duplicado. Pela regra do plano, o `last_contact_at` nunca seria gravado, e a sequência de reativação alcançaria quem acabou de escrever. Carimbar "agora" num reenvio atrasado é o erro menor |
+| 7 | A clínica do teste de ponta a ponta nasce em `healthtech` | O trigger de limite de agentes recusava o segundo agente no `starter` padrão. O teste tem cinco agentes, um por cenário de conta |
+| 7 | O reenvio do evento de conta também passa pela regra pura, em vez de ser pulado | Se a pausa falhasse depois do registro gravado, o reenvio nunca pausaria o agente. A regra é idempotente no reenvio: o "último" lido é o próprio evento |
+| 7 | A recepção cifra antes de identificar o paciente | Sem a chave, a requisição falha sem ter criado nada pela metade |
+| 8 | Registrar no `infra-setup` também `WHATSAPP_APP_SECRET` e `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | São as outras duas envs que o webhook exige na Vercel |
+
+### O que a próxima sessão precisa saber
+
+- **Próxima etapa:** parte 2 (decisão e resposta da IA), com o plano em `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-2.md`.
+- **Bloqueio de go-live:** a conexão grava os IDs digitados. A prova de posse entra na tarefa 9 da parte 2. A recepção já recusa WABA divergente.
+- **Contrato para a parte 2:**
+  - `receberMensagem` devolve `ResultadoDaRecepcao`;
+  - a rota tem um `try` por evento. Falha definitiva pula o evento; falha transitória, inclusive `NX010`, devolve 500;
+  - a parte 2 deve pular os eventos seguintes da mesma conversa depois de uma falha transitória.
+- **Teste de banco:** um login por usuário por arquivo. Um login por caso estoura o limite do Supabase Auth quando a suíte roda inteira ou em paralelo com outra.
 
 **Objetivo:** receber o webhook da Meta (por enquanto contra um mock) e registrar o que chegou: paciente no primeiro contato, conversa, mensagem cifrada, sessão de atendimento, eco da coexistência e eventos de conta. A IA ainda não entra.
 
@@ -1380,11 +1389,11 @@ Carregue `supabase-postgres-best-practices` antes. Siga o estilo das migrations 
       - com a chave restaurada, o mesmo payload responde 200 e grava. O reenvio da Meta recupera.
 
 - [x] **Passo 1:** escrever `tests/whatsapp/webhook.test.ts` com os casos acima.
-- [ ] **Passo 2:** rodar. Esperado: FALHA, porque a rota não existe.
-- [ ] **Passo 3:** escrever `lib/whatsapp/conta.ts`, `lib/conversations/recepcao.ts` e a rota.
-- [ ] **Passo 4:** `npx vitest run tests/whatsapp/webhook.test.ts`. Esperado: PASSA.
-- [ ] **Passo 5:** `npx vitest run tests/architecture`. Esperado: PASSA. A rota não instancia client do Supabase.
-- [ ] **Passo 6:** commit `feat(whatsapp): webhook da Meta grava mensagem, eco e evento de conta`.
+- [x] **Passo 2:** rodar. Esperado: FALHA, porque a rota não existe.
+- [x] **Passo 3:** escrever `lib/whatsapp/conta.ts`, `lib/conversations/recepcao.ts` e a rota.
+- [x] **Passo 4:** `npx vitest run tests/whatsapp/webhook.test.ts`. Esperado: PASSA.
+- [x] **Passo 5:** `npx vitest run tests/architecture`. Esperado: PASSA. A rota não instancia client do Supabase.
+- [x] **Passo 6:** commit `feat(whatsapp): webhook da Meta grava mensagem, eco e evento de conta`.
 
 ---
 
@@ -1397,22 +1406,68 @@ Carregue `supabase-postgres-best-practices` antes. Siga o estilo das migrations 
   - `docs/infra-setup.md`;
   - a memória do projeto.
 
-- [ ] **Passo 1:** nas duas specs, registrar os desvios desta parte (`conversation_id` na sessão, `occurred_at`, `other`) e marcar os critérios de aceite que esta parte cumpre: idempotência, RLS e o log sem conteúdo na recepção.
-- [ ] **Passo 2:** em `docs/infra-setup.md`, na seção da Meta, registrar o que fazer quando as credenciais chegarem:
+- [x] **Passo 1:** nas duas specs, registrar os desvios desta parte (`conversation_id` na sessão, `occurred_at`, `other`) e marcar os critérios de aceite que esta parte cumpre: idempotência, RLS e o log sem conteúdo na recepção.
+- [x] **Passo 2:** em `docs/infra-setup.md`, na seção da Meta, registrar o que fazer quando as credenciais chegarem:
   - assinar os campos `messages`, `smb_message_echoes` e `account_update`;
   - apontar para `/api/whatsapp/webhook`;
   - criar a `MESSAGE_CONTENT_ENCRYPTION_KEY` na Vercel, nos três ambientes.
-- [ ] **Passo 3:**
+- [x] **Passo 3:**
   - `docs/status.md`: 3b em andamento, parte 1 de 5; contagem de testes e de migrations; em "Precisam de ação do Jhones", a env nova na Vercel;
   - `docs/roadmap.md`: as cinco partes, com a 1 marcada;
   - neste plano: status da execução, com a tabela de ajustes, no formato da parte 4.
-- [ ] **Passo 4:** memória: atualizar `nextech-arquitetura-decisoes` com o recorte da 3b e as decisões 1 a 4 deste plano, e `nextech-ambiente-supabase` com a contagem de migrations.
+- [x] **Passo 4:** memória: atualizar `nextech-arquitetura-decisoes` com o recorte da 3b e as decisões 1 a 4 deste plano, e `nextech-ambiente-supabase` com a contagem de migrations.
 - [ ] **Passo 5:** commit `docs: fecha a parte 1 do motor de conversa no plano, specs, roadmap e status`.
 
 ---
 
+### Tarefa 7b: achados das revisões (acrescentada na execução, 2026-09-27)
+
+As revisões `security-reviewer` e `qa-reviewer` rodaram sobre `bd9d8be`. O Jhones autorizou seguir sozinho com a alternativa recomendada. Cada decisão abaixo fica para a revisão dele no PR.
+
+**Segurança:**
+
+| # | Achado | Decisão |
+|---|---|---|
+| S1 | Uma clínica pode digitar o `phone_number_id` ou o WABA de outra e receber as mensagens dela. A conexão grava IDs digitados, sem prova de posse | **Agora:** a mensagem leva o `entry.id` (WABA), e a recepção recusa quando ele diverge do WABA do agente. Mais um teste de ponta a ponta com duas clínicas. **Raiz:** provar a posse na conexão, pela Graph API com o token informado (ou pelo Embedded Signup), entra na parte 2, que cria o client da Meta. É bloqueio de go-live em `docs/status.md` |
+| S2 | O check `messages_texto_tem_conteudo` impede apagar o conteúdo, e o `anonymizePatient` deixa o histórico legível | Migration nova: `content_redacted_at`, o check relaxado para a mensagem redigida e a função `redact_patient_messages`, só para owner. O `anonymizePatient` passa a chamá-la |
+| S3 | Um evento com problema derruba o lote inteiro, e o carimbo fora da faixa do `Date` lança `RangeError` | Carimbo validado. Cada evento em seu próprio `try`. Falha definitiva (Zod, SQLSTATE classes 22 e 23) é logada e pulada; a transitória devolve 500 no fim |
+| S4 | HMAC sobre `request.text()` | HMAC sobre os bytes (`arrayBuffer`) |
+| S5 | O AAD amarra à clínica, e não à linha | **Não aplicado.** Trocar blobs entre linhas exige escrita com `service_role`, e quem tem isso tem tudo. O AAD por clínica cobre o risco real, que é a cópia entre tenants |
+| S6 | O eco cria "paciente" para qualquer destinatário (fornecedor, familiar) | Requisito registrado em `message-sequences-v1`: só é elegível quem já escreveu para a clínica. O dado para isso já existe (`last_inbound_at` da conversa) |
+| S7 | Falta isolamento de ponta a ponta no webhook | Junto com S1 |
+
+**QA:**
+
+| # | Achado | Decisão |
+|---|---|---|
+| B1 | O teste de LGPD serializa com `JSON.stringify`, que descarta `message` e `stack` | `util.inspect`, formato exato de cada chamada por lista do que é permitido, e um arquivo com a recepção simulada que lança erros carregando telefone, nome e texto |
+| B2 | O insert falharia por NOT NULL, e o update da mensagem, pelo check | Exigir `42501` no insert. O update mexe em `occurred_at` e relê a coluna |
+| B3 | Sessões e eventos de conta sem teste de update e delete | Acrescentados |
+| B4 | Corrida sem teste | N chamadas simultâneas da RPC: 1 mensagem, 1 sessão e um só `inserted = true` |
+| B5 a B7 | `handled_by` que persiste, chegada fora de ordem e fronteira de 20 min | Casos de ponta a ponta. A fronteira fica fixada: 20 min exatos continuam a sessão |
+| B8 | `touchLastContact` no reenvio e no eco | Reenvio regrava. O eco não mexe no `last_contact_at` de quem já existe. A coluna é `not null default now()`, então "fica nulo" não se aplica |
+| B9 | Caminhos de erro do `conta.ts` | A reativação recusada pelo trigger de publicação vira caso de ponta a ponta. A falha ao pausar vira unitário com client simulado. O comentário sobre limite de plano está errado (o trigger é só de insert) e foi corrigido |
+| B10 | Evidência da verificação final | Já tinha rodado: 882 testes e o build, antes da revisão. Roda de novo no fim |
+| N1 a N10 | Contrato do `ResultadoDaRecepcao`, nome que não muda, nada gravado depois do 500, 500 sem segredo, FKs compostas restantes, payload com várias mensagens, `wa_id` com prefixo que não existe, restauração da env e `afterAll` robusto | Todos acrescentados |
+
+- [x] **Passo 1:** S3 e S4, com teste. Commit `fix(whatsapp): assinatura sobre os bytes, carimbo fora da faixa e falha por evento`.
+- [x] **Passo 2:** S1 e S7, com teste. Commit `fix(whatsapp): mensagem só entra pelo agente do mesmo WABA`.
+- [x] **Passo 3:** S2: migration aplicada, com teste de banco. Commit `feat(patients): exclusão redige o conteúdo das conversas do paciente`.
+- [x] **Passo 4:** B1 a B9 e N1 a N10. Commit `test(conversations): lacunas apontadas pela revisão de QA da recepção`.
+
+**Conferência das correções** (os dois revisores de novo, sobre `6487839`):
+
+| Origem | Achado | Decisão |
+|---|---|---|
+| Segurança | S1 a S6 corretos. Novo: redigir e anonimizar eram duas transações, e uma mensagem em trânsito podia gravar conteúdo no meio | Migration `20260927140000_patient_anonymization.sql`: `anonymize_patient` faz as duas coisas com o paciente em `for update`, e `register_whatsapp_message` trava o paciente em `for share` e recusa o anonimizado com `NX010`. A rota trata `NX010` como transitória: no reenvio, o telefone não acha mais o cadastro apagado, e quem voltou a escrever vira um paciente novo. `redact_patient_messages` saiu |
+| Segurança | Com um `try` por evento, uma falha transitória na mensagem N deixa a N+1 entrar e ser respondida antes | Vai para a parte 2, que é quem responde: pular os eventos seguintes da mesma conversa depois de uma falha transitória |
+| QA | O arquivo de RLS fazia um login por caso e estourava o limite do Supabase Auth | Um login por usuário no arquivo, com o client reaproveitado |
+| QA | `logPermitido` aceitava um `Error` cru, porque `Object.entries` dele é vazio | Exige objeto simples com `etapa`, com teste |
+
+- [x] **Passo 5:** conferência. Commit `fix(patients): anonimização e redação numa transação, com o paciente travado`.
+
 ## Verificação final (antes da tarefa 8)
 
-- [ ] `npx vitest run` inteiro, `npx tsc --noEmit` e `npm run build`, com a saída lida.
-- [ ] Revisão pelos subagentes `qa-reviewer` e `security-reviewer`, com os achados tratados antes de fechar. Esta parte toca em mensagem de paciente.
-- [ ] Sem tela nesta parte: não há verificação visual. Antes de trocar de branch, `git checkout -- CLAUDE.md`.
+- [x] `npx vitest run` inteiro, `npx tsc --noEmit` e `npm run build`, com a saída lida.
+- [x] Revisão pelos subagentes `qa-reviewer` e `security-reviewer`, com os achados tratados antes de fechar. Esta parte toca em mensagem de paciente.
+- [x] Sem tela nesta parte: não há verificação visual. Antes de trocar de branch, `git checkout -- CLAUDE.md`.

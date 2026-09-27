@@ -65,6 +65,16 @@ Duas classes de segredo, que não se misturam:
 - [ ] App do Nextech registrado na Meta com permissão de Embedded Signup (fluxo com coexistência).
 - [ ] Permissões `whatsapp_business_messaging` e `whatsapp_business_management` com advanced access.
 
+### Quando as credenciais chegarem (webhook já construído contra mock)
+O webhook está em `app/api/whatsapp/webhook` desde a parte 1 do motor de conversa (2026-09-27), testado com payloads no formato documentado da Meta.
+- [ ] No app da Meta, apontar o webhook para `https://<domínio>/api/whatsapp/webhook`.
+- [ ] Assinar os campos `messages`, `smb_message_echoes` (eco da coexistência) e `account_update` (desconexão e reconexão).
+- [ ] Na Vercel, nos três ambientes:
+  - `WHATSAPP_APP_SECRET`: o app secret, que confere o `X-Hub-Signature-256`;
+  - `WHATSAPP_WEBHOOK_VERIFY_TOKEN`: um valor aleatório, o mesmo que vai no campo "Verify token" da Meta;
+  - `MESSAGE_CONTENT_ENCRYPTION_KEY`: cifra o conteúdo das mensagens em repouso. Gerar com `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. **Uma chave por ambiente, e nunca trocar sem re-cifrar**: a mensagem cifrada com a chave antiga deixa de abrir.
+- [ ] Mandar uma mensagem real para o número de teste e conferir, no Supabase, a linha em `messages` com `content_encrypted` preenchido.
+
 ## Automação: tudo em código, sem ferramenta externa
 Não existe n8n no projeto. A conta foi encerrada em 2026-09-16 e a última referência em código (o webhook do chatbot da landing) foi removida na mesma data — junto com a dependência `axios`, que só existia para ele.
 

@@ -40,6 +40,7 @@ Um paciente só fica `active` em uma sequência por vez — evita mandar recall 
 ## Edge cases
 - Paciente sem template aprovado pro passo da vez → sequência não avança, falha registrada (mesma regra do `whatsapp-templates-v1.md`: nunca cair pra texto livre).
 - Job de envio falha no meio (ex: rate limit de 20 mps da coexistência) → reentrada precisa ser segura, nunca duplicar o mesmo passo pro mesmo paciente.
+- **Contato criado por eco** (motor de conversa, parte 1): quando a equipe manda mensagem pelo app do celular para um número que nunca escreveu (fornecedor, familiar), a recepção cria o `Patient` para guardar a conversa. Esse cadastro tem `last_contact_at` preenchido na criação e não pode entrar em sequência nenhuma. **Requisito:** só é elegível o paciente com pelo menos uma conversa com `last_inbound_at` preenchido, ou seja, quem já escreveu para a clínica. Achado da revisão de segurança de 2026-09-27.
 - Paciente agenda e depois cancela: `stopped_booked` não reabre sozinho — reengajar exige um novo gatilho natural (ex: ficou inativo de novo depois de X dias).
 
 ## Critério de aceite

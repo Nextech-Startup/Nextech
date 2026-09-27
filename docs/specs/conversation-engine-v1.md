@@ -28,8 +28,9 @@ Uma por par paciente + agente. É o estado de longo prazo do relacionamento, dif
 - `author` — `patient` | `ai` | `human`
 - `wa_message_id` — id da Meta; **único por clínica**, é a chave de idempotência
 - `content_encrypted` — conteúdo cifrado em repouso (PII de saúde)
-- `media_type` — `text` | `audio` | `image` | `document`
-- `created_at`
+- `media_type` — `text` | `audio` | `image` | `document` | `other` (vídeo, figurinha, localização, contato: ficam no histórico, sem conteúdo)
+- `occurred_at` — o carimbo da Meta. A ordem da conversa segue ele, e não o `created_at`: um reenvio horas depois não pode reordenar o histórico
+- `created_at` — quando o registro entrou
 
 O conteúdo nunca é logado em texto puro, nem em erro, nem em observabilidade (regra 3 do `CLAUDE.md` e item 1 de `lgpd-security`).
 
@@ -106,17 +107,40 @@ A conversa é marcada com `qualified_at` quando o paciente demonstra intenção 
 ## Critério de aceite
 
 - [ ] Mensagem do paciente gera resposta da IA coerente com a persona do agente.
-- [ ] `wa_message_id` duplicado não gera segunda resposta nem segundo atendimento.
-- [ ] Eco do app da clínica muda `handled_by` para `human` e silencia a IA.
+- [ ] `wa_message_id` duplicado não gera segunda resposta nem segundo atendimento. *(Parte 1: não duplica mensagem nem sessão, com teste de ponta a ponta. Falta a resposta, na parte 2.)*
+- [ ] Eco do app da clínica muda `handled_by` para `human` e silencia a IA. *(Parte 1: o `handled_by` muda, com teste. Silenciar a IA é da parte 2.)*
 - [ ] Após 24h sem mensagem humana, a IA volta a responder.
 - [ ] Conversa marcada como urgente nunca é retomada automaticamente pela IA.
 - [ ] Palavra-chave de urgência dispara o `protocol_message` da clínica e escala.
 - [ ] Intenção de agendar grava `qualified_at` uma única vez.
 - [ ] Falha do OpenRouter após 3 tentativas escala para humano sem enviar nada ao paciente.
 - [ ] Opt-out interrompe todas as sequências do paciente, não só a que ele respondeu.
-- [ ] Conteúdo de mensagem nunca aparece em log — inclusive em caminho de erro.
-- [ ] RLS isola `Conversation` e `Message` por `clinic_id`.
+- [x] Conteúdo de mensagem nunca aparece em log — inclusive em caminho de erro. *(Recepção, parte 1: teste com a chave ausente confere que o log não tem texto, telefone nem nome. Cada parte seguinte reconfirma no seu caminho.)*
+- [x] RLS isola `Conversation` e `Message` por `clinic_id`. *(Parte 1: `tests/rls/conversations.test.ts`, contra o banco real, cobre também `attendance_sessions` e `whatsapp_account_events`.)*
 - [ ] Teste automatizado cobre: idempotência do webhook, eco da coexistência, retomada por inatividade, escalonamento de urgência, e isolamento entre clínicas.
+
+## Implementação
+
+A 3b foi dividida em cinco partes, por dependência (decisão do Jhones, 2026-09-27):
+1. dados e recepção;
+2. decisão e resposta da IA;
+3. urgência, opt-out e qualificação;
+4. tela real de Conversas;
+5. preview do agente e áudio.
+
+### Parte 1: dados e recepção (2026-09-27)
+
+Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-1.md`.
+
+- **Grava antes do 200.** O comportamento 1 pede 200 imediato. A gravação leva milissegundos e vem antes da resposta; o que demora, a IA, roda depois dela (parte 2, com `after()`). Com a gravação falha, a rota devolve 500 e a Meta reenvia, o que é inofensivo pela idempotência. Um 200 com a gravação falha perderia a mensagem.
+- **Idempotência no banco.** `unique (clinic_id, wa_message_id)`, uma conversa por par e uma sessão aberta por conversa, dentro de uma função SQL só (`register_whatsapp_message`). Reenvio e corrida são caminho normal.
+- **Sessão vencida fecha na recepção.** Se a sessão aberta está parada há mais de 20 min quando o paciente volta, a recepção a fecha como `closed_by_timeout` e abre outra.
+- **Eventos de conta** em `whatsapp_account_events`, por agente do WABA. A desconexão guarda o status anterior; a reconexão devolve ao ar só quem a desconexão pausou.
+- **Conteúdo cifrado** com chave própria (`MESSAGE_CONTENT_ENCRYPTION_KEY`), com o `clinic_id` como dado autenticado.
+- **WABA conferido.** A mensagem só entra se o `entry.id` da Meta bater com o WABA do agente. A prova de posse do número na própria conexão fica para a parte 2 e é bloqueio de go-live (`docs/status.md`).
+- **Falha por evento.** Um evento com falha definitiva (validação, dado inválido) é logado e pulado; só a transitória devolve 500. Sem isso, um evento envenenado faria a Meta reenviar o lote por dias.
+- **Direito de exclusão.** `messages.content_redacted_at` e `redact_patient_messages`: o `anonymizePatient` apaga o conteúdo e mantém o metadado.
+- **Contra mock.** As credenciais da Meta ainda não chegaram. Os payloads de teste seguem o formato documentado (`tests/fixtures/meta-webhook.ts`).
 
 ## Planos afetados
 O motor é a base do produto — existe em Starter, Pro e HealthTech. O que varia por plano é o limite de atendimentos (`atendimento-billing-v1.md`) e o processamento de áudio, que a landing promete a partir do Pro.

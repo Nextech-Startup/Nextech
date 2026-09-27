@@ -22,7 +22,7 @@ Um atendimento é fechado (contado) quando, dentro de uma sessão de conversa co
 
 ## Modelo de dados
 ### AttendanceSession
-- `id`, `clinic_id`, `agent_id`, `patient_id`
+- `id`, `clinic_id`, `conversation_id` — a conversa já é o par agente + paciente (`conversation-engine-v1.md`). Duas colunas soltas poderiam apontar para um par sem conversa. FK composta com o `clinic_id`, para a sessão nunca apontar para conversa de outra clínica
 - `started_at` — timestamp da primeira mensagem do paciente que abriu a sessão
 - `ai_response_count` — incrementado a cada resposta da IA (nunca por resposta enviada por humano via coexistência)
 - `last_message_at` — atualizado a cada mensagem, do paciente ou da IA
@@ -32,7 +32,7 @@ Um atendimento é fechado (contado) quando, dentro de uma sessão de conversa co
 ## Comportamento
 1. Mensagem do paciente sem sessão `open` associada → cria uma `AttendanceSession` nova.
 2. Cada resposta da IA incrementa `ai_response_count`. Ao atingir 5 → sessão fecha (`closed_by_count`), conta 1 atendimento.
-3. Job agendado (Vercel Cron) varre sessões `open` com `last_message_at` há mais de 20 minutos → fecha (`closed_by_timeout`), conta 1 atendimento.
+3. Job agendado (Vercel Cron) varre sessões `open` com `last_message_at` há mais de 20 minutos → fecha (`closed_by_timeout`), conta 1 atendimento. A recepção também fecha: se o paciente volta a escrever com a sessão parada há mais de 20 min, ela fecha a vencida (`closed_at` = última mensagem + 20 min) e abre outra. Sem isso, uma mensagem que chegasse antes do cron continuaria uma sessão vencida.
 4. Nova mensagem do paciente depois de uma sessão fechada abre uma sessão nova — nunca reabre a anterior.
 5. Resposta enviada por humano via coexistência (evento de eco, `agent-config-v1.md`) **não** incrementa `ai_response_count` — só resposta gerada pela IA conta pro fechamento por contagem.
 6. `plan-limits.ts` soma `AttendanceSession`s fechadas no mês corrente e compara com o limite do plano da clínica.
@@ -44,7 +44,7 @@ Um atendimento é fechado (contado) quando, dentro de uma sessão de conversa co
 
 ## Critério de aceite
 - [ ] Sessão fecha corretamente por contagem (5 respostas) e por timeout (20 min).
-- [ ] Resposta humana via coexistência não conta pro fechamento por contagem.
+- [ ] Resposta humana via coexistência não conta pro fechamento por contagem. *(Motor de conversa, parte 1: o eco não abre nem estende sessão, com teste de ponta a ponta. A contagem da IA entra na parte 2.)*
 - [ ] `plan-limits.ts` conta corretamente sessões fechadas no mês, isolado por `clinic_id`.
 - [ ] Teste automatizado cobre os dois caminhos de fechamento e o caso de handoff no meio da sessão.
 

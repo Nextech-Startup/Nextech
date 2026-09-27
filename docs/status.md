@@ -9,12 +9,12 @@
 | 1 — Specs do MVP | ✅ concluída — 9 specs |
 | 2 — Repo, CLAUDE.md, skills | ✅ concluída |
 | **3a — Fundação multi-tenant** | ✅ concluída |
-| **3b — Motor de conversa** | ⬜ spec pronta, nada implementado |
+| **3b — Motor de conversa** | 🟡 parte 1 de 5 (dados e recepção) concluída; próxima: decisão e resposta da IA |
 | **3c — Shell de navegação** | ✅ concluída |
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**781 testes passando** · 8 migrations aplicadas · em produção em `app.nextech.ia.br`
+**926 testes passando** · 11 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 ---
 
@@ -120,7 +120,17 @@ A revisão de segurança achou um terceiro: as seis tabelas com `updated_at` **n
 
 ## Fase 3b — Motor de conversa
 
-Spec escrita em `docs/specs/conversation-engine-v1.md`. Nada implementado.
+Spec escrita em `docs/specs/conversation-engine-v1.md`. Dividida em cinco partes (ver roadmap).
+
+### Parte 1: dados e recepção ✅ (2026-09-27)
+
+Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-1.md`.
+- **Banco:** migrations `20260927120000_conversation_engine.sql`, `20260927130000_message_redaction.sql` e `20260927140000_patient_anonymization.sql`, aplicadas. Tabelas `conversations`, `messages`, `attendance_sessions` e `whatsapp_account_events`, com RLS de leitura por `clinic_id` e escrita só por `service_role`. A função `register_whatsapp_message` grava mensagem, conversa e sessão numa transação, e resolve reenvio e corrida pela unicidade.
+- **Webhook:** `app/api/whatsapp/webhook`, com handshake, `X-Hub-Signature-256` sobre o corpo cru e gravação antes do 200. Mensagem do paciente, eco da coexistência (`handled_by = human`) e `ACCOUNT_OFFBOARDED`/`ACCOUNT_RECONNECTED` por WABA.
+- **LGPD:** o conteúdo é cifrado com `MESSAGE_CONTENT_ENCRYPTION_KEY`, amarrado à clínica, e o log da recepção leva só tipo e código do erro (`lib/security/erro-para-log.ts`).
+- **Direito de exclusão:** `anonymize_patient` tira a PII do cadastro e apaga o conteúdo das mensagens numa transação, com o paciente travado. A gravação de mensagem recusa paciente anonimizado.
+- **Revisões:** `security-reviewer` e `qa-reviewer`, com revisão e conferência. Os achados e as decisões estão na tarefa 7b do plano.
+- **A parte 2 consome:** `receberMensagem()` devolve `ResultadoDaRecepcao` (`conversationId`, `messageId`, `nova`, `autor`, `agenteAtivo`). A rota tem o lugar do `after()` marcado.
 
 **Herda de `agent-config-v1`:** o **preview de conversa** (comportamento 3 e
 critério de aceite 3 daquela spec) não foi entregue — depende deste motor. A
@@ -171,6 +181,8 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 - [ ] **DNS de `nextech.ia.br` sem `www`** — não resolve. Precisa de registro `A` para `76.76.21.21` ou o ALIAS que a Vercel indicar; CNAME não funciona em domínio raiz
 - [ ] **Proteção de deployment do `staging`** — hoje exige login da Vercel (302 para SSO). Desativar em Settings → Deployment Protection, se quiser acesso direto
 - [ ] **Credenciais da Meta** — iniciar o processo, que leva tempo e não trava código
+- [ ] **Antes de assinar o webhook da Meta em produção (bloqueio de go-live):** a conexão do WhatsApp grava o `phone_number_id` e o WABA que a clínica digita, sem prova de posse. Hoje a recepção já recusa a mensagem cujo WABA diverge do agente, mas quem digitar os dois IDs de outra clínica ainda recebe as mensagens dela. A prova de posse na conexão (Graph API com o token informado, ou o Embedded Signup) entra na parte 2 da 3b
+- [ ] **`MESSAGE_CONTENT_ENCRYPTION_KEY` na Vercel**, nos três ambientes, uma chave por ambiente. Sem ela, o webhook responde 500 a toda mensagem. Passo a passo em `docs/infra-setup.md`, seção da Meta
 
 - [x] ~~**Revisar o PR #4**~~ — mergeado em 2026-09-16 (commit `80f2423`), com fase 3c, `patient-v1` e `clinic-profile-v1`. `main` e `staging` estão no mesmo ponto
 
@@ -218,6 +230,7 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
   alterar só o número mantendo o token, porque o token não é legível de volta.
   É o comportamento correto do ponto de vista de segurança; se virar atrito real,
   a saída é um fluxo de Embedded Signup, não afrouxar a leitura
+- [ ] **`patients.name` e `whatsapp_phone_number` em texto puro** — a regra 2 da `lgpd-security` pede PII cifrada em repouso, e agora o nome é preenchido sozinho com o do perfil do WhatsApp. Preexistente (patient-v1); cifrar exige resolver a busca por telefone, que hoje é por igualdade. Achado da revisão de segurança de 2026-09-27
 - [ ] **Tabela `projetoAtivo`** — existe no banco, nenhum código a referencia. Resíduo ou uso externo? Mantida na baseline com nota
 - [ ] **Convite mostra senha na tela** — o `(admin)` exibe a senha provisória porque o Resend não está configurado. Vira convite por e-mail quando estiver
 - [ ] **`admin_audit_log` precisa de justificativa** — a fase 3c decidiu que ver conversa de paciente exige motivo registrado. **Desenho pronto (redesign, parte 4):** não precisa de migration. A ação vai na coluna `action`, que é texto (`conversation.list` e `conversation.view`), e a justificativa no `metadata`, só com o motivo de uma lista fechada e o número do chamado, sem texto livre. A regra está em `lib/admin/acesso-de-suporte.ts`, com teste; a gravação entra com a fase 3b

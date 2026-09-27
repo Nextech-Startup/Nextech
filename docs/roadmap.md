@@ -20,8 +20,15 @@ Divisão decidida no documento de arquitetura (`docs/superpowers/specs/2026-09-1
 
 Ao fim de 3a: a clínica existe, tem perfil e equipe, e um agente configurado — que ainda não conversa. **Fase concluída em 2026-09-16** (PR #6), com 371 testes.
 
-### Fase 3b — Motor de conversa
-Spec escrita em `docs/specs/conversation-engine-v1.md`. Nada implementado.
+### Fase 3b — Motor de conversa 🟡 (parte 1 de 5)
+Spec escrita em `docs/specs/conversation-engine-v1.md`. Dividida em cinco partes, por dependência (decisão do Jhones, 2026-09-27):
+1. ✅ **Dados e recepção** (2026-09-27): conversas, mensagens cifradas, sessões de atendimento e eventos de conta, com RLS por clínica; webhook da Meta com assinatura, eco da coexistência e reenvio idempotente, contra mock. Plano em `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-1.md`.
+2. ⬜ **Decisão e resposta da IA:** retomada em 24h, janela e agente ativo; agrupamento de ~10s, OpenRouter, envio, `ai_response_count`, colunas de custo e status de entrega.
+3. ⬜ **Urgência, opt-out e qualificação**, com o cron de timeout da sessão.
+4. ⬜ **Tela real de Conversas**, com Realtime, aviso de desconexão e acesso de suporte.
+5. ⬜ **Preview do agente e áudio.**
+
+Escopo completo da fase:
 - Webhook nativo de WhatsApp
 - `Conversation` com ownership ai/human (detecção de eco da coexistência)
 - Orquestração de IA (OpenRouter + Gemini 2.5 Flash)
