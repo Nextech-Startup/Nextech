@@ -405,6 +405,18 @@ describe("urgencyRuleSchema", () => {
     expect(r.keywords).toEqual(["dor no peito", "aperto no peito"])
   })
 
+  it("recusa palavra-chave só de emoji ou símbolo, que a triagem nunca encontraria", () => {
+    for (const keywords of ["🆘", "dor no peito, 🚑", "!!!"]) {
+      const r = urgencyRuleSchema.safeParse({ label: "X", keywords, protocol_message: "texto" })
+      expect(r.success).toBe(false)
+      expect(JSON.stringify(r.error!.issues)).toContain("letras ou números")
+    }
+  })
+
+  it("deduplica pela forma da triagem", () => {
+    expect(parseKeywords("dor no peito\ndor no peito!\nDOR NO PEITO.")).toEqual(["dor no peito"])
+  })
+
   it("recusa regra sem palavra-chave nenhuma", () => {
     expect(() =>
       urgencyRuleSchema.parse({

@@ -26,8 +26,9 @@ export type Triagem = { urgente: boolean; protocolo: ProtocoloReservado | null }
 
 /**
  * Se a conversa ficou urgente, pelo motivo que a escalada devolveu. Agente
- * fora do ar, paciente anonimizado e mensagem já respondida (reenvio) não
- * marcam nada no banco, e o resultado não pode dizer o contrário.
+ * fora do ar, paciente anonimizado e mensagem já respondida (o reenvio
+ * depois de a equipe desfazer a urgência) não escalam agora, e o resultado
+ * não pode dizer que a conversa está urgente.
  */
 export function ficouUrgente(motivo: string | null): boolean {
   return motivo === null || motivo === "urgente" || motivo === "fora-da-janela"

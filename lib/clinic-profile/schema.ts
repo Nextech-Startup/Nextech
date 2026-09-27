@@ -383,6 +383,17 @@ export function normalizarTermo(valor: string): string {
 }
 
 /**
+ * Forma de comparação da triagem: normalizada (sem acento, minúscula) e
+ * com pontuação e emoji virando espaço, entre espaços nas pontas.
+ */
+function paraTriagem(valor: string): string {
+  const limpo = normalizarTermo(valor)
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+  return limpo ? ` ${limpo}` : ""
+}
+
+/**
  * Converte o textarea de palavras-chave em lista limpa.
  *
  * Aceita uma por linha ou separadas por vírgula. Descarta vazias e
@@ -397,9 +408,9 @@ export function parseKeywords(bruto: string): string[] {
     const termo = pedaco.trim()
     if (!termo) continue
 
-    // Deduplica pela forma normalizada: "Dor no peito" e "dor no peito"
-    // são o mesmo termo, e guardar os dois só engorda a lista.
-    const chave = normalizarTermo(termo)
+    // Deduplica pela forma da triagem: "Dor no peito", "dor no peito" e
+    // "dor no peito!" são o mesmo termo, e guardar os três só engorda a lista.
+    const chave = paraTriagem(termo)
     if (!chave || vistos.has(chave)) continue
 
     vistos.add(chave)
@@ -409,12 +420,29 @@ export function parseKeywords(bruto: string): string[] {
   return saida
 }
 
+/**
+ * Termos que, sem acento, pontuação e emoji, ficam vazios ("🆘", "!!!"):
+ * a triagem nunca os encontraria na mensagem, e a regra pareceria ativa
+ * sem nunca disparar.
+ */
+function termosSemLetraOuNumero(bruto: string): string[] {
+  return bruto
+    .split(/[\n,;]/)
+    .map((t) => t.trim())
+    .filter((t) => t && !paraTriagem(t))
+}
+
 export const urgencyRuleSchema = z
   .object({
     label: z.string().trim().min(1, "Dê um nome à regra").max(120),
     keywords: z
       .union([z.string(), z.array(z.string())])
-      .transform((v) => (Array.isArray(v) ? parseKeywords(v.join("\n")) : parseKeywords(v)))
+      .transform((v) => (Array.isArray(v) ? v.join("\n") : v))
+      .refine(
+        (v) => termosSemLetraOuNumero(v).length === 0,
+        "Cada palavra-chave precisa de letras ou números: emoji e símbolo sozinhos não são reconhecidos na mensagem",
+      )
+      .transform(parseKeywords)
       .refine((v) => v.length > 0, "Informe ao menos uma palavra-chave"),
     protocol_message: z
       .string()
@@ -440,17 +468,6 @@ export type UrgencyRule = {
 
 export const URGENCY_RULE_COLUMNS =
   "id, clinic_id, label, keywords, protocol_message, active, confirmed_by, confirmed_at, created_at"
-
-/**
- * Forma de comparação da triagem: normalizada (sem acento, minúscula) e
- * com pontuação e emoji virando espaço, entre espaços nas pontas.
- */
-function paraTriagem(valor: string): string {
-  const limpo = normalizarTermo(valor)
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim()
-  return limpo ? ` ${limpo}` : ""
-}
 
 /**
  * A mensagem do paciente dispara alguma destas regras?

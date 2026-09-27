@@ -236,6 +236,17 @@ describe("triagem de urgência na recepção (conversation-engine-v1, comportame
     expect(await respostasDaIa(reenvio.conversationId)).toHaveLength(1)
   })
 
+  it("reenvio da mensagem urgente depois de a equipe desfazer a urgência: não escala de novo nem pede resposta da IA", async () => {
+    const bruto = payload(novoWaId(), T0, "dor no peito")
+    const r = await receber(bruto)
+    await admin.from("conversations").update({ is_urgent: false }).eq("id", r.conversationId)
+    const reenvio = await receber(bruto)
+    // `jaRespondida`: o protocolo responde a esta mensagem, e a rota não agenda a IA.
+    expect(reenvio).toMatchObject({ nova: false, urgente: false, protocolo: null, jaRespondida: true })
+    expect(await conversa(r.conversationId)).toEqual({ is_urgent: false, handled_by: "human" })
+    expect(await respostasDaIa(r.conversationId)).toHaveLength(1)
+  })
+
   it("agente pausado: sem triagem", async () => {
     const r = await receber(payload(novoWaId(), T0, "dor no peito", PHONE_PAUSADO))
     expect(r).toMatchObject({ urgente: false, protocolo: null })

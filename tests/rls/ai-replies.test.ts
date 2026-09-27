@@ -286,6 +286,20 @@ describe("reserva, confirmação e contagem (atendimento-billing-v1, regra 2)", 
     expect(lista[1]).toMatchObject({ status: "open", ai_response_count: 1 })
   })
 
+  it("sessão vencida que o cron ainda não fechou: a confirmação fecha por timeout e não conta nela", async () => {
+    // A mensagem ocorreu às 15:00, e a resposta só sai às 15:50 (entrega atrasada).
+    const c = await novaConversa(`${DIA}T15:00:00Z`)
+    const r = await reserva({ ...A, conversa: c.conversa }, c.mensagem, `${DIA}T15:00:10Z`)
+    const { data } = await confirmar(admin, A.id, r.message_id!, `wamid.enviada.${SUFIXO}.vencida`, `${DIA}T15:50:00Z`)
+    expect(data).toEqual([{ ai_response_count: null, session_closed: false }])
+
+    const [s] = await sessoes(c.conversa)
+    expect(s).toMatchObject({ status: "closed_by_timeout", ai_response_count: 0 })
+    expect(instante(s.closed_at)).toBe(`${DIA}T15:20:00.000Z`)
+    const { data: m } = await admin.from("messages").select("delivery_status").eq("id", r.message_id).single()
+    expect(m!.delivery_status).toBe("sent")
+  })
+
   it("sem sessão aberta, a confirmação grava o envio e não abre sessão", async () => {
     const c = await novaConversa(`${DIA}T11:00:00Z`, B)
     await admin

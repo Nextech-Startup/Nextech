@@ -91,20 +91,44 @@ export async function responderConversa(
   r: ResultadoDaRecepcao,
   deps: Dependencias = DEPENDENCIAS_PADRAO,
 ): Promise<DesfechoDaResposta> {
+  const execucao: Execucao = { reservaId: null }
   try {
-    return await responder(r, deps)
+    return await responder(r, deps, execucao)
   } catch (erro) {
     // Erro inesperado (banco, confirmação depois do envio): a conversa não
     // pode ficar com a IA sem resposta e sem alerta. Melhor esforço: se o
     // banco estiver fora do ar, esta gravação também falha, e o erro
-    // original é o que sobe.
+    // original é o que sobe. Exceção: esta execução não reservou nada, e
+    // outra pela mesma mensagem (reenvio da Meta) já respondeu.
     const { supabase } = serviceContext()
-    await registrarFalha(supabase, r.clinicId, r.conversationId, null, erro).catch(() => {})
+    const deOutra =
+      !execucao.reservaId && (await outraJaRespondeu(supabase, r.clinicId, r.messageId).catch(() => false))
+    if (!deOutra) await registrarFalha(supabase, r.clinicId, r.conversationId, null, erro).catch(() => {})
     throw erro
   }
 }
 
-async function responder(r: ResultadoDaRecepcao, deps: Dependencias): Promise<DesfechoDaResposta> {
+/** O que a execução já fez, para quem trata o erro inesperado. */
+type Execucao = { reservaId: string | null }
+
+/**
+ * A mensagem já tem resposta enviada ou em envio. Com o reenvio da Meta,
+ * duas execuções podem responder à mesma mensagem (a reserva garante um
+ * envio só): a falha da segunda não é alerta nem passa a conversa para a
+ * equipe.
+ */
+async function outraJaRespondeu(supabase: Supabase, clinicId: string, messageId: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("clinic_id", clinicId)
+    .eq("reply_to_message_id", messageId)
+    .neq("delivery_status", "failed")
+  if (error) throw error
+  return (count ?? 0) > 0
+}
+
+async function responder(r: ResultadoDaRecepcao, deps: Dependencias, execucao: Execucao): Promise<DesfechoDaResposta> {
   await deps.dormir(JANELA_DE_AGRUPAMENTO_MS)
   const { supabase } = serviceContext()
   const { clinicId, conversationId } = r
@@ -175,9 +199,10 @@ async function responder(r: ResultadoDaRecepcao, deps: Dependencias): Promise<De
   try {
     texto = await deps.gerar(montarConversa(contexto, historico, agora))
   } catch (erro) {
-    await registrarFalha(supabase, clinicId, conversationId, null, erro)
     // O id da conversa é metadado (spec, comportamento 7): liga o log ao alerta do painel.
     console.error(ROTULO, { etapa: "ia", conversa: conversationId, ...erroParaLog(erro) })
+    if (await outraJaRespondeu(supabase, clinicId, r.messageId)) return "ja-respondida"
+    await registrarFalha(supabase, clinicId, conversationId, null, erro)
     return "falha-da-ia"
   }
 
@@ -202,6 +227,7 @@ async function responder(r: ResultadoDaRecepcao, deps: Dependencias): Promise<De
   // Algo mudou durante a geração (ou outra execução já respondeu): desiste
   // sem enviar, e a resposta gerada é descartada.
   if (reserva.motivo) return reserva.motivo
+  execucao.reservaId = reserva.message_id
 
   // Telefone e credencial lidos sob a trava da reserva, e não antes da geração.
   return enviarReservada(

@@ -384,6 +384,35 @@ describe("falha (conversation-engine-v1, comportamento 7)", () => {
     expect(JSON.stringify(mensagens)).not.toContain("TEXTO QUE NÃO CHEGOU")
   })
 
+  it("outra execução pela mesma mensagem já respondeu: a falha desta não passa a conversa para a equipe", async () => {
+    const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
+    const r = await receber(novoWaId(), T0, "oi")
+    expect(await responderConversa(r, dependencias({ agora: T0 + 15 }))).toBe("respondida")
+    try {
+      // Reenvio da Meta: a segunda execução gera de novo, e o modelo falha.
+      const falhaDoModelo = dependencias({
+        agora: T0 + 20,
+        gerar: vi.fn(async () => {
+          throw new IaError("http-503", true)
+        }),
+      })
+      expect(await responderConversa(r, falhaDoModelo)).toBe("ja-respondida")
+      // Erro inesperado antes de reservar, também na segunda execução.
+      const relogioQuebrado = {
+        ...dependencias({ agora: T0 + 20 }),
+        agora: () => {
+          throw new Error("relógio indisponível")
+        },
+      }
+      await expect(responderConversa(r, relogioQuebrado)).rejects.toThrow("relógio indisponível")
+    } finally {
+      espiao.mockRestore()
+    }
+    const c = await conversa(r.conversationId)
+    expect(c.handled_by).toBe("ai")
+    expect(c.ai_failed_at).toBeNull()
+  })
+
   it("erro inesperado no meio também passa a conversa para a equipe", async () => {
     const r = await receber(novoWaId(), T0, "oi")
     const deps = {
