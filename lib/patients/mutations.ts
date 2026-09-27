@@ -203,6 +203,11 @@ export async function updatePatient(
  * (a coluna é `not null`) nem repetido (a restrição unique), e precisa
  * não parecer um telefone real para ninguém tentar escrever para ele.
  * `opted_out` fica true para que nenhuma sequência futura o alcance.
+ *
+ * O conteúdo das conversas sai antes, pela função `redact_patient_messages`:
+ * o histórico pode ter nome, CPF e sintomas. Se a redação falhar, o
+ * cadastro fica como estava, e o pedido pode ser refeito inteiro, porque
+ * as duas etapas são idempotentes.
  */
 export async function anonymizePatient(patientId: string): Promise<void> {
   const { supabase, clinicId, role } = await requireClinicContext()
@@ -219,6 +224,11 @@ export async function anonymizePatient(patientId: string): Promise<void> {
     .toString()
     .padStart(11, "0")
     .slice(0, 11)
+
+  const { error: erroRedacao } = await supabase.rpc("redact_patient_messages", {
+    p_patient_id: patientId,
+  })
+  if (erroRedacao) throw erroRedacao
 
   const { error } = await supabase
     .from("patients")
