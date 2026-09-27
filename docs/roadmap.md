@@ -130,6 +130,33 @@ Fora do redesign:
 - **modelo de dados da seção 9 do prompt mestre** (fases 3b a 7);
 - **mover a landing para `components/marketing/`**.
 
+### Redesign do painel — terceira parte ✅ (2026-09-26)
+Plano: `docs/superpowers/plans/2026-09-26-redesign-do-painel-parte-3.md`, executado na `staging`.
+
+**Acesso por papel (decisão do Jhones):**
+- uma regra só, em `lib/navigation/acesso.ts`, derivada do `DASHBOARD_NAV`: o menu esconde e a página recusa a partir do mesmo dado;
+- o item "Agentes" saiu do menu do staff. Uma visão de operação em leitura pode voltar com a fase 3b, se o Jhones decidir.
+
+**Estados nas rotas reais:**
+- `loading.tsx` com o esqueleto da forma de cada tela;
+- `error.tsx` por painel, sem registrar o erro no console (o suporte usa o `digest`);
+- `not-found.tsx` dentro do shell do painel da clínica, e permissão negada;
+- a landing não ganhou `app/error.tsx` nem `app/not-found.tsx`.
+
+**Protótipos novos**, no padrão da parte 2:
+- **Visão geral:** alertas por prioridade, o agora do dia (quem espera, consultas restantes, agentes no ar), indicadores com comparação de período e funil;
+- **Agentes com operação:** lista ordenada pelo problema; detalhe com a saúde e o motivo, volume de 7 dias, o que a próxima publicação leva ao ar, histórico e teste seguro;
+- **Integrações:** triagem do que pede atenção, WhatsApp de cada agente (a conexão continua no editor), Google Calendar e CRMs sem credencial na tela;
+- **Minha conta:** perfil, acesso, tema e senha. A senha espera o Resend.
+
+**Regras puras**, todas com teste:
+- `lib/whatsapp/conexao.ts`;
+- `lib/agent-config/saude.ts` e `alteracoes.ts`;
+- `lib/overview/{alertas,funil,comparacao}.ts`;
+- `lib/integrations/estado.ts`.
+
+Fica para a parte 4 (itens 5 a 9 do "Próximo plano" da parte 2): o painel interno, com Consumo, Conexões, Saúde, Conversas de suporte e Auditoria.
+
 ## Fase 4 — Templates e sequências
 - `whatsapp-templates-v1.md`, `message-sequences-v1.md`
 - Depende da fase 3b (precisa do agente e do paciente conversando)

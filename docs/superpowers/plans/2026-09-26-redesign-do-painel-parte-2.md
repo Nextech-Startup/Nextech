@@ -1696,6 +1696,8 @@ describe("convite", () => {
 
 ## Próximo plano (parte 3) — telas que faltam
 
+> **Itens 1 a 4 e 10 feitos** na parte 3 (`docs/superpowers/plans/2026-09-26-redesign-do-painel-parte-3.md`), em 2026-09-26. Os itens 5 a 9, do painel interno, são o escopo da parte 4.
+
 Tudo com o padrão da parte 2:
 - componente de domínio em `components/<domínio>/`;
 - dado fictício em `_fixtures/`, com `AGORA`;
@@ -1705,23 +1707,23 @@ Tudo com o padrão da parte 2:
 A ordem e o recorte são decisão do Jhones: apresente como opções selecionáveis, com a recomendada primeiro, antes de escrever o plano.
 
 **Painel da clínica**
-1. **Integrações** (`/dashboard/integrations`, só owner, já no menu como "em breve"):
+1. ✅ **Integrações** (`/dashboard/integrations`, só owner, já no menu como "em breve"):
    - Google Calendar da clínica (OAuth por clínica, fase 5);
    - CRM (Pipedrive, Kommo, RD Station, Doctoralia, fase 6);
    - estado do WhatsApp de cada agente, com `ACCOUNT_OFFBOARDED` e reconexão.
 
    A conexão do WhatsApp continua no editor do agente; aqui só aparece o estado.
-2. **Minha conta**: nome, e-mail, aparência e troca de senha. A senha depende do Resend: no protótipo, desabilitada e explicada.
-3. **Visão geral completa**, como protótipo. A rota real continua honesta, sem número inventado. Mostra:
+2. ✅ **Minha conta**: nome, e-mail, aparência e troca de senha. A senha depende do Resend: no protótipo, desabilitada e explicada.
+3. ✅ **Visão geral completa**, como protótipo. A rota real continua honesta, sem número inventado. Mostra:
    - conversas aguardando;
    - agendamentos do dia;
    - funil (`dashboard-overview-v1`);
    - saúde dos agentes;
    - alertas (urgência, janela fechando, template rejeitado, limite do plano);
    - atividade recente.
-4. **Agentes com operação** (prompt mestre, seção 6): saúde, última atividade, volume processado, histórico de alterações e teste seguro antes de publicar. A tela real existe; o protótipo mostra o que chega com a fase 3b.
+4. ✅ **Agentes com operação** (prompt mestre, seção 6): saúde, última atividade, volume processado, histórico de alterações e teste seguro antes de publicar. A tela real existe; o protótipo mostra o que chega com a fase 3b.
 
-**Painel interno** (itens "em breve" de `ADMIN_NAV`)
+**Painel interno** (itens "em breve" de `ADMIN_NAV`): escopo da parte 4
 5. **Consumo**: atendimentos por clínica contra o limite do plano, só agregado.
 6. **Conexões**: estado do WhatsApp por clínica e template rejeitado.
 7. **Saúde**: falhas de webhook, erros do OpenRouter e cron que não rodou.
@@ -1729,6 +1731,6 @@ A ordem e o recorte são decisão do Jhones: apresente como opções selecionáv
 9. **Auditoria**: a trilha consultável.
 
 **Estados transversais** (prompt mestre, seção 7)
-10. `loading.tsx` com Skeleton, `error.tsx` com recuperação e permissão negada, nas rotas reais do painel. Isto não é protótipo: vale para as telas que já existem.
+10. ✅ `loading.tsx` com Skeleton, `error.tsx` com recuperação e permissão negada, nas rotas reais do painel. Isto não é protótipo: vale para as telas que já existem.
 
 **Antes de começar:** o `next dev` da sessão anterior ficou quebrado para rotas dinâmicas (500 "Jest worker"). Reinicie o servidor.

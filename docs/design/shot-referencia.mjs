@@ -7,10 +7,11 @@
 // uso: node shot.mjs <pasta-saida> <papel>:<rota>:<tema>:<largura> ...
 //   papel: anon | clinica | admin      tema: dark | light
 // modo cores: node shot.mjs --cores <rota>  (lista a cor calculada de quem usa accent/brand)
+//   BASE=http://localhost:3100 aponta para um `next start` (rotas dinâmicas, quando o `next dev` falha)
 import { chromium } from "playwright-core"
 import { mkdirSync } from "node:fs"
 
-const BASE = "http://localhost:3000"
+const BASE = process.env.BASE ?? "http://localhost:3000"
 const EDGE = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
 const CREDS = {
   clinica: ["clinica@nextech.ia.br", "NextechClinica2026"],

@@ -2,13 +2,12 @@
 
 > **Para quem executa:** SUB-SKILL OBRIGATÓRIA: `superpowers:executing-plans`, tarefa por tarefa, nesta sessão e sem subagentes. Carregue `frontend-design` antes de desenhar cada tela, e `dataviz` antes do funil. Os passos usam checkbox (`- [ ]`).
 
-## Status da execução: em andamento (tarefas 1 a 6 concluídas em 2026-09-26)
+## Status da execução: ✅ concluído em 2026-09-26
 
-- **Feito:** tarefas 1 a 6, na `staging` local, sem push. Commits `fb26305` a `1e34217`, mais o `14d4fab` (correção da matriz de Equipe).
-- **Testes:** 646 passando (eram 569 no fim da parte 2). `tsc` limpo. O `npm run build` fica para a tarefa 11.
-- **Falta:** tarefas 7 (Agentes com operação), 8 (diagnóstico de integração), 9 (Integrações), 10 (Minha conta) e 11 (galeria, verificação final e docs).
-- **Ambiente:** o `next dev` continua devolvendo 500 ("Jest worker") em toda rota dinâmica. Rotas estáticas funcionam. Antes da tarefa 7, reinicie o `npm run dev`. Se o erro voltar, confira as rotas dinâmicas (`/admin/design-system/telas/agentes/[id]` e o `not-found` em `/dashboard/agents/<uuid-inexistente>`) num `next start -p 3100` depois do build.
-- **Ainda sem conferência no navegador:** o `not-found` real dentro do shell (tarefa 2, passo 7), por causa do 500 acima. Fica para a tarefa 11.
+- **Feito:** tarefas 1 a 11, na `staging` local, sem push. Commits `fb26305` até o `docs:` que fecha a parte 3, mais o `14d4fab` (correção da matriz de Equipe).
+- **Testes:** 686 passando (eram 569 no fim da parte 2 e 646 depois da tarefa 6). `tsc` limpo e `npm run build` passando.
+- **Visual:** as quatro telas novas foram conferidas nos dois temas, em 1440px e 390px, sem rolagem horizontal. O `not-found` real aparece dentro do shell em `/dashboard/agents/<uuid-inexistente>` (pendência da tarefa 2, passo 7). O `--accent` da landing continua `lab(72.8575% -47.9172 13.5998)`.
+- **Ambiente:** o `next dev` ainda devolve 500 ("Jest worker") nas rotas dinâmicas, mesmo depois de reiniciado. As rotas dinâmicas foram conferidas num `next start -p 3100` depois do build. No `next start` local, toda página registra um 404 de `/_vercel/insights/script.js`: é o Vercel Analytics, que só existe no deploy.
 
 Ajustes feitos durante a execução, além do que o plano descrevia:
 
@@ -26,14 +25,27 @@ Ajustes feitos durante a execução, além do que o plano descrevia:
 | 5 | Etapas do funil como locuções ("Com consulta marcada") e linha-resumo "24% das conversas terminaram com consulta realizada"; atividade recente limitada a 6 | O cartão do funil terminava bem antes da atividade, e a frase precisa ler bem com qualquer etapa |
 | 5 | Barras do funil em `bg-ink-2` sobre `bg-surface-2` | Não há tokens `chart-*`; é o mesmo par do `MedidorDeUso` |
 | 6 | `f?.open` em `faixa()` | `BusinessHours` tipa cada dia como opcional; `lerBusinessHours` completa os sete em runtime |
+| 7 | `OperacaoDoAgente` recebe `hrefDaLista` | O link de voltar precisa do destino; a ficha do paciente já faz assim (`caminhoDaLista`) |
+| 7 | Atividade na lista como "Conversou há X" (o plano dizia "Última conversa há X") | Mais curta, faz par com "Nunca conversou" e não quebra a linha no celular |
+| 7 | Todo botão desabilitado diz por quê: "Novo agente" no limite do plano, "Publicar" sem número, desconectado ou sem nada a publicar. "Pausar" só aparece no agente ativo | O aviso do protótipo não basta quando a regra real também bloquearia |
+| 7 | A faixa de volume some no agente nunca publicado | Só mostraria zeros |
+| 7 | Alerta da Meta com o `Alert` do shadcn e os tokens `danger` | O `Alert` só tem `default` e `destructive`; os tokens de tom são os do `StatusBadge` |
+| 9 | Faixa de resumo com cada problema como link para o seu bloco. O que nunca foi conectado fica fora da conta (`resumoDasIntegracoes`, com teste) | Um CRM que a clínica não usa não é problema |
+| 9 | O CRM conectado ocupa a linha inteira; os não conectados viram cartões compactos, três por linha | Na grade de duas colunas, os cartões vazios esticavam até a altura do Kommo |
+| 9 | Conta do Google `agenda@clinicasorriso.com.br` (o plano dizia `clinicaexemplo`) | Mesmo domínio da clínica das outras fixtures |
+| 9 | "desde há X" virou "há 2 h" ou "desde 9 set" | "desde há" não se diz |
+| 10 | Largura `max-w-4xl`, com os campos em `max-w-md`. A seção de formulário é local à tela | Título à esquerda e campos à direita não cabem em `max-w-2xl`. Não existe `FormSection` no código |
+| 10 | "Senha alterada em 28/06/2026" (o plano dizia "há 3 meses") | `lib/formatters` não tem duração em meses, e criar só para isso sairia da lista de módulos. A data é mais precisa |
+| 10 | Só Claro e Escuro | `app/layout.tsx` usa `enableSystem={false}` |
+| 10 | O texto de Acesso muda com o papel. A responsável lê "Como responsável, você define o papel de cada pessoa em Equipe." | "Seu papel é definido pelo responsável" não faz sentido para a própria responsável |
+| 11 | A Visão geral também entrou na galeria | Tinha ficado de fora na tarefa 5 |
 
 ### O que a próxima sessão precisa saber
 
-- `components/agents/tipos.ts` já tem `AgenteEmOperacao`. O status mora em `sinais.status`, sem campo `status` no topo. A tarefa 7 só acrescenta `RegistroDeAlteracao`, `TesteDeConversa` e `DetalheDoAgente`.
-- `_fixtures/agentes.ts` já tem os 4 agentes (`ag-odonto`, `ag-estetica`, `ag-implantes`, `ag-ortodontia`), com número, sinais e volume. A tarefa 7 acrescenta o detalhe (configuração publicada e atual, histórico e teste) numa exportação nova, sem mudar `AGENTES`, que a visão geral importa.
-- Autor humano no histórico e dona da conta em Minha conta: **Ana Paula Souza** (`ana.paula@clinicasorriso.com.br`), a mesma de `_fixtures/equipe.ts`.
-- `components/agents/saude-do-agente.tsx` exporta `SaudeDoAgente`, `TOM_DA_SAUDE` e `ROTULO_DA_SAUDE`.
-- **Revisão visual:** `docs/design/shot-referencia.mjs` agora avisa `ROLAGEM-H` quando a página passa da largura e `(caiu no login)` quando a sessão não pegou. O script também tem o papel `clinica` (`clinica@nextech.ia.br`, owner), útil para as rotas reais.
+- **Parte 4:** o painel interno, itens 5 a 9 do "Próximo plano" do plano da parte 2 (Consumo, Conexões, Saúde, Conversas de suporte e Auditoria). A ordem e o recorte são decisão do Jhones.
+- **Fixtures:** clínica "Clínica Sorriso Recife", responsável Ana Paula Souza. `_fixtures/agentes.ts` exporta `AGENTES` (visão geral) e `DETALHES_DOS_AGENTES` (detalhe). `_fixtures/integracoes.ts` deriva o WhatsApp desses mesmos agentes.
+- **Revisão visual:** `docs/design/shot-referencia.mjs` avisa `ROLAGEM-H` e `(caiu no login)` e tem os papéis `admin` e `clinica`. Para apontar para um `next start`, rode com `BASE=http://localhost:3100`.
+- **Ambiente:** o `next dev` devolve 500 ("Jest worker") nas rotas dinâmicas. O `next dev` escreve em `.next/dev`, então `next build` e `next start -p 3100` rodam ao lado dele. Antes de subir o `next start`, veja se a porta 3100 não ficou ocupada por um servidor antigo.
 - Antes de commitar, leia o resultado do `vitest`. Um `grep` no fim do encadeamento devolve sucesso mesmo com teste falhando.
 
 ## Decisões do Jhones (2026-09-26)
@@ -1236,7 +1248,7 @@ export function alteracoesNaoPublicadas(
   - `ListaDeAgentesEmOperacao({ agentes, plano: ClinicPlan, agora, hrefDoAgente, acaoDesabilitada })`;
   - `OperacaoDoAgente({ agente: DetalheDoAgente, agora, acaoDesabilitada })`.
 
-- [ ] **Passo 1: fixture.** 4 agentes, cobrindo:
+- [x] **Passo 1: fixture.** 4 agentes, cobrindo:
   - no ar, com volume alto;
   - atenção, com 3 de 40 falhas e alterações não publicadas (saudação e sábado);
   - desconectado pela Meta, pausado pela Meta há 2 h;
@@ -1248,7 +1260,7 @@ export function alteracoesNaoPublicadas(
 
   A clínica está no plano HealthTech (sem limite de agentes). No Pro, o trigger barraria o quarto agente, e a lista perderia um dos quatro níveis de saúde. Visão geral e Integrações usam estes mesmos quatro agentes.
 
-- [ ] **Passo 2: teste de componente que falha** (`operacao.test.tsx`):
+- [x] **Passo 2: teste de componente que falha** (`operacao.test.tsx`):
   - **lista:**
     - mostra, por agente, o selo de status, a saúde e "há X";
     - com a fixture do teste no Pro com 3 agentes, traz "3 de 3 agentes do plano Pro"; no HealthTech, "4 agentes, sem limite no plano HealthTech";
@@ -1259,7 +1271,7 @@ export function alteracoesNaoPublicadas(
   - **teste:** "4 de 10 mensagens de teste" e "não envia nada pelo WhatsApp";
   - **desconectado pela Meta:** o motivo com "Reconecte".
 
-- [ ] **Passo 3: lista** (`ListaDeAgentesEmOperacao`).
+- [x] **Passo 3: lista** (`ListaDeAgentesEmOperacao`).
   - **Cabeçalho:** "Agentes"; o uso do plano (com `LIMITE_DE_AGENTES`) em `text-ink-3`; ação "Novo agente".
   - **Linhas**, uma por agente, como link para o detalhe:
     - nome e especialidade;
@@ -1272,7 +1284,7 @@ export function alteracoesNaoPublicadas(
   - **Mobile:** nome e status na primeira linha, saúde na segunda, atividade e volume na terceira.
   - **Ordenação:** falha > atenção > ok > fora do ar, para o problema subir.
 
-- [ ] **Passo 4: detalhe** (`OperacaoDoAgente`). Cabeçalho:
+- [x] **Passo 4: detalhe** (`OperacaoDoAgente`). Cabeçalho:
   - voltar para a lista;
   - nome, `StatusDoAgente` e `SaudeDoAgente`, sempre visíveis no topo (skill `ui-ux`);
   - ações: "Pausar" (secundário; em protótipo, desabilitado, e a descrição diz que pede confirmação) e "Publicar alterações" (`marca`, a única ação verde da tela; desabilitado).
@@ -1285,18 +1297,18 @@ export function alteracoesNaoPublicadas(
     4. **Histórico:** `LinhaDoTempo`. `desconectado-pela-meta` em `danger`, `publicou` em `success`.
   - **Lateral:** "Teste seguro", com `PreviaDoWhatsApp` e os turnos em `ChatBubble`. O rodapé diz: "Conversa de teste com paciente fictício. Não envia nada pelo WhatsApp e não conta como atendimento. {usados} de {limite} mensagens de teste." O campo de mensagem fica desabilitado.
 
-- [ ] **Passo 5: rotas.**
+- [x] **Passo 5: rotas.**
   - `telas/agentes/page.tsx`: aviso "motor de conversa (fase 3b)".
   - `telas/agentes/[id]/page.tsx`:
     - `params` é Promise;
     - `notFound()` para id fora da fixture;
     - o mesmo aviso.
 
-- [ ] **Passo 6:** `npx vitest run components/agents lib/agent-config && npx tsc --noEmit`. Esperado: PASSA.
+- [x] **Passo 6:** `npx vitest run components/agents lib/agent-config && npx tsc --noEmit`. Esperado: PASSA.
 
-- [ ] **Passo 7: visual.** Capture a lista e dois detalhes (com alterações e desconectado) nos 3 tamanhos. Critique e ajuste.
+- [x] **Passo 7: visual.** Capture a lista e dois detalhes (com alterações e desconectado) nos 3 tamanhos. Critique e ajuste.
 
-- [ ] **Passo 8: commit.** `feat(agents): protótipo de agentes com saúde, volume, alterações e teste seguro`
+- [x] **Passo 8: commit.** `feat(agents): protótipo de agentes com saúde, volume, alterações e teste seguro`
 
 ---
 
@@ -1309,7 +1321,7 @@ export function alteracoesNaoPublicadas(
 - Consome: `ConexaoDoWhatsapp`.
 - Produz: `EstadoDaIntegracao`, `SinaisDaIntegracao`, `Diagnostico`, `diagnosticarIntegracao()` e `estadoDoWhatsapp()`.
 
-- [ ] **Passo 1: teste que falha**
+- [x] **Passo 1: teste que falha**
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -1385,9 +1397,9 @@ describe("estadoDoWhatsapp", () => {
 })
 ```
 
-- [ ] **Passo 2:** `npx vitest run lib/integrations`. Esperado: FALHA.
+- [x] **Passo 2:** `npx vitest run lib/integrations`. Esperado: FALHA.
 
-- [ ] **Passo 3: implementação** (`lib/integrations/estado.ts`)
+- [x] **Passo 3: implementação** (`lib/integrations/estado.ts`)
 
 ```ts
 import { formatarDuracao } from "@/lib/formatters/data"
@@ -1452,9 +1464,9 @@ export function estadoDoWhatsapp(conexao: ConexaoDoWhatsapp): EstadoDaIntegracao
 }
 ```
 
-- [ ] **Passo 4:** `npx vitest run lib/integrations`. Esperado: PASSA.
+- [x] **Passo 4:** `npx vitest run lib/integrations`. Esperado: PASSA.
 
-- [ ] **Passo 5: commit.** `feat(integrations): diagnóstico de integração como regra pura`
+- [x] **Passo 5: commit.** `feat(integrations): diagnóstico de integração como regra pura`
 
 ---
 
@@ -1486,18 +1498,18 @@ export function estadoDoWhatsapp(conexao: ConexaoDoWhatsapp): EstadoDaIntegracao
   Mais `ROTULO_DO_CRM` e a fase de cada bloco.
 - **Tela:** `TelaDeIntegracoes({ painel, agora, acaoDesabilitada })`.
 
-- [ ] **Passo 1: fixture.**
+- [x] **Passo 1: fixture.**
   - **WhatsApp:** derivado dos 4 agentes de `_fixtures/agentes.ts`: dois conectados, um desconectado pela Meta há 2 h e um sem número.
   - **Agenda:** Google conectado como `agenda@clinicaexemplo.com.br`, com autorização vencendo em 5 dias e 3 profissionais com calendário.
   - **CRM:** Kommo conectado com falha ("a chave foi recusada."). Pipedrive, RD Station e Doctoralia não conectados.
 
-- [ ] **Passo 2: teste de componente que falha** (`integracoes.test.tsx`):
+- [x] **Passo 2: teste de componente que falha** (`integracoes.test.tsx`):
   - **WhatsApp:** o agente desconectado mostra "Desconectado pela Meta" e "Reconecte no editor do agente"; a seção não tem campo de token.
   - **Agenda:** mostra "vence em 5 dias" e a lista de calendários por profissional.
   - **CRM:** o conectado com falha mostra "Com erro" e o motivo; os não conectados mostram "Conectar", desabilitado.
   - **Credenciais:** nenhuma aparece. A credencial salva vira "Chave salva em {data}", e o HTML não contém "token" com valor.
 
-- [ ] **Passo 3: tela.**
+- [x] **Passo 3: tela.**
   - **`PageHeader`:** "Integrações", com a descrição "O que o Nextech usa fora dele: WhatsApp, agenda e CRM." Sem ação primária global: cada bloco tem a sua.
   - **Faixa de resumo:** "3 conectadas, 2 pedem atenção", calculada dos diagnósticos. Os problemas vêm primeiro.
   - **Seção "WhatsApp dos agentes":**
@@ -1516,13 +1528,13 @@ export function estadoDoWhatsapp(conexao: ConexaoDoWhatsapp): EstadoDaIntegracao
     - o que está com erro chama atenção sem que a tela vire um mar vermelho: só o selo e a linha do motivo;
     - nenhum verde fora de "Conectada".
 
-- [ ] **Passo 4: rota.** `telas/integracoes/page.tsx`, com o aviso "Google Calendar (fase 5), CRM (fase 6) e eventos da Meta (fase 3b)".
+- [x] **Passo 4: rota.** `telas/integracoes/page.tsx`, com o aviso "Google Calendar (fase 5), CRM (fase 6) e eventos da Meta (fase 3b)".
 
-- [ ] **Passo 5:** `npx vitest run components/integrations lib/integrations && npx tsc --noEmit`. Esperado: PASSA.
+- [x] **Passo 5:** `npx vitest run components/integrations lib/integrations && npx tsc --noEmit`. Esperado: PASSA.
 
-- [ ] **Passo 6: visual.** Capture nos 3 tamanhos. Critique e ajuste.
+- [x] **Passo 6: visual.** Capture nos 3 tamanhos. Critique e ajuste.
 
-- [ ] **Passo 7: commit.** `feat(integrations): protótipo de integrações com WhatsApp, agenda e CRM`
+- [x] **Passo 7: commit.** `feat(integrations): protótipo de integrações com WhatsApp, agenda e CRM`
 
 ---
 
@@ -1540,16 +1552,16 @@ export function estadoDoWhatsapp(conexao: ConexaoDoWhatsapp): EstadoDaIntegracao
   - `TelaMinhaConta({ conta, agora, acaoDesabilitada })`;
   - `EscolhaDeTema()`, `"use client"`, com `next-themes`.
 
-- [ ] **Passo 1: fixture.** "Ana Paula Souza" (`ana.paula@clinicasorriso.com.br`), responsável na "Clínica Sorriso Recife", último acesso há 2 min (14:30, como em `_fixtures/equipe.ts`) e senha alterada há 3 meses.
+- [x] **Passo 1: fixture.** "Ana Paula Souza" (`ana.paula@clinicasorriso.com.br`), responsável na "Clínica Sorriso Recife", último acesso há 2 min (14:30, como em `_fixtures/equipe.ts`) e senha alterada há 3 meses.
 
-- [ ] **Passo 2: teste de componente que falha** (`minha-conta.test.tsx`):
+- [x] **Passo 2: teste de componente que falha** (`minha-conta.test.tsx`):
   - mostra nome, e-mail, "Responsável" e o nome da clínica;
   - os campos de nome e senha e o botão de salvar estão desabilitados, com o `title` do protótipo;
   - a seção de senha diz por que está desabilitada (envio de e-mail);
   - com `senhaAlteradaEm: null`, diz "Senha nunca alterada";
   - `EscolhaDeTema` renderiza os rótulos das opções. Antes de montar, nenhuma vem marcada, para não quebrar a hidratação.
 
-- [ ] **Passo 3: tela.** Uma coluna `max-w-2xl`, com seções no padrão `FormSection` (título e descrição à esquerda em `lg`, campos à direita):
+- [x] **Passo 3: tela.** Uma coluna `max-w-2xl`, com seções no padrão `FormSection` (título e descrição à esquerda em `lg`, campos à direita):
   1. **Perfil:**
      - nome (`Input` desabilitado);
      - e-mail somente leitura, com a dica "Trocar o e-mail pede confirmação no endereço novo, e chega com o envio de e-mail.";
@@ -1564,13 +1576,13 @@ export function estadoDoWhatsapp(conexao: ConexaoDoWhatsapp): EstadoDaIntegracao
      - "Senha alterada há 3 meses";
      - campos de senha atual, nova e confirmação, e o botão, todos desabilitados.
 
-- [ ] **Passo 4: rota.** `telas/minha-conta/page.tsx`, com o aviso "e-mail transacional (Resend)".
+- [x] **Passo 4: rota.** `telas/minha-conta/page.tsx`, com o aviso "e-mail transacional (Resend)".
 
-- [ ] **Passo 5:** `npx vitest run components/account && npx tsc --noEmit`. Esperado: PASSA.
+- [x] **Passo 5:** `npx vitest run components/account && npx tsc --noEmit`. Esperado: PASSA.
 
-- [ ] **Passo 6: visual.** Capture nos 3 tamanhos e troque o tema pela própria tela uma vez.
+- [x] **Passo 6: visual.** Capture nos 3 tamanhos e troque o tema pela própria tela uma vez.
 
-- [ ] **Passo 7: commit.** `feat(account): protótipo de minha conta com perfil, acesso, aparência e senha`
+- [x] **Passo 7: commit.** `feat(account): protótipo de minha conta com perfil, acesso, aparência e senha`
 
 ---
 
@@ -1581,15 +1593,15 @@ export function estadoDoWhatsapp(conexao: ConexaoDoWhatsapp): EstadoDaIntegracao
 - Modificar: `tests/architecture/prototipos.test.ts`. O mínimo de telas sobe de 7 para 13 (é só aperto).
 - Modificar: este plano, `docs/roadmap.md`, `docs/status.md`, a seção "Próximo plano" do plano da parte 2 e a memória `nextech-sistema-de-design.md`.
 
-- [ ] **Passo 1: suíte inteira.** `npx vitest run`, `npx tsc --noEmit` e `npm run build`. Esperado: tudo passa.
-- [ ] **Passo 2: passada visual.**
+- [x] **Passo 1: suíte inteira.** `npx vitest run`, `npx tsc --noEmit` e `npm run build`. Esperado: tudo passa.
+- [x] **Passo 2: passada visual.**
   - as 5 rotas de protótipo novas e a vitrine de estados;
   - `/dashboard` e `/dashboard/agents` reais, para ver a guarda e o carregamento;
   - `--cores /`, que precisa mostrar `--accent no escopo -> lab(72.8575% -47.9172 13.5998)`.
-- [ ] **Passo 3: docs.**
+- [x] **Passo 3: docs.**
   - **Plano:** status "✅ concluído", com o número de testes e a tabela de ajustes.
   - **Roadmap:** seção "Redesign do painel, parte 3", com o que entrou, a decisão de staff/Agentes e o que fica para a parte 4 (painel interno).
   - **Status:** número de testes e linha do redesign.
   - **Plano da parte 2:** "Próximo plano" marca os itens 1 a 4 e 10 como feitos e aponta para este plano. Os itens 5 a 9 ficam como escopo da parte 4.
   - **Memória:** acesso por papel com regra única (`lib/navigation/acesso.ts`) e estados nas rotas reais.
-- [ ] **Passo 4: commit.** `docs: fecha a parte 3 do redesign no plano, roadmap e status`
+- [x] **Passo 4: commit.** `docs: fecha a parte 3 do redesign no plano, roadmap e status`
