@@ -117,10 +117,11 @@ export async function prepararContaDeDemonstracao(
   })
   if (erroTrilha) throw falha("registrar na trilha de auditoria", erroTrilha)
 
-  const perfil = {} as RelatorioDoPreparo["perfil"]
-  for (const tabela of Object.keys(PERFIL_FICTICIO) as TabelaDoPerfil[]) {
-    perfil[tabela] = await preencherSeVazia(db, clinicId, tabela)
-  }
+  // As quatro tabelas são independentes: em paralelo, cada ida ao banco
+  // remoto não soma à anterior.
+  const tabelas = Object.keys(PERFIL_FICTICIO) as TabelaDoPerfil[]
+  const resultados = await Promise.all(tabelas.map((t) => preencherSeVazia(db, clinicId, t)))
+  const perfil = Object.fromEntries(tabelas.map((t, i) => [t, resultados[i]])) as RelatorioDoPreparo["perfil"]
 
   return { vinculo, perfil }
 }
@@ -138,20 +139,22 @@ async function recusarClinicaDeCliente(
     throw new PreparoRecusado("A clínica está ativa: parece de cliente, e não vira demonstração.")
   }
 
-  const { count: pacientes, error: erroPacientes } = await db
-    .from("patients")
-    .select("*", { count: "exact", head: true })
-    .eq("clinic_id", clinicId)
+  const [
+    { count: pacientes, error: erroPacientes },
+    { count: conectados, error: erroAgentes },
+  ] = await Promise.all([
+    db.from("patients").select("*", { count: "exact", head: true }).eq("clinic_id", clinicId),
+    db
+      .from("agents")
+      .select("*", { count: "exact", head: true })
+      .eq("clinic_id", clinicId)
+      .or("whatsapp_phone_number_id.not.is.null,status.eq.active"),
+  ])
   if (erroPacientes) throw falha("contar os pacientes", erroPacientes)
   if ((pacientes ?? 0) > 0) {
     throw new PreparoRecusado("A clínica tem paciente: parece de cliente, e não vira demonstração.")
   }
 
-  const { count: conectados, error: erroAgentes } = await db
-    .from("agents")
-    .select("*", { count: "exact", head: true })
-    .eq("clinic_id", clinicId)
-    .or("whatsapp_phone_number_id.not.is.null,status.eq.active")
   if (erroAgentes) throw falha("conferir os agentes", erroAgentes)
   if ((conectados ?? 0) > 0) {
     throw new PreparoRecusado("A clínica tem agente no WhatsApp: parece de cliente, e não vira demonstração.")

@@ -38,16 +38,16 @@ async function criarUsuario(rotulo: string, dominio = EQUIPE) {
 }
 
 async function contagens(clinicId: string) {
-  const linhas: Record<string, number> = {}
-  for (const tabela of [...TABELAS_DO_PERFIL, "clinic_members"]) {
-    const { count, error } = await db
-      .from(tabela)
-      .select("*", { count: "exact", head: true })
-      .eq("clinic_id", clinicId)
-    if (error) throw error
-    linhas[tabela] = count ?? 0
-  }
-  return linhas
+  const tabelas = [...TABELAS_DO_PERFIL, "clinic_members"]
+  const respostas = await Promise.all(
+    tabelas.map((t) => db.from(t).select("*", { count: "exact", head: true }).eq("clinic_id", clinicId)),
+  )
+  return Object.fromEntries(
+    respostas.map(({ count, error }, i) => {
+      if (error) throw error
+      return [tabelas[i], count ?? 0]
+    }),
+  ) as Record<string, number>
 }
 
 afterAll(async () => {
