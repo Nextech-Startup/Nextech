@@ -4,7 +4,7 @@ import {
   partesDaData, rotuloCurtoDoDia, semanaDe, somarDias, tempoRelativo,
 } from "./data"
 import { formatarTelefone } from "./telefone"
-import { formatarMoeda, formatarNumero } from "./numero"
+import { formatarMoeda, formatarNumero, formatarPercentual } from "./numero"
 import { contemBusca, iniciais, normalizarTexto, plural } from "./texto"
 
 const AGORA = "2026-09-28T14:32:00-03:00" // segunda-feira
@@ -134,5 +134,18 @@ describe("texto", () => {
 
   it("dois dígitos soltos não casam telefone por acaso", () => {
     expect(contemBusca(["Ana", "+5581900000001"], "81")).toBe(false)
+  })
+})
+
+describe("formatarPercentual", () => {
+  it("fração vira porcentagem inteira", () => {
+    expect(formatarPercentual(0.286)).toBe("29%")
+    expect(formatarPercentual(0.6)).toBe("60%")
+    expect(formatarPercentual(1)).toBe("100%")
+    expect(formatarPercentual(0)).toBe("0%")
+  })
+
+  it("meio ponto arredonda para cima", () => {
+    expect(formatarPercentual(0.125)).toBe("13%")
   })
 })

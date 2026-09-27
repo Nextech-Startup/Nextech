@@ -22,3 +22,11 @@ export function formatarMoeda(centavos: number): string {
   const reais = milhar(Math.floor(abs / 100))
   return `${centavos < 0 ? "-" : ""}R$ ${reais},${String(abs % 100).padStart(2, "0")}`
 }
+
+/**
+ * Fração → "29%", inteiro. Casa decimal em taxa de painel é ruído: a
+ * comparação entre períodos já é feita em pontos inteiros.
+ */
+export function formatarPercentual(fracao: number): string {
+  return `${Math.round(fracao * 100)}%`
+}
