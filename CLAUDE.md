@@ -58,7 +58,7 @@ Ative a skill `qa-testing` ou peça revisão do subagente `qa-reviewer`. "Deve f
 - `app/(dashboard)/agents` — painel da clínica para criar, configurar, testar e publicar agentes (uma clínica pode ter vários)
 - `app/(admin)` — painel interno Nextech
 - `app/api/*` — webhooks e rotas (whatsapp, ai, scheduling, calendar, crm, billing, agents, email)
-- `app/api/cron/*` — jobs agendados que precisam da aplicação (enrollment e envio de sequências) — ver `docs/specs/message-sequences-v1.md`. Job que só mexe no banco (fechar sessão vencida, varrer resposta órfã) é função SQL agendada pelo **pg_cron** na própria migration. Sem Vercel Pro (cron só diário), quem dispara `app/api/cron/*` também é o pg_cron, com `pg_net` (decidido em 2026-09-27)
+- `app/api/cron/*` — jobs agendados que precisam da aplicação (enrollment e envio de sequências) — ver `docs/specs/message-sequences-v1.md`. Job que só mexe no banco (fechar sessão vencida, varrer resposta órfã) é função SQL agendada pelo **pg_cron** na própria migration. Sem Vercel Pro (cron só diário), quem dispara `app/api/cron/*` também é o pg_cron, com `pg_net` (decidido em 2026-09-27). O segredo que a rota confere fica no Supabase Vault e é lido dentro do comando do job, nunca literal na migration (vira texto legível em `cron.job`)
 - `lib/clinic-profile/` — validação e regras do perfil da clínica (equipe, procedimentos, urgência, consentimento)
 - `lib/agent-config/` — validação, montagem de system prompt e regras de agente
 - `lib/ai/` — cliente OpenRouter + Gemini 2.5 Flash

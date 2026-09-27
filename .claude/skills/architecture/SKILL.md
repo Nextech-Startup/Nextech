@@ -34,7 +34,7 @@ Este projeto nasceu como landing page (nextech.ia.br) e o SaaS é construído no
 - Regra de negócio pura → `lib/<dominio>/` (ex: `lib/scheduling/`).
 - Rota HTTP → `app/api/<recurso>/route.ts`, fina, só orquestra chamadas pro `lib`.
 - Cliente de serviço externo (WhatsApp, provider de CRM, OpenRouter, Resend, Google Calendar, Asaas) → `lib/<provider>/client.ts`, nunca instanciado direto num componente ou rota.
-- Job agendado → se só mexe no banco, função SQL com `cron.schedule` na mesma migration (pg_cron do Supabase), testada contra o banco real; se precisa da aplicação (Meta, modelo, e-mail), `app/api/cron/<job>/route.ts`, disparado pelo pg_cron com `pg_net` enquanto não houver Vercel Pro. O `clinic_id` vem do próprio dado, como no webhook.
+- Job agendado → se só mexe no banco, função SQL com `cron.schedule` na mesma migration (pg_cron do Supabase), testada contra o banco real; se precisa da aplicação (Meta, modelo, e-mail), `app/api/cron/<job>/route.ts`, disparado pelo pg_cron com `pg_net` enquanto não houver Vercel Pro. O segredo que a rota confere (com `comparacaoSegura`) fica no Supabase Vault e é lido dentro do comando do job (`vault.decrypted_secrets`), nunca literal na migration: o comando do job é texto legível em `cron.job` e `cron.job_run_details`, e a migration vai para o repositório. O `clinic_id` vem do próprio dado, como no webhook.
 - UI do painel da clínica → `app/(dashboard)`. UI interna da Nextech (métricas, suporte, onboarding de clínica) → `app/(admin)`.
 
 ## Quando criar um adapter novo

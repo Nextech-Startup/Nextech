@@ -26,7 +26,10 @@ import { falhaDefinitiva, interpretarWebhook } from "@/lib/whatsapp/webhook"
  */
 
 // Pior caso da resposta: 10 s de agrupamento, três tentativas de 20 s no
-// modelo com 5 s de espera entre elas, e o envio.
+// modelo com 5 s de espera entre elas, e o envio. A varredura do pg_cron
+// (sweep_stale_ai_replies) trata como órfã a resposta pending há mais de
+// 5 min: este valor precisa ficar abaixo disso (teste em
+// tests/conversations/ordem-de-trava.test.ts).
 export const maxDuration = 120
 
 const ROTULO = "[whatsapp-webhook]"

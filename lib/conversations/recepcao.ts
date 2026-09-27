@@ -1,5 +1,5 @@
 import { serviceContext } from "@/lib/auth/service-context"
-import { identifyPatient, registrarOptOut, touchLastContact } from "@/lib/patients/mutations"
+import { identifyPatient, optOut, touchLastContact } from "@/lib/patients/mutations"
 import type { MensagemDoWebhook } from "@/lib/whatsapp/webhook"
 import { cifrarConteudo } from "./conteudo"
 import { pedidoDeOptOut } from "./opt-out"
@@ -98,8 +98,8 @@ export async function receberMensagem(
 
   // Direito do paciente: vale com o agente pausado e com a equipe
   // atendendo, e também no reenvio, pelo mesmo motivo do touchLastContact.
-  const optOut = m.autor === "patient" && pedidoDeOptOut(m.texto)
-  if (optOut) await registrarOptOut(clinicId, paciente.id)
+  const pediuOptOut = m.autor === "patient" && pedidoDeOptOut(m.texto)
+  if (pediuOptOut) await optOut(clinicId, paciente.id)
 
   // Triagem de urgência antes de qualquer IA, com o agente no ar (agente
   // pausado: o Nextech não age na conversa). Também no reenvio: a escalada
@@ -127,7 +127,7 @@ export async function receberMensagem(
     nova: registrada.inserted,
     autor: m.autor,
     agenteAtivo: agente.status === "active",
-    optOut,
+    optOut: pediuOptOut,
     urgente: triagem.urgente,
     protocolo: triagem.protocolo,
   }

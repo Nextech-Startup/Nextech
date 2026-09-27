@@ -18,10 +18,20 @@ export type ProtocoloReservado = {
 }
 
 /**
- * `urgente`: a mensagem casou uma regra ativa, e a IA não responde a ela.
+ * `urgente`: a conversa está urgente depois da triagem (escalou agora ou já
+ * estava), e a IA não responde a esta mensagem.
  * `protocolo`: a conversa acabou de escalar, e o protocolo precisa sair.
  */
 export type Triagem = { urgente: boolean; protocolo: ProtocoloReservado | null }
+
+/**
+ * Se a conversa ficou urgente, pelo motivo que a escalada devolveu. Agente
+ * fora do ar, paciente anonimizado e mensagem já respondida (reenvio) não
+ * marcam nada no banco, e o resultado não pode dizer o contrário.
+ */
+export function ficouUrgente(motivo: string | null): boolean {
+  return motivo === null || motivo === "urgente" || motivo === "fora-da-janela"
+}
 
 /** A linha que `escalate_urgent_conversation` devolve. */
 type Escalada = {
@@ -72,7 +82,7 @@ export async function triarUrgencia(p: {
   if (error) throw error
 
   const escalada = (data as Escalada[])[0]
-  if (escalada.motivo) return { urgente: true, protocolo: null }
+  if (escalada.motivo) return { urgente: ficouUrgente(escalada.motivo), protocolo: null }
   return {
     urgente: true,
     protocolo: {

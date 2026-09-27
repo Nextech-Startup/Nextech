@@ -54,3 +54,25 @@ describe("ordem de trava: paciente, agente, conversa", () => {
     expect(travas(antiga.slice(i, antiga.indexOf("$$;", i)))).toEqual(["patients", "conversations", "agents"])
   })
 })
+
+describe("manutenção do pg_cron: sem ciclo de espera com a exclusão em cascata", () => {
+  it("a varredura trava a conversa antes das mensagens, sem esperar linha de ninguém", () => {
+    const corpo = ultimaDefinicao("sweep_stale_ai_replies")
+    expect(travas(corpo)).toEqual(["conversations", "messages"])
+    expect(corpo.match(/for update skip locked/g)).toHaveLength(2)
+  })
+
+  it("o fechamento por timeout não espera a sessão que a recepção está estendendo", () => {
+    const corpo = ultimaDefinicao("close_stale_attendance_sessions")
+    expect(travas(corpo)).toEqual(["attendance_sessions"])
+    expect(corpo).toContain("for update skip locked")
+  })
+
+  it("a varredura de órfãs espera mais do que a rota do webhook pode durar", () => {
+    const rota = readFileSync(join(process.cwd(), "app", "api", "whatsapp", "webhook", "route.ts"), "utf8")
+    const maxDuration = Number(/export const maxDuration = (\d+)/.exec(rota)![1])
+    const limites = [...ultimaDefinicao("sweep_stale_ai_replies").matchAll(/created_at < now\(\) - interval '(\d+) minutes'/g)]
+    expect(limites.length).toBeGreaterThan(0)
+    for (const [, minutos] of limites) expect(maxDuration).toBeLessThan(Number(minutos) * 60)
+  })
+})

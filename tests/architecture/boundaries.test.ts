@@ -98,4 +98,20 @@ describe("LGPD: log nunca carrega objeto de erro inteiro", () => {
 
     expect(infratores).toEqual([])
   })
+
+  it("nenhuma migration carrega segredo de cabeçalho HTTP literal", () => {
+    // O pg_cron que dispara app/api/cron/* com pg_net lê o segredo do
+    // Supabase Vault dentro do comando do job. Literal na migration, ele
+    // iria para o repositório e ficaria legível em cron.job (regra 6 da
+    // lgpd-security).
+    const pasta = join(process.cwd(), "supabase", "migrations")
+    const literal = [/["']authorization["']\s*:/i, /bearer\s+[A-Za-z0-9._~+/-]{8,}/i]
+    const comSegredo = readdirSync(pasta)
+      .filter((f) => f.endsWith(".sql"))
+      .filter((f) => {
+        const sql = readFileSync(join(pasta, f), "utf8")
+        return literal.some((r) => r.test(sql))
+      })
+    expect(comSegredo).toEqual([])
+  })
 })
