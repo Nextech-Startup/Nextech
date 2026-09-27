@@ -31,8 +31,11 @@ import { logPermitido } from "@/tests/whatsapp/log"
 const falhasDaConfirmacao = vi.hoisted(() => ({ restantes: 0, codigo: "08006" }))
 /** A reserva vai ao banco real, e a resposta dela se perde na rede. */
 const reservaPerdida = vi.hoisted(() => ({ ativa: false }))
-/** O update da qualificação falha uma vez; o resto de `conversations` é real. */
-const falhaDaQualificacao = vi.hoisted(() => ({ ativa: false }))
+/**
+ * O update da qualificação falha uma vez, com erro devolvido pelo PostgREST
+ * ou lançado (`lancar`); o resto de `conversations` é real.
+ */
+const falhaDaQualificacao = vi.hoisted(() => ({ ativa: false, lancar: false }))
 
 vi.mock("@/lib/auth/service-context", async (importOriginal) => {
   const real = await importOriginal<typeof import("@/lib/auth/service-context")>()
@@ -58,7 +61,12 @@ vi.mock("@/lib/auth/service-context", async (importOriginal) => {
         const construtor = from(tabela)
         if (tabela === "conversations" && falhaDaQualificacao.ativa) {
           const erro = { code: "08006", message: "simulado", details: null, hint: null }
-          const cadeia = { eq: () => cadeia, is: () => Promise.resolve({ data: null, error: erro }) }
+          const lancar = falhaDaQualificacao.lancar
+          const cadeia = {
+            eq: () => cadeia,
+            is: () =>
+              lancar ? Promise.reject(new TypeError("fetch failed")) : Promise.resolve({ data: null, error: erro }),
+          }
           construtor.update = (() => {
             falhaDaQualificacao.ativa = false
             return cadeia
@@ -78,6 +86,8 @@ const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SU
 const SUFIXO = String(Date.now())
 const PHONE = `9${SUFIXO}7`
 const PHONE_PAUSADO = `9${SUFIXO}8`
+// O número do agente de outra clínica, para o isolamento da qualificação.
+const PHONE_OUTRA = `9${SUFIXO}6`
 const WABA = `3${SUFIXO}`
 // Amanhã, e nunca antes de 2026-10-02T12:00:00Z (depois de 1º de outubro,
 // quando o serviço passa a ser cobrado). No futuro porque o pg_cron do banco
@@ -86,6 +96,7 @@ const T0 = Math.max(Math.floor(Date.now() / 1000) + 24 * 3600, 1790942400)
 const RESPOSTA = "Olá! Temos horário amanhã às 15h."
 
 let clinica: string
+let outraClinica: string
 let tokenCifrado: string
 let sequencia = 0
 let wamids = 0
@@ -191,12 +202,26 @@ beforeAll(async () => {
   if (e3) throw e3
   const { error: e4 } = await admin.from("insurances").insert({ clinic_id: clinica, name: "Amil" })
   if (e4) throw e4
+
+  const { data: outra, error: e5 } = await admin
+    .from("clinics")
+    .insert({ legal_name: "Clínica Vizinha (teste)", status: "draft", plan: "healthtech" })
+    .select("id")
+    .single()
+  if (e5) throw e5
+  outraClinica = outra.id
+  const { error: e6 } = await admin
+    .from("agents")
+    .insert({ ...comum, clinic_id: outraClinica, name: "Vizinha", whatsapp_phone_number_id: PHONE_OUTRA, status: "active" })
+  if (e6) throw e6
 })
 
 afterAll(async () => {
-  if (!clinica) return
-  await admin.from("agents").delete().eq("clinic_id", clinica)
-  await admin.from("clinics").delete().eq("id", clinica)
+  for (const id of [clinica, outraClinica]) {
+    if (!id) continue
+    await admin.from("agents").delete().eq("clinic_id", id)
+    await admin.from("clinics").delete().eq("id", id)
+  }
 })
 
 describe("resposta da IA (conversation-engine-v1, comportamento 5)", () => {
@@ -454,6 +479,27 @@ describe("falha (conversation-engine-v1, comportamento 7)", () => {
     expect(c.ai_failed_at).not.toBeNull()
   })
 
+  it("outra execução já respondeu, e a resposta da reserva desta se perdeu: vai para a equipe, porque na dúvida é alerta", async () => {
+    // Troca aceita na conferência de segurança: sem saber se a reserva foi
+    // gravada, a execução não usa o atalho de "outra já respondeu".
+    const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
+    const r = await receber(novoWaId(), T0, "oi")
+    expect(await responderConversa(r, dependencias({ agora: T0 + 15 }))).toBe("respondida")
+    reservaPerdida.ativa = true
+    try {
+      await expect(responderConversa(r, dependencias({ agora: T0 + 20 }))).rejects.toMatchObject({
+        message: "TypeError: fetch failed",
+      })
+    } finally {
+      espiao.mockRestore()
+      reservaPerdida.ativa = false
+    }
+    expect(await respostasDaIa(r.conversationId)).toHaveLength(1)
+    const c = await conversa(r.conversationId)
+    expect(c.handled_by).toBe("human")
+    expect(c.ai_failed_at).not.toBeNull()
+  })
+
   it("erro inesperado no meio também passa a conversa para a equipe", async () => {
     const r = await receber(novoWaId(), T0, "oi")
     const deps = {
@@ -569,6 +615,60 @@ describe("qualificação (conversation-engine-v1, comportamento 6)", () => {
     expect(await responderConversa(r, deps)).toBe("humano-atendendo")
     expect(deps.enviar).not.toHaveBeenCalled()
     expect(await qualificadaEm(r.conversationId)).toBe((T0 + 15) * 1000)
+  })
+
+  it("marca só a própria conversa: a vizinha da mesma clínica e a de outra clínica não mudam", async () => {
+    const vizinha = await receber(novoWaId(), T0, "oi")
+    const deOutra = await receber(novoWaId(), T0, "oi", PHONE_OUTRA)
+    expect(deOutra.clinicId).toBe(outraClinica)
+    const r = await receber(novoWaId(), T0, "Quanto custa a limpeza?")
+    expect(await responderConversa(r, dependencias({ agora: T0 + 15, gerar: comIntencao(true) }))).toBe("respondida")
+    expect(await qualificadaEm(r.conversationId)).toBe((T0 + 15) * 1000)
+    expect(await qualificadaEm(vizinha.conversationId)).toBeNull()
+    expect(await qualificadaEm(deOutra.conversationId)).toBeNull()
+  })
+
+  it("duas execuções pela mesma mensagem (reenvio da Meta), as duas com intenção: grava uma vez, a da que chegou primeiro", async () => {
+    const r = await receber(novoWaId(), T0, "Tem horário amanhã?")
+    let liberar!: () => void
+    const outraTerminou = new Promise<void>((resolve) => (liberar = resolve))
+    // A primeira fica no modelo até a segunda terminar de responder.
+    const lenta = dependencias({
+      agora: T0 + 15,
+      gerar: vi.fn(async (_mensagens: MensagemDoModelo[]) => {
+        await outraTerminou
+        return { texto: RESPOSTA, intencaoDeAgendar: true }
+      }),
+    })
+    const rapida = dependencias({ agora: T0 + 16, gerar: comIntencao(true) })
+    const primeira = responderConversa(r, lenta)
+    const segunda = responderConversa(r, rapida).finally(() => liberar())
+    expect(await segunda).toBe("respondida")
+    expect(await primeira).toBe("ja-respondida")
+    expect(await qualificadaEm(r.conversationId)).toBe((T0 + 16) * 1000)
+    expect(lenta.enviar).not.toHaveBeenCalled()
+    expect(rapida.enviar).toHaveBeenCalledTimes(1)
+  })
+
+  it("erro lançado (rede) ao gravar também não impede a resposta, e o log só tem o tipo", async () => {
+    const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
+    const r = await receber(novoWaId(), T0, "Qual o valor da consulta?")
+    Object.assign(falhaDaQualificacao, { ativa: true, lancar: true })
+    try {
+      expect(await responderConversa(r, dependencias({ agora: T0 + 15, gerar: comIntencao(true) }))).toBe("respondida")
+      expect(falhaDaQualificacao.ativa).toBe(false)
+      expect(espiao).toHaveBeenCalledWith("[whatsapp-webhook]", {
+        etapa: "qualificacao",
+        conversa: r.conversationId,
+        tipo: "TypeError",
+        codigo: null,
+      })
+      for (const chamada of espiao.mock.calls) expect(logPermitido(chamada)).toBe(true)
+    } finally {
+      espiao.mockRestore()
+      Object.assign(falhaDaQualificacao, { ativa: false, lancar: false })
+    }
+    expect(await qualificadaEm(r.conversationId)).toBeNull()
   })
 
   it("a falha ao gravar não impede a resposta, e o log só tem o código", async () => {
