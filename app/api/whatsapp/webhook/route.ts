@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   for (const evento of eventos) {
     try {
       if (evento.tipo === "mensagem") await receberMensagem(evento)
-      else await receberEventoDeConta(evento)
+      else if (evento.tipo === "conta") await receberEventoDeConta(evento)
     } catch (erro) {
       const falha = erroParaLog(erro)
       const definitiva = falhaDefinitiva(falha)

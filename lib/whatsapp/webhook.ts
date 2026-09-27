@@ -39,11 +39,26 @@ export type EventoDeContaDoWebhook = {
   ocorridoEm: string
 }
 
-export type EventoDoWebhook = MensagemDoWebhook | EventoDeContaDoWebhook
+export type StatusDeEntrega = "sent" | "delivered" | "read" | "failed"
+
+export type EventoDeStatusDoWebhook = {
+  tipo: "status"
+  wabaId: string
+  phoneNumberId: string
+  waMessageId: string
+  status: StatusDeEntrega
+  ocorridoEm: string
+  /** Código da Meta, só em `failed`. Nunca o título nem a mensagem do erro, que podem citar o número. */
+  codigoDoErro: string | null
+}
+
+export type EventoDoWebhook = MensagemDoWebhook | EventoDeContaDoWebhook | EventoDeStatusDoWebhook
 
 type Bruto = Record<string, unknown>
 
 const EVENTOS_DA_CONTA: readonly string[] = ["ACCOUNT_OFFBOARDED", "ACCOUNT_RECONNECTED"]
+
+const STATUS_DE_ENTREGA: readonly string[] = ["sent", "delivered", "read", "failed"]
 
 function objeto(v: unknown): Bruto | null {
   return typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Bruto) : null
@@ -146,6 +161,32 @@ function mensagens(
   return saida
 }
 
+function statuses(wabaId: string, value: Bruto): EventoDeStatusDoWebhook[] {
+  const phoneNumberId = texto(objeto(value.metadata)?.phone_number_id)
+  if (!phoneNumberId) return []
+
+  const saida: EventoDeStatusDoWebhook[] = []
+  for (const bruto of lista(value.statuses)) {
+    const s = objeto(bruto)
+    const waMessageId = texto(s?.id)
+    const status = texto(s?.status)
+    const ocorridoEm = instante(s?.timestamp)
+    if (!s || !waMessageId || !status || !STATUS_DE_ENTREGA.includes(status) || !ocorridoEm) continue
+    const codigo = objeto(lista(s.errors)[0])?.code
+    saida.push({
+      tipo: "status",
+      wabaId,
+      phoneNumberId,
+      waMessageId,
+      status: status as StatusDeEntrega,
+      ocorridoEm,
+      codigoDoErro:
+        status === "failed" && (typeof codigo === "number" || typeof codigo === "string") ? String(codigo) : null,
+    })
+  }
+  return saida
+}
+
 function eventoDeConta(entry: Bruto, value: Bruto): EventoDeContaDoWebhook | null {
   const wabaId = texto(entry.id)
   const ocorridoEm = instante(entry.time)
@@ -168,7 +209,7 @@ export function interpretarWebhook(payload: unknown): EventoDoWebhook[] {
       if (!change || !value) continue
       // Sem WABA, a mensagem não tem como ser conferida com o agente.
       if (change.field === "messages" && wabaId) {
-        eventos.push(...mensagens(wabaId, value, "messages", "patient"))
+        eventos.push(...mensagens(wabaId, value, "messages", "patient"), ...statuses(wabaId, value))
       } else if (change.field === "smb_message_echoes" && wabaId) {
         eventos.push(...mensagens(wabaId, value, "message_echoes", "human"))
       } else if (change.field === "account_update") {

@@ -83,3 +83,19 @@ export function webhookDeConta(p: { wabaId?: string; evento: string; time: numbe
 export function assinar(corpo: string, segredo: string): string {
   return `sha256=${createHmac("sha256", segredo).update(corpo, "utf8").digest("hex")}`
 }
+
+export type StatusBruto = {
+  id: string
+  status: string
+  timestamp: number
+  errors?: Array<Record<string, unknown>>
+}
+
+/** Status de entrega: chegam no campo `messages`, em `statuses`. */
+export function webhookDeStatus(p: { wabaId?: string; phoneNumberId: string; statuses: StatusBruto[] }) {
+  return envelope(p.wabaId ?? WABA_ID, "messages", {
+    messaging_product: "whatsapp",
+    metadata: metadata(p.phoneNumberId),
+    statuses: p.statuses.map((s) => ({ recipient_id: "5500000000000", ...s, timestamp: String(s.timestamp) })),
+  })
+}

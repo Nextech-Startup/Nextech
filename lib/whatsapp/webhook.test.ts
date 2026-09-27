@@ -6,6 +6,7 @@ import {
   webhookDeConta,
   webhookDeEcos,
   webhookDeMensagens,
+  webhookDeStatus,
 } from "@/tests/fixtures/meta-webhook"
 
 const PHONE = "106540352242922"
@@ -123,30 +124,47 @@ describe("eventos de conta", () => {
   })
 })
 
-describe("o que não é mensagem nem evento de conta", () => {
-  it("ignora status de entrega", () => {
-    const payload = {
-      object: "whatsapp_business_account",
-      entry: [
-        {
-          id: WABA_ID,
-          changes: [
-            {
-              field: "messages",
-              value: {
-                metadata: { phone_number_id: PHONE },
-                statuses: [
-                  { id: "wamid.1", status: "delivered", timestamp: String(T), recipient_id: WA_ID },
-                ],
-              },
-            },
-          ],
-        },
+describe("status de entrega", () => {
+  it("lê status com o id da Meta, e o código só na falha", () => {
+    const eventos = interpretarWebhook(
+      webhookDeStatus({
+        phoneNumberId: PHONE,
+        statuses: [
+          { id: "wamid.1", status: "delivered", timestamp: T },
+          { id: "wamid.2", status: "failed", timestamp: T, errors: [{ code: 131047, title: "Re-engagement message" }] },
+        ],
+      }),
+    )
+    const base = { tipo: "status", wabaId: WABA_ID, phoneNumberId: PHONE, ocorridoEm: "2026-09-21T14:13:20.000Z" }
+    expect(eventos).toEqual([
+      { ...base, waMessageId: "wamid.1", status: "delivered", codigoDoErro: null },
+      { ...base, waMessageId: "wamid.2", status: "failed", codigoDoErro: "131047" },
+    ])
+  })
+
+  it("ignora status desconhecido e o que vem sem id ou sem carimbo", () => {
+    const payload = webhookDeStatus({
+      phoneNumberId: PHONE,
+      statuses: [
+        { id: "wamid.1", status: "deleted", timestamp: T },
+        { id: "", status: "read", timestamp: T },
+        { id: "wamid.3", status: "read", timestamp: T },
       ],
-    }
+    })
+    const statuses = payload.entry[0].changes[0].value.statuses as Array<Record<string, unknown>>
+    statuses[2].timestamp = "ontem"
     expect(interpretarWebhook(payload)).toEqual([])
   })
 
+  it("mensagens e status no mesmo change viram os dois eventos", () => {
+    const payload = webhookDeMensagens({ phoneNumberId: PHONE, waId: WA_ID, mensagens: [mensagem("wamid.m", T, "oi")] })
+    const value = payload.entry[0].changes[0].value as Record<string, unknown>
+    value.statuses = [{ id: "wamid.s", status: "read", timestamp: String(T), recipient_id: WA_ID }]
+    expect(interpretarWebhook(payload).map((e) => e.tipo)).toEqual(["mensagem", "status"])
+  })
+})
+
+describe("o que não é mensagem nem evento de conta", () => {
   it("ignora payload de outro objeto e payload que não é objeto", () => {
     expect(interpretarWebhook({ object: "page", entry: [] })).toEqual([])
     expect(interpretarWebhook(null)).toEqual([])
