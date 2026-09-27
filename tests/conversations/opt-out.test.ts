@@ -125,10 +125,12 @@ describe("opt-out pela recepção", () => {
     expect(await optedOut(clinicaA, waId)).toBe(false)
   })
 
-  it("o reenvio da Meta também registra, e continua marcado", async () => {
+  it("o reenvio da Meta também registra (a primeira entrega falhou depois de gravar a mensagem)", async () => {
     const waId = novoWaId()
     const bruto = payload(waId, "stop")
     await receber(bruto)
+    // Simula a falha da primeira entrega entre gravar a mensagem e marcar o paciente.
+    await admin.from("patients").update({ opted_out: false }).eq("clinic_id", clinicaA).eq("whatsapp_phone_number", `+${waId}`)
     const reenvio = await receber(bruto)
     expect(reenvio).toMatchObject({ nova: false, optOut: true })
     expect(await optedOut(clinicaA, waId)).toBe(true)

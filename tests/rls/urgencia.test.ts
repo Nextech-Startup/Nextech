@@ -265,3 +265,21 @@ describe("isolamento entre clínicas", () => {
     expect((await escalar(admin, outra, { mensagem: protocolo.message_id! })).error?.code).toBe("22023")
   })
 })
+
+describe("concorrência", () => {
+  it("escaladas simultâneas, pela mesma mensagem e por mensagens diferentes, reservam um protocolo só", async () => {
+    const c = await novaConversa(A)
+    const segunda = await registrar(c.base, em("10:00:02"))
+    const terceira = await registrar(c.base, em("10:00:03"))
+    const mensagens = [c.mensagem, c.mensagem, c.mensagem, segunda.message_id, terceira.message_id]
+
+    const resultados = await Promise.all(mensagens.map((m) => escalada(c, { mensagem: m, em: em("10:00:05") })))
+
+    expect(resultados.filter((r) => r.motivo === null)).toHaveLength(1)
+    for (const r of resultados.filter((r) => r.motivo !== null)) {
+      expect(["urgente", "ja-respondida"]).toContain(r.motivo)
+    }
+    expect(await protocolos(c.conversa)).toHaveLength(1)
+    expect(await estado(c.conversa)).toEqual({ is_urgent: true, handled_by: "human" })
+  })
+})

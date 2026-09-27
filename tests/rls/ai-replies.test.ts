@@ -100,10 +100,10 @@ async function montarClinica(rotulo: string, digito: string): Promise<Clinica> {
   return { ...base, conversa: primeira.conversation_id, primeira: primeira.message_id }
 }
 
-/** Uma conversa nova na clínica A, com uma mensagem do paciente. */
-async function novaConversa(ocorridaEm = `${DIA}T14:00:00Z`) {
-  const paciente = await novoPaciente(A.id)
-  const base = { ...A, paciente: paciente.id }
+/** Uma conversa nova (na clínica A, se nada disser), com uma mensagem do paciente. */
+async function novaConversa(ocorridaEm = `${DIA}T14:00:00Z`, clinica: Clinica = A) {
+  const paciente = await novoPaciente(clinica.id)
+  const base = { ...clinica, paciente: paciente.id }
   const m = await registrar(base, ocorridaEm)
   return { base, conversa: m.conversation_id, mensagem: m.message_id, paciente }
 }
@@ -287,16 +287,16 @@ describe("reserva, confirmação e contagem (atendimento-billing-v1, regra 2)", 
   })
 
   it("sem sessão aberta, a confirmação grava o envio e não abre sessão", async () => {
-    const nova = await registrar(B, `${DIA}T11:00:00Z`)
+    const c = await novaConversa(`${DIA}T11:00:00Z`, B)
     await admin
       .from("attendance_sessions")
       .update({ status: "closed_by_timeout", closed_at: `${DIA}T11:20:00Z` })
-      .eq("conversation_id", B.conversa)
+      .eq("conversation_id", c.conversa)
       .eq("status", "open")
-    const r = await reserva(B, nova.message_id, `${DIA}T11:00:10Z`)
+    const r = await reserva({ ...B, conversa: c.conversa }, c.mensagem, `${DIA}T11:00:10Z`)
     const { data } = await confirmar(admin, B.id, r.message_id!, `wamid.enviada.${SUFIXO}.b`, `${DIA}T11:30:00Z`)
     expect(data).toEqual([{ ai_response_count: null, session_closed: false }])
-    expect((await sessoes(B.conversa)).every((s) => s.status !== "open")).toBe(true)
+    expect((await sessoes(c.conversa)).every((s) => s.status !== "open")).toBe(true)
   })
 })
 
@@ -437,13 +437,14 @@ describe("isolamento entre clínicas nas funções da resposta", () => {
 
 describe("falha da resposta (conversation-engine-v1, comportamento 7)", () => {
   it("com a reserva: a mensagem fica failed com o código, e a conversa passa para a equipe", async () => {
-    const nova = await registrar(B, `${DIA}T12:00:00Z`)
-    const r = await reserva(B, nova.message_id, `${DIA}T12:00:10Z`)
-    expect((await falhar(admin, B, r.message_id, "131047")).error).toBeNull()
+    const conv = await novaConversa(`${DIA}T12:00:00Z`, B)
+    const alvo = { ...B, conversa: conv.conversa }
+    const r = await reserva(alvo, conv.mensagem, `${DIA}T12:00:10Z`)
+    expect((await falhar(admin, alvo, r.message_id, "131047")).error).toBeNull()
 
     const { data: m } = await admin.from("messages").select("delivery_status, delivery_error_code").eq("id", r.message_id).single()
     expect(m).toEqual({ delivery_status: "failed", delivery_error_code: "131047" })
-    const { data: c } = await admin.from("conversations").select("handled_by, ai_failed_at").eq("id", B.conversa).single()
+    const { data: c } = await admin.from("conversations").select("handled_by, ai_failed_at").eq("id", conv.conversa).single()
     expect(c!.handled_by).toBe("human")
     expect(c!.ai_failed_at).not.toBeNull()
   })

@@ -220,6 +220,17 @@ describe("a rota agenda a resposta da IA (motor de conversa, parte 2)", () => {
     expect(responderConversa).not.toHaveBeenCalled()
   })
 
+  it("o reenvio que escalou agora (a primeira tentativa falhou) também agenda o protocolo", async () => {
+    vi.mocked(receberMensagem).mockResolvedValueOnce(resultado({ nova: false, urgente: true, protocolo }))
+    expect((await postar(payloadDoPaciente())).status).toBe(200)
+
+    expect(after).toHaveBeenCalledTimes(1)
+    const [agendada] = vi.mocked(after).mock.calls[0] as unknown as [() => Promise<void>]
+    await agendada()
+    expect(enviarProtocolo).toHaveBeenCalledTimes(1)
+    expect(responderConversa).not.toHaveBeenCalled()
+  })
+
   it("mensagem urgente sem protocolo (conversa já urgente) não agenda nada", async () => {
     vi.mocked(receberMensagem).mockResolvedValueOnce(resultado({ urgente: true }))
     expect((await postar(payloadDoPaciente())).status).toBe(200)

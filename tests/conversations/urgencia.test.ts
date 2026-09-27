@@ -13,6 +13,26 @@ import { mensagem, webhookDeEcos, webhookDeMensagens } from "@/tests/fixtures/me
 import { logPermitido } from "@/tests/whatsapp/log"
 
 /**
+ * Falhas simuladas da leitura das regras, para a triagem falhar depois de a
+ * mensagem estar gravada. Com `restantes = 0`, tudo vai ao banco real.
+ */
+const falhasDasRegras = vi.hoisted(() => ({ restantes: 0 }))
+
+vi.mock("@/lib/clinic-profile/queries", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/clinic-profile/queries")>()
+  return {
+    ...real,
+    listActiveUrgencyRules: async (clinicId: string) => {
+      if (falhasDasRegras.restantes > 0) {
+        falhasDasRegras.restantes -= 1
+        throw new TypeError("fetch failed")
+      }
+      return real.listActiveUrgencyRules(clinicId)
+    },
+  }
+})
+
+/**
  * Urgência de ponta a ponta pela recepção, contra o banco real (motor de
  * conversa, parte 3; conversation-engine-v1, comportamento 4). A Meta é
  * simulada: `enviar` captura o que receberia.
@@ -199,6 +219,21 @@ describe("triagem de urgência na recepção (conversation-engine-v1, comportame
     expect(r2).toMatchObject({ urgente: true, protocolo: null })
     expect(reenvio).toMatchObject({ nova: false, urgente: true, protocolo: null })
     expect(await respostasDaIa(r1.conversationId)).toHaveLength(1)
+  })
+
+  it("a triagem falhou depois de gravar a mensagem: o reenvio da Meta escala e devolve o protocolo", async () => {
+    const waId = novoWaId()
+    const bruto = payload(waId, T0, "dor no peito")
+    falhasDasRegras.restantes = 1
+    try {
+      await expect(receber(bruto)).rejects.toThrow("fetch failed")
+    } finally {
+      falhasDasRegras.restantes = 0
+    }
+    const reenvio = await receber(bruto)
+    expect(reenvio).toMatchObject({ nova: false, urgente: true })
+    expect(reenvio.protocolo).toMatchObject({ para: waId, texto: PROTOCOLO })
+    expect(await respostasDaIa(reenvio.conversationId)).toHaveLength(1)
   })
 
   it("agente pausado: sem triagem", async () => {

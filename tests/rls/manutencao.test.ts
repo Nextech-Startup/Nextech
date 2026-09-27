@@ -60,8 +60,12 @@ async function registrar(paciente: string, ocorridaEm: string) {
   return data[0] as { conversation_id: string; message_id: string }
 }
 
-/** Uma conversa com uma resposta da IA reservada (`pending`), criada `idadeMs` atrás. */
-async function respostaPendente(idadeMs: number) {
+/**
+ * Uma conversa com uma resposta da IA reservada, criada `idadeMs` atrás.
+ * `enviada`: confirmada ANTES de retroagir a data, para um tique real do
+ * pg_cron no meio do teste não a pegar como órfã.
+ */
+async function respostaPendente(idadeMs: number, enviada = false) {
   const m = await registrar(await novoPaciente(), iso(Date.now() - MINUTO))
   const { data, error } = await admin.rpc("reserve_ai_reply", {
     p_clinic_id: clinica,
@@ -75,6 +79,15 @@ async function respostaPendente(idadeMs: number) {
   })
   if (error) throw error
   const reserva = (data as Array<{ message_id: string }>)[0].message_id
+  if (enviada) {
+    const { error: e3 } = await admin.rpc("confirm_ai_reply", {
+      p_clinic_id: clinica,
+      p_message_id: reserva,
+      p_wa_message_id: `wamid.enviada.${SUFIXO}.${reserva}`,
+      p_sent_at: iso(Date.now()),
+    })
+    if (e3) throw e3
+  }
   const { error: e2 } = await admin.from("messages").update({ created_at: iso(Date.now() - idadeMs) }).eq("id", reserva)
   if (e2) throw e2
   return { conversa: m.conversation_id, reserva }
@@ -194,14 +207,7 @@ describe("varredura das respostas órfãs", () => {
   it("pending há mais de 5 min vira failed e passa a conversa para a equipe; a recente e a enviada ficam", async () => {
     const orfa = await respostaPendente(10 * MINUTO)
     const recente = await respostaPendente(0)
-    const enviada = await respostaPendente(10 * MINUTO)
-    const { error: e1 } = await admin.rpc("confirm_ai_reply", {
-      p_clinic_id: clinica,
-      p_message_id: enviada.reserva,
-      p_wa_message_id: `wamid.enviada.${SUFIXO}`,
-      p_sent_at: iso(Date.now()),
-    })
-    expect(e1).toBeNull()
+    const enviada = await respostaPendente(10 * MINUTO, true)
 
     const { data, error } = await rodar("sweep_stale_ai_replies")
     expect(error).toBeNull()
