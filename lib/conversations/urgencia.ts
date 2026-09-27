@@ -3,6 +3,7 @@ import { listActiveUrgencyRules } from "@/lib/clinic-profile/queries"
 import { detectarUrgencia } from "@/lib/clinic-profile/schema"
 import { cifrarConteudo } from "./conteudo"
 import { custoDaResposta } from "./custo"
+import { DEPENDENCIAS_PADRAO, enviarReservada, type Dependencias } from "./resposta"
 
 /** O protocolo reservado pela escalada, pronto para o envio no after() da rota. */
 export type ProtocoloReservado = {
@@ -82,4 +83,35 @@ export async function triarUrgencia(p: {
       texto: regra.protocol_message,
     },
   }
+}
+
+/**
+ * Envia o protocolo reservado pela escalada. Roda no after() da rota, logo
+ * depois do 200: urgência não espera o agrupamento de 10 s.
+ *
+ * Falha no envio marca o protocolo como `failed` e loga só metadado; a
+ * conversa já é da equipe e urgente, e o alerta do painel aparece. Erro
+ * inesperado sobe para a rota, e a reserva que ficar `pending` é varrida
+ * pelo pg_cron.
+ */
+export function enviarProtocolo(
+  r: { clinicId: string; conversationId: string; protocolo: ProtocoloReservado },
+  deps: Pick<Dependencias, "enviar" | "dormir" | "agora"> = DEPENDENCIAS_PADRAO,
+): Promise<"respondida" | "falha-no-envio"> {
+  const { protocolo } = r
+  return enviarReservada(
+    {
+      clinicId: r.clinicId,
+      conversationId: r.conversationId,
+      reservaId: protocolo.reservaId,
+      etapa: "protocolo",
+      envio: {
+        phoneNumberId: protocolo.phoneNumberId,
+        tokenCifrado: protocolo.tokenCifrado,
+        para: protocolo.para,
+        texto: protocolo.texto,
+      },
+    },
+    deps,
+  )
 }

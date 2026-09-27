@@ -4,6 +4,7 @@ import { inspect } from "node:util"
 vi.mock("@/lib/conversations/recepcao", () => ({ receberMensagem: vi.fn() }))
 vi.mock("@/lib/whatsapp/conta", () => ({ receberEventoDeConta: vi.fn() }))
 vi.mock("@/lib/conversations/resposta", () => ({ responderConversa: vi.fn() }))
+vi.mock("@/lib/conversations/urgencia", () => ({ enviarProtocolo: vi.fn() }))
 vi.mock("@/lib/conversations/status", () => ({ receberStatus: vi.fn() }))
 // Fora de uma requisição do Next, `after` não funciona: o teste guarda o
 // callback e decide quando rodar.
@@ -17,6 +18,7 @@ import { POST } from "@/app/api/whatsapp/webhook/route"
 import { receberMensagem, type ResultadoDaRecepcao } from "@/lib/conversations/recepcao"
 import { responderConversa } from "@/lib/conversations/resposta"
 import { receberStatus } from "@/lib/conversations/status"
+import { enviarProtocolo } from "@/lib/conversations/urgencia"
 import { receberEventoDeConta } from "@/lib/whatsapp/conta"
 import {
   assinar,
@@ -202,6 +204,36 @@ describe("a rota agenda a resposta da IA (motor de conversa, parte 2)", () => {
     const [agendada] = vi.mocked(after).mock.calls[0] as unknown as [() => Promise<void>]
     await expect(agendada()).resolves.toBeUndefined()
     expect(espioes[0]).toHaveBeenCalledWith("[whatsapp-webhook]", { etapa: "resposta", tipo: "Error", codigo: null })
+    conferirLog()
+  })
+
+  const protocolo = { reservaId: "reserva", phoneNumberId: "1", tokenCifrado: "blob", para: WA_ID, texto: "Ligue 192." }
+
+  it("mensagem urgente com protocolo reservado agenda o protocolo, e não a resposta da IA", async () => {
+    vi.mocked(receberMensagem).mockResolvedValueOnce(resultado({ urgente: true, protocolo }))
+    expect((await postar(payloadDoPaciente())).status).toBe(200)
+
+    expect(after).toHaveBeenCalledTimes(1)
+    const [agendada] = vi.mocked(after).mock.calls[0] as unknown as [() => Promise<void>]
+    await agendada()
+    expect(enviarProtocolo).toHaveBeenCalledWith(resultado({ urgente: true, protocolo }))
+    expect(responderConversa).not.toHaveBeenCalled()
+  })
+
+  it("mensagem urgente sem protocolo (conversa já urgente) não agenda nada", async () => {
+    vi.mocked(receberMensagem).mockResolvedValueOnce(resultado({ urgente: true }))
+    expect((await postar(payloadDoPaciente())).status).toBe(200)
+    expect(after).not.toHaveBeenCalled()
+  })
+
+  it("erro no envio do protocolo em segundo plano é logado só com metadado", async () => {
+    vi.mocked(receberMensagem).mockResolvedValueOnce(resultado({ urgente: true, protocolo }))
+    vi.mocked(enviarProtocolo).mockRejectedValueOnce(new Error(`falhou com "${TEXTO}" de ${NOME}`))
+    expect((await postar(payloadDoPaciente())).status).toBe(200)
+
+    const [agendada] = vi.mocked(after).mock.calls[0] as unknown as [() => Promise<void>]
+    await expect(agendada()).resolves.toBeUndefined()
+    expect(espioes[0]).toHaveBeenCalledWith("[whatsapp-webhook]", { etapa: "protocolo", tipo: "Error", codigo: null })
     conferirLog()
   })
 

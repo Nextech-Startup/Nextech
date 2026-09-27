@@ -203,19 +203,47 @@ async function responder(r: ResultadoDaRecepcao, deps: Dependencias): Promise<De
   // sem enviar, e a resposta gerada é descartada.
   if (reserva.motivo) return reserva.motivo
 
+  // Telefone e credencial lidos sob a trava da reserva, e não antes da geração.
+  return enviarReservada(
+    {
+      clinicId,
+      conversationId,
+      reservaId: reserva.message_id!,
+      etapa: "envio",
+      envio: {
+        phoneNumberId: reserva.phone_number_id!,
+        tokenCifrado: reserva.access_token_encrypted!,
+        // A Meta quer o wa_id: os dígitos, sem o +.
+        para: reserva.patient_phone!.replace(/^\+/, ""),
+        texto,
+      },
+    },
+    deps,
+  )
+}
+
+/**
+ * Envia uma resposta já reservada (a da IA ou o protocolo de urgência) e
+ * confirma. Entre a reserva e o envio não há leitura de banco: o telefone e
+ * a credencial vêm da própria reserva, lidos sob trava.
+ *
+ * Falha no envio: nada chega ao paciente, a reserva fica `failed` e a
+ * conversa passa para a equipe. Falha na confirmação depois do envio: o
+ * paciente recebeu, a resposta fica `pending` (a varredura do pg_cron
+ * resolve) e o erro sobe.
+ */
+export async function enviarReservada(
+  p: { clinicId: string; conversationId: string; reservaId: string; envio: Envio; etapa: "envio" | "protocolo" },
+  deps: Pick<Dependencias, "enviar" | "dormir" | "agora">,
+): Promise<"respondida" | "falha-no-envio"> {
+  const { supabase } = serviceContext()
+
   let waMessageId: string
   try {
-    // Telefone e credencial lidos sob a trava da reserva, e não antes da geração.
-    ;({ waMessageId } = await deps.enviar({
-      phoneNumberId: reserva.phone_number_id!,
-      tokenCifrado: reserva.access_token_encrypted!,
-      // A Meta quer o wa_id: os dígitos, sem o +.
-      para: reserva.patient_phone!.replace(/^\+/, ""),
-      texto,
-    }))
+    ;({ waMessageId } = await deps.enviar(p.envio))
   } catch (erro) {
-    await registrarFalha(supabase, clinicId, conversationId, reserva.message_id, erro)
-    console.error(ROTULO, { etapa: "envio", conversa: conversationId, ...erroParaLog(erro) })
+    await registrarFalha(supabase, p.clinicId, p.conversationId, p.reservaId, erro)
+    console.error(ROTULO, { etapa: p.etapa, conversa: p.conversationId, ...erroParaLog(erro) })
     return "falha-no-envio"
   }
 
@@ -223,8 +251,8 @@ async function responder(r: ResultadoDaRecepcao, deps: Dependencias): Promise<De
     await comRetentativas(
       async () => {
         const { error } = await supabase.rpc("confirm_ai_reply", {
-          p_clinic_id: clinicId,
-          p_message_id: reserva.message_id,
+          p_clinic_id: p.clinicId,
+          p_message_id: p.reservaId,
           p_wa_message_id: waMessageId,
           p_sent_at: deps.agora(),
         })
@@ -238,9 +266,8 @@ async function responder(r: ResultadoDaRecepcao, deps: Dependencias): Promise<De
     )
   } catch (erro) {
     // O paciente recebeu, mas a resposta ficou pending: sem contagem e fora
-    // do histórico do modelo. A varredura de pendentes antigos entra com o
-    // cron da parte 3.
-    console.error(ROTULO, { etapa: "confirmacao", conversa: conversationId, ...erroParaLog(erro) })
+    // do histórico do modelo. A varredura do pg_cron passa para a equipe.
+    console.error(ROTULO, { etapa: "confirmacao", conversa: p.conversationId, ...erroParaLog(erro) })
     throw erro
   }
   return "respondida"

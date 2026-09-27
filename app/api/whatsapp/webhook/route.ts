@@ -1,7 +1,8 @@
 import { after } from "next/server"
-import { receberMensagem, type ResultadoDaRecepcao } from "@/lib/conversations/recepcao"
+import { receberMensagem } from "@/lib/conversations/recepcao"
 import { responderConversa } from "@/lib/conversations/resposta"
 import { receberStatus } from "@/lib/conversations/status"
+import { enviarProtocolo } from "@/lib/conversations/urgencia"
 import { erroParaLog } from "@/lib/security/erro-para-log"
 import { assinaturaValida, desafioDaVerificacao } from "@/lib/whatsapp/assinatura"
 import { receberEventoDeConta } from "@/lib/whatsapp/conta"
@@ -79,10 +80,16 @@ export async function POST(request: Request) {
     try {
       if (evento.tipo === "mensagem") {
         const r = await receberMensagem(evento)
+        // A conversa acabou de escalar: o protocolo da clínica sai já, sem
+        // o agrupamento da resposta da IA.
+        const protocolo = r?.protocolo
+        if (r && protocolo) {
+          after(() => emSegundoPlano("protocolo", () => enviarProtocolo({ ...r, protocolo })))
+        }
         // Reenvio (`nova: false`) já teve a resposta agendada da primeira vez.
-        // O pedido de opt-out não tem resposta.
-        if (r && r.autor === "patient" && r.nova && r.agenteAtivo && !r.optOut) {
-          after(() => responderEmSegundoPlano(r))
+        // Pedido de opt-out e mensagem urgente não têm resposta da IA.
+        if (r && r.autor === "patient" && r.nova && r.agenteAtivo && !r.optOut && !r.urgente) {
+          after(() => emSegundoPlano("resposta", () => responderConversa(r)))
         }
       } else if (evento.tipo === "status") {
         await receberStatus(evento)
@@ -104,10 +111,10 @@ export async function POST(request: Request) {
 }
 
 /** Depois do 200 não há a quem devolver erro: loga o metadado e para. */
-async function responderEmSegundoPlano(r: ResultadoDaRecepcao): Promise<void> {
+async function emSegundoPlano(etapa: "resposta" | "protocolo", tarefa: () => Promise<unknown>): Promise<void> {
   try {
-    await responderConversa(r)
+    await tarefa()
   } catch (erro) {
-    console.error(ROTULO, { etapa: "resposta", ...erroParaLog(erro) })
+    console.error(ROTULO, { etapa, ...erroParaLog(erro) })
   }
 }

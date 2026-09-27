@@ -1,12 +1,16 @@
 import { createHash } from "node:crypto"
+import { inspect } from "node:util"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { createClient } from "@supabase/supabase-js"
 import { decifrarConteudo } from "@/lib/conversations/conteudo"
 import { receberMensagem, type ResultadoDaRecepcao } from "@/lib/conversations/recepcao"
 import { responderConversa, type Dependencias, type Envio } from "@/lib/conversations/resposta"
+import { enviarProtocolo } from "@/lib/conversations/urgencia"
 import { cifrarSegredo } from "@/lib/security/tenant-secrets"
+import { MetaError } from "@/lib/whatsapp/client"
 import { interpretarWebhook, type MensagemDoWebhook } from "@/lib/whatsapp/webhook"
 import { mensagem, webhookDeEcos, webhookDeMensagens } from "@/tests/fixtures/meta-webhook"
+import { logPermitido } from "@/tests/whatsapp/log"
 
 /**
  * Urgência de ponta a ponta pela recepção, contra o banco real (motor de
@@ -230,5 +234,66 @@ describe("triagem de urgência na recepção (conversation-engine-v1, comportame
     })
     expect(await responderConversa(r1, deps)).toBe("urgente")
     expect(deps.enviar).not.toHaveBeenCalled()
+  })
+})
+
+describe("envio do protocolo (no after() da rota)", () => {
+  it("envia o texto da clínica ao paciente, sem esperar o agrupamento, e conta na sessão", async () => {
+    const waId = novoWaId()
+    const r = await receber(payload(waId, T0, "dor no peito"))
+    const deps = dependencias({ agora: T0 + 2 })
+    expect(await enviarProtocolo({ ...r, protocolo: r.protocolo! }, deps)).toBe("respondida")
+    expect(deps.enviar).toHaveBeenCalledWith({ phoneNumberId: PHONE, tokenCifrado, para: waId, texto: PROTOCOLO })
+    expect(deps.dormir).not.toHaveBeenCalled()
+
+    const [p] = await respostasDaIa(r.conversationId)
+    expect(p.delivery_status).toBe("sent")
+    expect(p.wa_message_id).toMatch(/^wamid\.enviada\./)
+    const { data: sessao } = await admin
+      .from("attendance_sessions")
+      .select("ai_response_count")
+      .eq("conversation_id", r.conversationId)
+      .eq("status", "open")
+      .single()
+    expect(sessao!.ai_response_count).toBe(1)
+  })
+
+  it("falha no envio: o protocolo fica failed, e o log não tem o protocolo nem a mensagem", async () => {
+    const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
+    const r = await receber(payload(novoWaId(), T0, "Estou com dor no peito"))
+    const deps = {
+      ...dependencias({ agora: T0 + 2 }),
+      enviar: vi.fn(async (_envio: Envio): Promise<{ waMessageId: string }> => {
+        throw new MetaError("131047", 400, false)
+      }),
+    }
+    try {
+      expect(await enviarProtocolo({ ...r, protocolo: r.protocolo! }, deps)).toBe("falha-no-envio")
+      expect(espiao).toHaveBeenCalledWith("[whatsapp-webhook]", {
+        etapa: "protocolo",
+        conversa: r.conversationId,
+        tipo: "MetaError",
+        codigo: "131047",
+      })
+      for (const chamada of espiao.mock.calls) expect(logPermitido(chamada)).toBe(true)
+      const logado = inspect(espiao.mock.calls, { depth: 10 })
+      expect(logado).not.toContain("pronto-socorro")
+      expect(logado).not.toContain("dor no peito")
+    } finally {
+      espiao.mockRestore()
+    }
+    const [p] = await respostasDaIa(r.conversationId)
+    expect(p).toMatchObject({ delivery_status: "failed", delivery_error_code: "131047" })
+    expect(await conversa(r.conversationId)).toEqual({ is_urgent: true, handled_by: "human" })
+  })
+
+  it("depois do protocolo, a IA não responde a próxima mensagem", async () => {
+    const waId = novoWaId()
+    const r1 = await receber(payload(waId, T0, "dor no peito"))
+    await enviarProtocolo({ ...r1, protocolo: r1.protocolo! }, dependencias({ agora: T0 + 2 }))
+    const r2 = await receber(payload(waId, T0 + 60, "e agora?"))
+    const deps = dependencias({ agora: T0 + 75 })
+    expect(await responderConversa(r2, deps)).toBe("urgente")
+    expect(deps.gerar).not.toHaveBeenCalled()
   })
 })
