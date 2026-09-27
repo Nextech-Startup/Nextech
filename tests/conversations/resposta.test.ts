@@ -628,7 +628,7 @@ describe("qualificação (conversation-engine-v1, comportamento 6)", () => {
     expect(await qualificadaEm(deOutra.conversationId)).toBeNull()
   })
 
-  it("duas execuções pela mesma mensagem (reenvio da Meta), as duas com intenção: grava uma vez, a da que chegou primeiro", async () => {
+  it("duas execuções pela mesma mensagem (reenvio da Meta), as duas com intenção: grava uma vez, a da que gravou primeiro", async () => {
     const r = await receber(novoWaId(), T0, "Tem horário amanhã?")
     let liberar!: () => void
     const outraTerminou = new Promise<void>((resolve) => (liberar = resolve))
