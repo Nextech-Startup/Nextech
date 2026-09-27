@@ -204,6 +204,28 @@ describe("handshake e validação", () => {
   it("recusa JSON inválido, mesmo assinado", async () => {
     expect((await postar("{não é json")).status).toBe(400)
   })
+
+  it("falha definitiva num evento é pulada, e o vizinho do mesmo POST entra", async () => {
+    const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
+    const waId = novoWaId()
+    // `wa_id` que não é telefone: o Zod recusa em toda tentativa, então
+    // devolver 500 faria a Meta reenviar por dias e travaria o vizinho.
+    const envenenado = doPaciente("123", [[T0, "oi"]])
+    const bom = doPaciente(waId, [[T0, "oi"]])
+    try {
+      const res = await postar({ ...bom, entry: [...envenenado.entry, ...bom.entry] })
+      expect(res.status).toBe(200)
+      expect(espiao).toHaveBeenCalledWith("[whatsapp-webhook]", {
+        etapa: "recepcao",
+        definitiva: true,
+        tipo: "ZodError",
+        codigo: null,
+      })
+    } finally {
+      espiao.mockRestore()
+    }
+    expect(await paciente(waId)).not.toBeNull()
+  })
 })
 
 describe("mensagem do paciente (conversation-engine-v1, recepção)", () => {

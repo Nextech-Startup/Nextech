@@ -1,3 +1,4 @@
+import type { ErroParaLog } from "@/lib/security/erro-para-log"
 import type { EventoDaConta } from "./conexao"
 
 /**
@@ -55,7 +56,10 @@ function instante(v: unknown): string | null {
   const segundos =
     typeof v === "number" ? v : typeof v === "string" && /^\d+$/.test(v) ? Number(v) : NaN
   if (!Number.isFinite(segundos) || segundos <= 0) return null
-  return new Date(segundos * 1000).toISOString()
+  // Um número finito ainda pode estar fora da faixa do Date, e aí o
+  // toISOString lança RangeError: o carimbo absurdo vira entrada pulada.
+  const data = new Date(segundos * 1000)
+  return Number.isFinite(data.getTime()) ? data.toISOString() : null
 }
 
 function comoTexto(valor: string | null): { midia: MidiaDaMensagem; texto: string | null } {
@@ -164,4 +168,19 @@ export function interpretarWebhook(payload: unknown): EventoDoWebhook[] {
     }
   }
   return eventos
+}
+
+/**
+ * Se reenviar o mesmo evento pode dar certo. A Meta reenvia por dias o que
+ * recebeu 500, então um erro que se repete igual a cada tentativa não
+ * pode virar 500: travaria os eventos que vieram junto no mesmo POST.
+ *
+ * Definitivas: validação (Zod) e as classes 22 (dado inválido) e 23
+ * (restrição violada) do SQLSTATE. O resto (rede, banco fora do ar,
+ * chave de cifra ausente) é transitório: o reenvio resolve, e a gravação
+ * é idempotente.
+ */
+export function falhaDefinitiva(erro: ErroParaLog): boolean {
+  if (erro.tipo === "ZodError") return true
+  return erro.tipo === "postgrest" && erro.codigo !== null && /^2[23]/.test(erro.codigo)
 }

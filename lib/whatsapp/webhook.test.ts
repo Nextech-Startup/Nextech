@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { interpretarWebhook } from "./webhook"
+import { falhaDefinitiva, interpretarWebhook } from "./webhook"
 import {
   WABA_ID,
   mensagem,
@@ -169,5 +169,36 @@ describe("o que não é mensagem nem evento de conta", () => {
     const mensagens = payload.entry[0].changes[0].value.messages as Array<Record<string, unknown>>
     mensagens[0].timestamp = "ontem"
     expect(interpretarWebhook(payload)).toEqual([])
+  })
+
+  it("pula a mensagem com carimbo fora da faixa do Date, sem lançar", () => {
+    const payload = webhookDeMensagens({
+      phoneNumberId: PHONE,
+      waId: WA_ID,
+      mensagens: [mensagem("wamid.1", T, "oi"), mensagem("wamid.2", T, "tudo bem?")],
+    })
+    const mensagens = payload.entry[0].changes[0].value.messages as Array<Record<string, unknown>>
+    mensagens[0].timestamp = "99999999999999999"
+    const eventos = interpretarWebhook(payload)
+    expect(eventos).toHaveLength(1)
+    expect(eventos[0]).toMatchObject({ waMessageId: "wamid.2" })
+  })
+})
+
+describe("falhaDefinitiva", () => {
+  it("validação e dado inválido ou restrição violada no banco não se resolvem com reenvio", () => {
+    expect(falhaDefinitiva({ tipo: "ZodError", codigo: null })).toBe(true)
+    expect(falhaDefinitiva({ tipo: "postgrest", codigo: "22023" })).toBe(true)
+    expect(falhaDefinitiva({ tipo: "postgrest", codigo: "23514" })).toBe(true)
+    expect(falhaDefinitiva({ tipo: "postgrest", codigo: "23503" })).toBe(true)
+  })
+
+  it("rede, banco fora do ar, permissão e chave ausente são transitórias", () => {
+    expect(falhaDefinitiva({ tipo: "TypeError", codigo: null })).toBe(false)
+    expect(falhaDefinitiva({ tipo: "postgrest", codigo: "08006" })).toBe(false)
+    expect(falhaDefinitiva({ tipo: "postgrest", codigo: "42501" })).toBe(false)
+    expect(falhaDefinitiva({ tipo: "postgrest", codigo: "PGRST301" })).toBe(false)
+    expect(falhaDefinitiva({ tipo: "postgrest", codigo: null })).toBe(false)
+    expect(falhaDefinitiva({ tipo: "ConteudoError", codigo: null })).toBe(false)
   })
 })

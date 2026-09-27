@@ -19,6 +19,13 @@ describe("assinaturaValida", () => {
     expect(assinaturaValida(CORPO, `sha256=${hex.toUpperCase()}`, SEGREDO)).toBe(true)
   })
 
+  it("confere os bytes recebidos, inclusive o BOM que a decodificação como texto tira", () => {
+    const bytes = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(CORPO, "utf8")])
+    const assinatura = `sha256=${createHmac("sha256", SEGREDO).update(bytes).digest("hex")}`
+    expect(assinaturaValida(bytes, assinatura, SEGREDO)).toBe(true)
+    expect(assinaturaValida(new TextDecoder().decode(bytes), assinatura, SEGREDO)).toBe(false)
+  })
+
   it("recusa o corpo alterado, mesmo que por um espaço", () => {
     expect(assinaturaValida(CORPO.replace(":", ": "), assinar(CORPO), SEGREDO)).toBe(false)
   })
