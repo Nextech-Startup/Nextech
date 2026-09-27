@@ -52,12 +52,15 @@ Fora do escopo v1:
 A equipe responde "quem criou, ativou ou convidou, e quando" pela tela, sem consulta manual ao banco. Na fase 3b, é pela mesma tela que se revisa cada acesso a conversa de paciente.
 
 ## Critério de aceite
-- [ ] `/admin/audit` lista os registros reais de `admin_audit_log`, do mais recente para o mais antigo, agrupados por dia, com hora, autor, ação, detalhe e clínica.
-- [ ] Aberturas seguidas de `clinic.list` pela mesma pessoa no mesmo dia viram uma linha com a contagem e o intervalo. Uma ação de outro tipo no meio quebra o grupo. Regra pura com teste.
-- [ ] A página mostra no máximo 100 registros; "Ver registros anteriores" continua a partir do último mostrado e some na última página. Testado com consulta de mentira.
-- [ ] Abrir `/admin/audit` não grava nada em `admin_audit_log`. Testado.
-- [ ] Autor sem nome mostra "Sem nome cadastrado"; clínica apagada mostra "Clínica removida"; ação desconhecida mostra "Ação não reconhecida". Testado.
-- [ ] Nenhum valor de `metadata` aparece fora do que `descreverRegistro` escreve. Testado com uma chave estranha no metadado.
-- [ ] O item "Auditoria" do `ADMIN_NAV` está `pronto`, e `tests/architecture/rotas.test.ts` continua passando.
-- [ ] Quem não é da equipe Nextech é redirecionado de `/admin/audit` para `/dashboard` (a guarda do layout do `(admin)`), conferido no navegador com o papel `clinica`.
-- [ ] Conferido no navegador, nos dois temas, em 1440px e 390px, sem rolagem horizontal.
+
+> **Entregue em 2026-09-27** (branch `staging`). 28 testes novos (781 no total): regra do agrupamento, cursor e rótulos em `lib/admin/auditoria.test.ts`, consulta paginada com client de mentira em `lib/admin/trilha.test.ts`, tela em `components/admin/auditoria.test.tsx` e menu em `lib/navigation/navigation.test.ts`. No navegador, com o dado real: 48 aberturas seguidas da lista de clínicas viraram uma linha, abrir a Auditoria não gravou nada, e o papel `clinica` foi redirecionado para `/dashboard`.
+
+- [x] `/admin/audit` lista os registros reais de `admin_audit_log`, do mais recente para o mais antigo, agrupados por dia, com hora, autor, ação, detalhe e clínica.
+- [x] Aberturas seguidas de `clinic.list` pela mesma pessoa no mesmo dia viram uma linha com a contagem e o intervalo. Uma ação de outro tipo no meio quebra o grupo. Regra pura com teste.
+- [x] A página mostra no máximo 100 registros; "Ver registros anteriores" continua a partir do último mostrado e some na última página. Testado com consulta de mentira.
+- [x] Abrir `/admin/audit` não grava nada em `admin_audit_log`. Testado.
+- [x] Autor sem nome mostra "Sem nome cadastrado"; clínica apagada mostra "Clínica removida"; ação desconhecida mostra "Ação não reconhecida". Testado.
+- [x] Nenhum valor de `metadata` aparece fora do que `descreverRegistro` escreve. Testado com uma chave estranha no metadado.
+- [x] O item "Auditoria" do `ADMIN_NAV` está `pronto`, e `tests/architecture/rotas.test.ts` continua passando.
+- [x] Quem não é da equipe Nextech é redirecionado de `/admin/audit` para `/dashboard` (a guarda do layout do `(admin)`), conferido no navegador com o papel `clinica`.
+- [x] Conferido no navegador, nos dois temas, em 1440px e 390px, sem rolagem horizontal.

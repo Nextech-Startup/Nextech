@@ -177,6 +177,12 @@ Plano: `docs/superpowers/plans/2026-09-26-redesign-do-painel-parte-4.md`, execut
 
 Com isto, o redesign cobre todas as telas do produto como protótipo. As telas reais chegam com cada fase.
 
+**Auditoria no ar (2026-09-27, `docs/specs/admin-audit-v1.md`).** Das cinco telas, a Auditoria era a única com dado real: `admin_audit_log` já registrava as ações de clínica. `/admin/audit` mostra a trilha real e deixou de ser "em breve". Decisões do Jhones:
+- aberturas seguidas da lista de clínicas pela mesma pessoa, no mesmo dia, viram uma linha;
+- 100 registros por página, com "Ver registros anteriores";
+- abrir a Auditoria não gera registro;
+- o recorte "Acessos de suporte" e o filtro por tipo chegam com a fase 3b.
+
 ## Fase 4 — Templates e sequências
 - `whatsapp-templates-v1.md`, `message-sequences-v1.md`
 - Depende da fase 3b (precisa do agente e do paciente conversando)

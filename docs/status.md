@@ -14,7 +14,7 @@
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**753 testes passando** · 8 migrations aplicadas · em produção em `app.nextech.ia.br`
+**781 testes passando** · 8 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 ---
 
@@ -184,6 +184,9 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 - [x] **Redesign do painel, terceira parte**: concluída em 2026-09-26 na `staging`
   (acesso por papel com regra única, estados nas rotas reais, protótipos de Visão geral,
   Agentes com operação, Integrações e Minha conta)
+- [x] **Auditoria do painel interno no ar** (`admin-audit-v1`): concluída em 2026-09-27 na
+  `staging`. `/admin/audit` mostra a trilha real, com as aberturas seguidas da lista de
+  clínicas agrupadas e 100 registros por página
 - [x] **Redesign do painel, quarta parte**: concluída em 2026-09-26 na `staging`
   (protótipos de Consumo, Conexões, Saúde, Conversas de suporte e Auditoria; acesso de
   suporte com justificativa por clínica, 30 min, motivo e número do chamado)
