@@ -20,6 +20,13 @@ import { PERFIL_FICTICIO, type TabelaDoPerfil } from "./perfil"
 
 const PREPARO: AdminAction = "clinic.prepare_demo"
 
+/**
+ * Toda conta envolvida é da equipe: a que ganha o vínculo e as que já
+ * respondem pela clínica. Uma clínica de cliente em onboarding (rascunho,
+ * dono convidado, ainda sem paciente) passaria pelas outras travas.
+ */
+export const DOMINIO_DA_EQUIPE = "nextech.ia.br"
+
 export type RelatorioDoPreparo = {
   vinculo: "criado" | "ja-existia"
   perfil: Record<TabelaDoPerfil, "preenchido" | "ja-tinha">
@@ -40,9 +47,15 @@ function falha(acao: string, erro: { code?: string; hint?: string | null }): Err
 
 export async function prepararContaDeDemonstracao(
   db: SupabaseClient,
-  { clinicId, emailDoAdmin }: { clinicId: string; emailDoAdmin: string },
+  {
+    clinicId,
+    emailDoAdmin,
+    dominioDaEquipe = DOMINIO_DA_EQUIPE,
+  }: { clinicId: string; emailDoAdmin: string; dominioDaEquipe?: string },
 ): Promise<RelatorioDoPreparo> {
   const email = emailDoAdmin.trim().toLowerCase()
+  const daEquipe = (e: string | undefined) => Boolean(e?.toLowerCase().endsWith(`@${dominioDaEquipe}`))
+  if (!daEquipe(email)) throw new PreparoRecusado(`${email} não é conta da equipe Nextech.`)
 
   const { data: clinica, error: erroClinica } = await db
     .from("clinics")
@@ -53,8 +66,19 @@ export async function prepararContaDeDemonstracao(
   if (!clinica) throw new PreparoRecusado(`Nenhuma clínica com o id ${clinicId}.`)
   await recusarClinicaDeCliente(db, clinicId, clinica.status as string)
 
-  const usuario = await acharUsuarioPorEmail(db, email)
-  if (!usuario) throw new PreparoRecusado(`Nenhum usuário com o e-mail ${email}.`)
+  const emails = await emailsDosUsuarios(db)
+  const usuarioId = [...emails].find(([, e]) => e === email)?.[0]
+  if (!usuarioId) throw new PreparoRecusado(`Nenhum usuário com o e-mail ${email}.`)
+  const usuario = { id: usuarioId }
+
+  const { data: membros, error: erroMembros } = await db
+    .from("clinic_members")
+    .select("user_id")
+    .eq("clinic_id", clinicId)
+  if (erroMembros) throw falha("ler os membros da clínica", erroMembros)
+  if (membros.some((m) => !daEquipe(emails.get(m.user_id as string)))) {
+    throw new PreparoRecusado("A clínica tem responsável de fora da equipe Nextech: parece de cliente, e não vira demonstração.")
+  }
 
   const { data: vinculos, error: erroVinculos } = await db
     .from("clinic_members")
@@ -153,17 +177,14 @@ async function preencherSeVazia(
   return "preenchido"
 }
 
-/** O Auth não busca por e-mail: percorre as páginas até achar. */
-async function acharUsuarioPorEmail(
-  db: SupabaseClient,
-  email: string,
-): Promise<{ id: string } | null> {
+/** O Auth não busca por e-mail: percorre as páginas uma vez, de id para e-mail. */
+async function emailsDosUsuarios(db: SupabaseClient): Promise<Map<string, string>> {
+  const emails = new Map<string, string>()
   const porPagina = 200
   for (let page = 1; ; page++) {
     const { data, error } = await db.auth.admin.listUsers({ page, perPage: porPagina })
     if (error) throw falha("listar os usuários", { code: error.code })
-    const achado = data.users.find((u) => u.email?.toLowerCase() === email)
-    if (achado) return { id: achado.id }
-    if (data.users.length < porPagina) return null
+    for (const u of data.users) if (u.email) emails.set(u.id, u.email.toLowerCase())
+    if (data.users.length < porPagina) return emails
   }
 }

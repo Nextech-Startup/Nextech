@@ -7,6 +7,8 @@ import { PermissaoNegada } from "@/components/patterns/permissao-negada"
 import { TelaDeVisaoGeral } from "@/components/overview/tela-de-visao-geral"
 import { ListaDeAgentesEmOperacao } from "@/components/agents/lista-em-operacao"
 import { OperacaoDoAgente } from "@/components/agents/operacao-do-agente"
+import { ListaDeAgentes } from "@/app/(dashboard)/dashboard/agents/lista"
+import { FormularioDeAgente } from "@/app/(dashboard)/dashboard/agents/formulario"
 import { deslocarDatas, girarDiasDaSemana } from "@/lib/demo/relogio"
 import { AGENTES, DETALHES_DOS_AGENTES } from "@/app/_fixtures/agentes"
 import { COMPROMISSOS, EXPEDIENTE } from "@/app/_fixtures/agenda"
@@ -49,6 +51,17 @@ vi.mock("@/lib/agent-config/queries", () => ({
   listAgents: async () => [],
   getClinicPlan: async () => "starter",
   getAgent: async (id: string) => ({ id, name: "Agente real" }),
+}))
+
+vi.mock("@/lib/clinic-profile/queries", () => ({
+  getRegulatoryIdentity: async () => ({
+    cnpj: null,
+    technical_responsible_name: null,
+    technical_responsible_council: null,
+    technical_responsible_registration_number: null,
+  }),
+  listProfessionals: async () => [],
+  listProcedures: async () => [],
 }))
 
 vi.mock("next/navigation", async (original) => ({
@@ -221,20 +234,23 @@ describe("numa clínica comum", () => {
 
   // As rotas que já existiam desviam para a fixture só com isDemo: fora da
   // demonstração, a clínica vê o próprio dado, e nunca o paciente inventado.
-  it("Visão geral mostra a tela real", async () => {
-    contexto.role = "staff"
+  it.each(["owner", "staff"] as const)("Visão geral mostra a tela real (%s)", async (role) => {
+    contexto.role = role
     const tela = await abrir(rota("/dashboard"))
     expect(tela.type).not.toBe(TelaDeVisaoGeral)
+    expect(tela.type).toBe("div")
   })
 
   it("Agentes mostra a lista real", async () => {
     const tela = await abrir(rota("/dashboard/agents"))
     expect(tela.type).not.toBe(ListaDeAgentesEmOperacao)
+    expect(tela.type).toBe(ListaDeAgentes)
   })
 
   it("o agente mostra o editor real, mesmo com o id de um agente de exemplo", async () => {
     const tela = await abrir(rota("/dashboard/agents/[id]"))
     expect(tela.type).not.toBe(OperacaoDoAgente)
+    expect(tela.type).toBe(FormularioDeAgente)
   })
 
   it("o profissional que cai na raiz vê o aviso, e não é redirecionado", async () => {

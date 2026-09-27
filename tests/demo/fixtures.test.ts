@@ -68,6 +68,8 @@ describe("fixtures da conta de demonstração", () => {
       ...(json.match(/\(\d{2}\) 9\d{4}-\d{4}/g) ?? []),
     ]
     expect(celulares.filter((c) => !/90000-?\d{4}$/.test(c))).toEqual([])
+    const fixos = json.match(/\(\d{2}\) [2-5]\d{3}-\d{4}/g) ?? []
+    expect(fixos).toEqual([])
     expect(json.match(/\b(CRM|CRO|CREFITO|CRP|CRN|COREN)[- ][A-Z]{2}\s?\d+/g) ?? []).toEqual([])
   })
 

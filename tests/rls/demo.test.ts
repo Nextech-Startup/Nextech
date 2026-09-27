@@ -178,9 +178,10 @@ describe("clinics.is_demo", () => {
     })
 
     it("clínica com agente conectado não vira demonstração", async () => {
-      // Controle: na clínica comum, o dono conecta normalmente.
-      const client = await comoUsuario(donoComum)
-      const { error: erroConexao } = await client.from("agents").insert({
+      // Controle: na clínica comum, o número entra (pelo service_role, como
+      // na conexão do servidor; a escrita direta do authenticated nas colunas
+      // do WhatsApp é pendência de segurança própria, e o teste não a fixa).
+      const { error: erroConexao } = await admin.from("agents").insert({
         clinic_id: comum,
         name: "Recepção comum (teste)",
         specialty: "odontologia",

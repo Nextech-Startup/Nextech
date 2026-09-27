@@ -8,6 +8,9 @@ const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPAB
 
 const TABELAS_DO_PERFIL = ["professionals", "procedures", "insurances", "scheduling_policies"] as const
 
+// Os usuários de teste fazem o papel da equipe Nextech.
+const EQUIPE = "exemplo.test"
+
 const clinicas: string[] = []
 const usuarios: string[] = []
 
@@ -22,8 +25,8 @@ async function criarClinica(nome: string): Promise<string> {
   return data.id
 }
 
-async function criarUsuario(rotulo: string) {
-  const email = `teste-conta-demo-${rotulo}-${Date.now()}@exemplo.test`
+async function criarUsuario(rotulo: string, dominio = EQUIPE) {
+  const email = `teste-conta-demo-${rotulo}-${Date.now()}@${dominio}`
   const { data, error } = await db.auth.admin.createUser({
     email,
     password: "senha-de-teste-123456",
@@ -72,7 +75,7 @@ describe("prepararContaDeDemonstracao", () => {
   it("marca a demonstração, passa para healthtech, vincula o admin e preenche o perfil vazio", async () => {
     const relatorio = await prepararContaDeDemonstracao(db, {
       clinicId: clinica,
-      emailDoAdmin: adminDaPlataforma.email,
+      emailDoAdmin: adminDaPlataforma.email, dominioDaEquipe: EQUIPE,
     })
 
     const { data: marcada } = await db.from("clinics").select("is_demo, plan").eq("id", clinica).single()
@@ -107,7 +110,7 @@ describe("prepararContaDeDemonstracao", () => {
     const antes = await contagens(clinica)
     const relatorio = await prepararContaDeDemonstracao(db, {
       clinicId: clinica,
-      emailDoAdmin: adminDaPlataforma.email,
+      emailDoAdmin: adminDaPlataforma.email, dominioDaEquipe: EQUIPE,
     })
     expect(await contagens(clinica)).toEqual(antes)
     expect(relatorio.vinculo).toBe("ja-existia")
@@ -133,7 +136,7 @@ describe("prepararContaDeDemonstracao", () => {
     })
     const antes = await linhas()
 
-    const relatorio = await prepararContaDeDemonstracao(db, { clinicId: outra, emailDoAdmin: usuario.email })
+    const relatorio = await prepararContaDeDemonstracao(db, { clinicId: outra, emailDoAdmin: usuario.email, dominioDaEquipe: EQUIPE })
 
     // A linha inteira, com updated_at: nem acrescenta nem reescreve.
     expect(await linhas()).toEqual(antes)
@@ -154,6 +157,29 @@ describe("prepararContaDeDemonstracao", () => {
       expect(auditoria).toBe(0)
     }
 
+    it("clínica com responsável de fora da equipe (cliente em onboarding)", async () => {
+      const alvo = await criarClinica("Clínica em onboarding")
+      const cliente = await criarUsuario("cliente", "fora.test")
+      await db.from("clinic_members").insert({ clinic_id: alvo, user_id: cliente.id, role: "owner" })
+      const usuario = await criarUsuario("onboarding")
+      await expect(
+        prepararContaDeDemonstracao(db, { clinicId: alvo, emailDoAdmin: usuario.email, dominioDaEquipe: EQUIPE }),
+      ).rejects.toThrow(/fora da equipe/)
+      const { data } = await db.from("clinics").select("is_demo, plan").eq("id", alvo).single()
+      expect(data).toEqual({ is_demo: false, plan: "starter" })
+      const { data: membros } = await db.from("clinic_members").select("user_id").eq("clinic_id", alvo)
+      expect(membros).toEqual([{ user_id: cliente.id }])
+    })
+
+    it("conta de fora da equipe para o vínculo", async () => {
+      const alvo = await criarClinica("Clínica vazia")
+      const deFora = await criarUsuario("de-fora", "fora.test")
+      await expect(
+        prepararContaDeDemonstracao(db, { clinicId: alvo, emailDoAdmin: deFora.email, dominioDaEquipe: EQUIPE }),
+      ).rejects.toThrow(/não é conta da equipe/)
+      await nadaEscrito(alvo)
+    })
+
     it("clínica ativa", async () => {
       // Ativar exige a identidade regulatória (trigger de update); nasce ativa.
       const { data: ativa, error } = await db
@@ -165,7 +191,7 @@ describe("prepararContaDeDemonstracao", () => {
       clinicas.push(ativa.id)
       const alvo = ativa.id as string
       const usuario = await criarUsuario("ativa")
-      await expect(prepararContaDeDemonstracao(db, { clinicId: alvo, emailDoAdmin: usuario.email })).rejects.toThrow(/ativa/)
+      await expect(prepararContaDeDemonstracao(db, { clinicId: alvo, emailDoAdmin: usuario.email, dominioDaEquipe: EQUIPE })).rejects.toThrow(/ativa/)
       const { data } = await db.from("clinics").select("is_demo, plan").eq("id", alvo).single()
       expect(data).toEqual({ is_demo: false, plan: "starter" })
     })
@@ -175,7 +201,7 @@ describe("prepararContaDeDemonstracao", () => {
       const { error } = await db.from("patients").insert({ clinic_id: alvo, whatsapp_phone_number: `+5500${Date.now()}`.slice(0, 14), name: "Paciente (teste)" })
       if (error) throw error
       const usuario = await criarUsuario("paciente")
-      await expect(prepararContaDeDemonstracao(db, { clinicId: alvo, emailDoAdmin: usuario.email })).rejects.toThrow(/paciente/)
+      await expect(prepararContaDeDemonstracao(db, { clinicId: alvo, emailDoAdmin: usuario.email, dominioDaEquipe: EQUIPE })).rejects.toThrow(/paciente/)
       await nadaEscrito(alvo)
     })
 
@@ -190,7 +216,7 @@ describe("prepararContaDeDemonstracao", () => {
       })
       if (error) throw error
       const usuario = await criarUsuario("conectada")
-      await expect(prepararContaDeDemonstracao(db, { clinicId: alvo, emailDoAdmin: usuario.email })).rejects.toThrow(/WhatsApp/)
+      await expect(prepararContaDeDemonstracao(db, { clinicId: alvo, emailDoAdmin: usuario.email, dominioDaEquipe: EQUIPE })).rejects.toThrow(/WhatsApp/)
       await nadaEscrito(alvo)
     })
   })
@@ -200,7 +226,7 @@ describe("prepararContaDeDemonstracao", () => {
     const usuario = await criarUsuario("staff")
     await db.from("clinic_members").insert({ clinic_id: outra, user_id: usuario.id, role: "staff" })
 
-    await prepararContaDeDemonstracao(db, { clinicId: outra, emailDoAdmin: usuario.email })
+    await prepararContaDeDemonstracao(db, { clinicId: outra, emailDoAdmin: usuario.email, dominioDaEquipe: EQUIPE })
 
     const { data } = await db.from("clinic_members").select("role").eq("clinic_id", outra).eq("user_id", usuario.id)
     expect(data).toEqual([{ role: "staff" }])
@@ -213,7 +239,7 @@ describe("prepararContaDeDemonstracao", () => {
     await db.from("clinic_members").insert({ clinic_id: deOutra, user_id: usuario.id, role: "owner" })
 
     await expect(
-      prepararContaDeDemonstracao(db, { clinicId: alvo, emailDoAdmin: usuario.email }),
+      prepararContaDeDemonstracao(db, { clinicId: alvo, emailDoAdmin: usuario.email, dominioDaEquipe: EQUIPE }),
     ).rejects.toThrow(/outra clínica/)
 
     const { data } = await db.from("clinics").select("is_demo, plan").eq("id", alvo).single()
@@ -223,12 +249,12 @@ describe("prepararContaDeDemonstracao", () => {
 
   it("recusa e-mail sem usuário e clínica inexistente", async () => {
     await expect(
-      prepararContaDeDemonstracao(db, { clinicId: clinica, emailDoAdmin: "ninguem@exemplo.test" }),
+      prepararContaDeDemonstracao(db, { clinicId: clinica, emailDoAdmin: "ninguem@exemplo.test", dominioDaEquipe: EQUIPE }),
     ).rejects.toThrow(/usuário/i)
     await expect(
       prepararContaDeDemonstracao(db, {
         clinicId: "00000000-0000-0000-0000-000000000000",
-        emailDoAdmin: adminDaPlataforma.email,
+        emailDoAdmin: adminDaPlataforma.email, dominioDaEquipe: EQUIPE,
       }),
     ).rejects.toThrow(/clínica/i)
   })
