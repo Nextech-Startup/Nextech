@@ -80,6 +80,7 @@ export function FichaDoPaciente({
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <Cartao
+          className="self-start"
           titulo="Histórico de contato"
           descricao="Por onde o paciente passou. O conteúdo das mensagens fica só na conversa."
         >

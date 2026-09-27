@@ -9,13 +9,48 @@ export const metadata: Metadata = {
 }
 
 const TELAS = [
-  { slug: "conversas", nome: "Conversas", entrega: "motor de conversa (fase 3b)" },
-  { slug: "pacientes", nome: "Pacientes", entrega: "tela de pacientes" },
-  { slug: "agenda", nome: "Agenda", entrega: "agendamento (fase 5)" },
-  { slug: "sequencias", nome: "Sequências", entrega: "sequências (fase 4)" },
-  { slug: "templates", nome: "Templates", entrega: "templates do WhatsApp (fase 4)" },
-  { slug: "equipe", nome: "Equipe e acessos", entrega: "convite de equipe por e-mail" },
-  { slug: "cobranca", nome: "Plano e cobrança", entrega: "cobrança (fase 7)" },
+  {
+    slug: "conversas",
+    nome: "Conversas",
+    mostra: "Fila por prioridade, janela de 24h da Meta, passar para humano e devolver, notas internas",
+    entrega: "motor de conversa (fase 3b)",
+  },
+  {
+    slug: "pacientes",
+    nome: "Pacientes",
+    mostra: "Busca e recortes; ficha com consentimento, opt-out, convênio e histórico de contato",
+    entrega: "tela de pacientes (o dado já existe)",
+  },
+  {
+    slug: "agenda",
+    nome: "Agenda",
+    mostra: "Dia por profissional e semana, com conflitos visíveis antes de confirmar",
+    entrega: "agendamento (fase 5)",
+  },
+  {
+    slug: "templates",
+    nome: "Templates",
+    mostra: "Categoria e custo, variáveis validadas, motivo de rejeição da Meta e prévia no WhatsApp",
+    entrega: "templates do WhatsApp (fase 4)",
+  },
+  {
+    slug: "sequencias",
+    nome: "Sequências",
+    mostra: "Gatilho, passos com atraso e template aprovado, inscritos e motivo de parada",
+    entrega: "sequências (fase 4)",
+  },
+  {
+    slug: "equipe",
+    nome: "Equipe e acessos",
+    mostra: "Pessoas, convites com expiração, matriz de capacidades e alterações de acesso",
+    entrega: "convite de equipe por e-mail",
+  },
+  {
+    slug: "cobranca",
+    nome: "Plano e cobrança",
+    mostra: "Os dois limites do plano (atendimentos e agentes), próxima cobrança e faturas",
+    entrega: "cobrança (fase 7)",
+  },
 ] as const
 
 /**
@@ -39,6 +74,7 @@ export default function PrototiposPage() {
             >
               <div className="grid gap-0.5">
                 <p className="text-sm font-medium text-ink-1">{t.nome}</p>
+                <p className="text-sm text-ink-2">{t.mostra}</p>
                 <p className="text-xs text-ink-3">Entra no ar com: {t.entrega}</p>
               </div>
               <ChevronRight aria-hidden="true" className="size-4 text-ink-3" />
