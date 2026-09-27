@@ -26,7 +26,8 @@ type LinhaRegistrada = { conversation_id: string; message_id: string; inserted: 
  * (`phone_number_id` → agente → clínica) e vai explícito em toda escrita,
  * porque o client de `service_role` ignora RLS.
  *
- * `null`: o número não é de nenhum agente nosso, e nada é gravado.
+ * `null`: o número não é de nenhum agente nosso, ou o WABA da Meta diverge
+ * do cadastrado no agente, e nada é gravado.
  */
 export async function receberMensagem(
   m: MensagemDoWebhook,
@@ -36,11 +37,19 @@ export async function receberMensagem(
   // `whatsapp_phone_number_id` é UNIQUE global: no máximo um agente.
   const { data: agente, error: erroAgente } = await supabase
     .from("agents")
-    .select("id, clinic_id, status")
+    .select("id, clinic_id, status, whatsapp_waba_id")
     .eq("whatsapp_phone_number_id", m.phoneNumberId)
     .maybeSingle()
   if (erroAgente) throw erroAgente
   if (!agente) return null
+
+  // O `phone_number_id` foi digitado na conexão, sem prova de posse. Se a
+  // Meta diz que o número é de outro WABA, a mensagem não é deste agente.
+  // A prova de posse na própria conexão chega com o client da Meta.
+  if (agente.whatsapp_waba_id !== m.wabaId) {
+    console.warn("[whatsapp-webhook]", { etapa: "waba-divergente" })
+    return null
+  }
 
   const clinicId: string = agente.clinic_id
 

@@ -31,6 +31,9 @@ const WABA = `8${SUFIXO}`
 // Outro WABA, com um agente só, para o reenvio que refaz a pausa.
 const PHONE_OUTRO_WABA = `9${SUFIXO}3`
 const OUTRO_WABA = `6${SUFIXO}`
+// Segunda clínica, para o isolamento no caminho de escrita (service_role).
+const PHONE_B = `9${SUFIXO}4`
+const WABA_B = `5${SUFIXO}`
 const T0 = 1790000000 // 2026-09-21T14:13:20Z
 
 const envOriginal = {
@@ -39,6 +42,7 @@ const envOriginal = {
 }
 
 let clinica: string
+let clinicaB: string | undefined
 let agenteAtivo: string
 let agentePausado: string
 let agenteDoOutroWaba: string
@@ -71,6 +75,7 @@ async function postar(payload: unknown, assinatura?: string | null) {
 
 function doPaciente(waId: string, corpos: Array<[number, string | Record<string, unknown>]>, nome?: string | null) {
   return webhookDeMensagens({
+    wabaId: WABA,
     phoneNumberId: PHONE,
     waId,
     nome,
@@ -167,6 +172,24 @@ beforeAll(async () => {
     .single()
   if (e4) throw e4
   agenteDoOutroWaba = o.id
+
+  const { data: b, error: e5 } = await admin
+    .from("clinics")
+    .insert({ legal_name: "Clínica B do webhook (teste)", status: "draft" })
+    .select("id")
+    .single()
+  if (e5) throw e5
+  clinicaB = b.id
+  const { error: e6 } = await admin.from("agents").insert({
+    clinic_id: clinicaB,
+    specialty: "odontologia",
+    name: "Recepção B",
+    whatsapp_waba_id: WABA_B,
+    whatsapp_phone_number_id: PHONE_B,
+    whatsapp_access_token_encrypted: "blob-de-teste",
+    status: "active",
+  })
+  if (e6) throw e6
 })
 
 afterAll(async () => {
@@ -177,10 +200,13 @@ afterAll(async () => {
     if (valor === undefined) delete process.env[nome]
     else process.env[nome] = valor
   }
-  if (!clinica) return
   // Pacientes, conversas, mensagens, sessões e eventos caem em cascata.
-  await admin.from("agents").delete().eq("clinic_id", clinica)
-  await admin.from("clinics").delete().eq("id", clinica)
+  // Cada clínica por si: se o beforeAll parou no meio, a que existe sai.
+  for (const id of [clinica, clinicaB]) {
+    if (!id) continue
+    await admin.from("agents").delete().eq("clinic_id", id)
+    await admin.from("clinics").delete().eq("id", id)
+  }
 })
 
 describe("handshake e validação", () => {
@@ -295,6 +321,7 @@ describe("mensagem do paciente (conversation-engine-v1, recepção)", () => {
   it("mensagem para agente pausado fica registrada", async () => {
     const waId = novoWaId()
     const payload = webhookDeMensagens({
+      wabaId: WABA,
       phoneNumberId: PHONE_PAUSADO,
       waId,
       mensagens: [mensagem(wamid(), T0, "oi")],
@@ -338,11 +365,64 @@ describe("mensagem do paciente (conversation-engine-v1, recepção)", () => {
   })
 })
 
+describe("isolamento entre clínicas no caminho de escrita", () => {
+  it("número cadastrado com WABA que a Meta não confirma não recebe nada", async () => {
+    const waId = novoWaId()
+    const espiao = vi.spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      const payload = webhookDeMensagens({
+        wabaId: WABA_B,
+        phoneNumberId: PHONE,
+        waId,
+        mensagens: [mensagem(wamid(), T0, "oi")],
+      })
+      expect((await postar(payload)).status).toBe(200)
+      expect(espiao).toHaveBeenCalledWith("[whatsapp-webhook]", { etapa: "waba-divergente" })
+    } finally {
+      espiao.mockRestore()
+    }
+    expect(await paciente(waId)).toBeNull()
+  })
+
+  it("o mesmo paciente escrevendo para duas clínicas vira dois cadastros, cada um cifrado para a sua", async () => {
+    const waId = novoWaId()
+    await postar(doPaciente(waId, [[T0, "mensagem para A"]]))
+    await postar(
+      webhookDeMensagens({
+        wabaId: WABA_B,
+        phoneNumberId: PHONE_B,
+        waId,
+        mensagens: [mensagem(wamid(), T0, "mensagem para B")],
+      }),
+    )
+
+    const { data: cadastros } = await admin
+      .from("patients")
+      .select("clinic_id")
+      .eq("whatsapp_phone_number", `+${waId}`)
+    expect(cadastros!.map((c) => c.clinic_id).sort()).toEqual([clinica, clinicaB].sort())
+
+    const deA = await mensagens((await conversa(waId)).id)
+    expect(deA).toHaveLength(1)
+    expect(decifrarConteudo(clinica, deA[0].content_encrypted)).toBe("mensagem para A")
+    // O blob de A não abre com a clínica de B: o AAD amarra à clínica.
+    expect(() => decifrarConteudo(clinicaB!, deA[0].content_encrypted)).toThrow()
+
+    const { data: deB } = await admin
+      .from("messages")
+      .select("content_encrypted")
+      .eq("clinic_id", clinicaB!)
+    expect(deB).toHaveLength(1)
+    expect(decifrarConteudo(clinicaB!, deB![0].content_encrypted)).toBe("mensagem para B")
+  })
+})
+
 describe("eco da coexistência (conversation-engine-v1, comportamento 2)", () => {
   it("resposta pelo app passa a conversa para humano sem tocar na janela nem na sessão", async () => {
     const waId = novoWaId()
     await postar(doPaciente(waId, [[T0, "oi"]]))
     const eco = webhookDeEcos({
+      wabaId: WABA,
       phoneNumberId: PHONE,
       waId,
       ecos: [mensagem(wamid(), T0 + 60, "Pode vir às 15h")],
@@ -364,7 +444,12 @@ describe("eco da coexistência (conversation-engine-v1, comportamento 2)", () =>
   it("eco para quem nunca escreveu cria paciente sem nome e conversa humana, sem sessão", async () => {
     const waId = novoWaId()
     await postar(
-      webhookDeEcos({ phoneNumberId: PHONE, waId, ecos: [mensagem(wamid(), T0, "Olá, aqui é da clínica")] }),
+      webhookDeEcos({
+        wabaId: WABA,
+        phoneNumberId: PHONE,
+        waId,
+        ecos: [mensagem(wamid(), T0, "Olá, aqui é da clínica")],
+      }),
     )
     expect((await paciente(waId))!.name).toBeNull()
     const c = await conversa(waId)

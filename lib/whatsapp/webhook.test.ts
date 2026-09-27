@@ -29,6 +29,7 @@ describe("mensagem do paciente", () => {
       {
         tipo: "mensagem",
         autor: "patient",
+        wabaId: WABA_ID,
         phoneNumberId: PHONE,
         waMessageId: "wamid.1",
         waIdDoPaciente: WA_ID,
@@ -102,6 +103,7 @@ describe("eco da coexistência", () => {
     expect(eco).toMatchObject({
       tipo: "mensagem",
       autor: "human",
+      wabaId: WABA_ID,
       waIdDoPaciente: WA_ID,
       nomeDoPerfil: null,
       texto: "Pode vir às 15h",
@@ -158,6 +160,16 @@ describe("o que não é mensagem nem evento de conta", () => {
       mensagens: [mensagem("wamid.ok", T, "oi"), mensagem("", T, "sem id")],
     })
     expect(interpretarWebhook(payload)).toHaveLength(1)
+  })
+
+  it("pula a mensagem da entrada sem WABA, que não teria como ser conferida", () => {
+    const payload = webhookDeMensagens({
+      phoneNumberId: PHONE,
+      waId: WA_ID,
+      mensagens: [mensagem("wamid.1", T, "oi")],
+    })
+    delete (payload.entry[0] as { id?: string }).id
+    expect(interpretarWebhook(payload)).toEqual([])
   })
 
   it("pula a mensagem com carimbo inválido", () => {

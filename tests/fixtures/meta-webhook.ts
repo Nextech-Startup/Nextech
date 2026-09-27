@@ -33,12 +33,13 @@ function metadata(phoneNumberId: string) {
 
 /** Campo `messages`: o paciente escreveu. `nome: null` omite `contacts`. */
 export function webhookDeMensagens(p: {
+  wabaId?: string
   phoneNumberId: string
   waId: string
   nome?: string | null
   mensagens: MensagemBruta[]
 }) {
-  return envelope(WABA_ID, "messages", {
+  return envelope(p.wabaId ?? WABA_ID, "messages", {
     messaging_product: "whatsapp",
     metadata: metadata(p.phoneNumberId),
     contacts: p.nome === null ? [] : [{ profile: { name: p.nome ?? "Maria Souza" }, wa_id: p.waId }],
@@ -47,8 +48,13 @@ export function webhookDeMensagens(p: {
 }
 
 /** Campo `smb_message_echoes`: a clínica respondeu pelo app do celular. */
-export function webhookDeEcos(p: { phoneNumberId: string; waId: string; ecos: MensagemBruta[] }) {
-  return envelope(WABA_ID, "smb_message_echoes", {
+export function webhookDeEcos(p: {
+  wabaId?: string
+  phoneNumberId: string
+  waId: string
+  ecos: MensagemBruta[]
+}) {
+  return envelope(p.wabaId ?? WABA_ID, "smb_message_echoes", {
     messaging_product: "whatsapp",
     metadata: metadata(p.phoneNumberId),
     message_echoes: p.ecos.map((m) => ({

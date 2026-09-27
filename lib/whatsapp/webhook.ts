@@ -14,6 +14,12 @@ export type MensagemDoWebhook = {
   tipo: "mensagem"
   /** `patient`: o paciente escreveu. `human`: eco da coexistência, alguém da clínica respondeu pelo app. */
   autor: "patient" | "human"
+  /**
+   * WABA do `entry.id`. A recepção confere com o do agente: um número
+   * cadastrado por quem não é dono dele não recebe as mensagens de outro
+   * WABA.
+   */
+  wabaId: string
   phoneNumberId: string
   waMessageId: string
   /** `wa_id` do paciente, só dígitos, como a Meta manda. */
@@ -99,6 +105,7 @@ function conteudoDaMensagem(m: Bruto): { midia: MidiaDaMensagem; texto: string |
 }
 
 function mensagens(
+  wabaId: string,
   value: Bruto,
   chave: "messages" | "message_echoes",
   autor: MensagemDoWebhook["autor"],
@@ -127,6 +134,7 @@ function mensagens(
     saida.push({
       tipo: "mensagem",
       autor,
+      wabaId,
       phoneNumberId,
       waMessageId,
       waIdDoPaciente,
@@ -153,14 +161,16 @@ export function interpretarWebhook(payload: unknown): EventoDoWebhook[] {
   for (const e of lista(raiz.entry)) {
     const entry = objeto(e)
     if (!entry) continue
+    const wabaId = texto(entry.id)
     for (const c of lista(entry.changes)) {
       const change = objeto(c)
       const value = objeto(change?.value)
       if (!change || !value) continue
-      if (change.field === "messages") {
-        eventos.push(...mensagens(value, "messages", "patient"))
-      } else if (change.field === "smb_message_echoes") {
-        eventos.push(...mensagens(value, "message_echoes", "human"))
+      // Sem WABA, a mensagem não tem como ser conferida com o agente.
+      if (change.field === "messages" && wabaId) {
+        eventos.push(...mensagens(wabaId, value, "messages", "patient"))
+      } else if (change.field === "smb_message_echoes" && wabaId) {
+        eventos.push(...mensagens(wabaId, value, "message_echoes", "human"))
       } else if (change.field === "account_update") {
         const evento = eventoDeConta(entry, value)
         if (evento) eventos.push(evento)
