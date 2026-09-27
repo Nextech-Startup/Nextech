@@ -1,4 +1,7 @@
-import type { ClinicaDoPainel, ConsumoDaClinica } from "@/components/admin/tipos"
+import type { ClinicaDoPainel, ConexoesDoPainel, ConsumoDaClinica } from "@/components/admin/tipos"
+import { AGENTES } from "./agentes"
+import { INTEGRACOES } from "./integracoes"
+import { TEMPLATES } from "./templates"
 
 /**
  * As clínicas que a equipe Nextech acompanha. A Clínica Sorriso Recife é
@@ -33,4 +36,59 @@ export const CONSUMO: ConsumoDaClinica[] = [
   { ...clinica("cl-movimento"), ciclo: { usados: 380, ...SETEMBRO } },
   { ...clinica("cl-nutri"), ciclo: { usados: 38, ...SETEMBRO } },
   { ...clinica("cl-mente-serena"), ciclo: { usados: 2310, ...SETEMBRO } },
+]
+
+const conectado = (nome: string, numero: string, desde: string) =>
+  ({ nome, status: "active", conexao: "conectado", numero, desde }) as const
+
+/**
+ * A Sorriso Recife vem das fixtures da própria clínica: Implantes
+ * desconectado pela Meta às 12:31, Ortodontia em rascunho e os templates
+ * rejeitados de Templates. Nas outras, um caso de cada: agente ativo sem
+ * número (Pele Viva), templates rejeitados (Movimento) e onboarding sem
+ * número ainda (Nutri).
+ */
+export const CONEXOES: ConexoesDoPainel[] = [
+  {
+    ...clinica("cl-sorriso"),
+    agentes: INTEGRACOES.whatsapp.map((w) => ({
+      nome: w.agente,
+      status: AGENTES.find((a) => a.id === w.agenteId)?.sinais.status ?? "draft",
+      conexao: w.conexao,
+      numero: w.numero,
+      desde: w.desde,
+    })),
+    templatesRejeitados: TEMPLATES.filter((t) => t.status === "rejected").length,
+  },
+  {
+    ...clinica("cl-odonto-vida"),
+    agentes: [conectado("Atendimento", "+5581992340001", "2026-08-12T10:00:00-03:00")],
+    templatesRejeitados: 0,
+  },
+  {
+    ...clinica("cl-pele-viva"),
+    agentes: [
+      conectado("Estética facial", "+5581993450001", "2026-07-20T15:00:00-03:00"),
+      { nome: "Dermatologia", status: "active", conexao: "sem-numero", numero: null, desde: null },
+    ],
+    templatesRejeitados: 0,
+  },
+  {
+    ...clinica("cl-movimento"),
+    agentes: [conectado("Recepção Fisio", "+5581994560001", "2026-06-03T09:30:00-03:00")],
+    templatesRejeitados: 2,
+  },
+  {
+    ...clinica("cl-nutri"),
+    agentes: [{ nome: "Nutrição", status: "draft", conexao: "sem-numero", numero: null, desde: null }],
+    templatesRejeitados: 0,
+  },
+  {
+    ...clinica("cl-mente-serena"),
+    agentes: [
+      conectado("Acolhimento", "+5581995670001", "2026-05-18T11:00:00-03:00"),
+      conectado("Agendamento", "+5581995670002", "2026-05-18T11:20:00-03:00"),
+    ],
+    templatesRejeitados: 0,
+  },
 ]

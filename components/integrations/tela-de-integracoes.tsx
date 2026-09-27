@@ -14,6 +14,7 @@ import {
   ROTULO_DA_INTEGRACAO,
   ROTULO_DO_CRM,
   TOM_DA_INTEGRACAO,
+  desdeQuando,
   resumoDasIntegracoes,
 } from "./estado"
 import type { IntegracaoDeAgenda, IntegracaoDeCrm, PainelDeIntegracoes, WhatsappDoAgente } from "./tipos"
@@ -22,12 +23,6 @@ import type { IntegracaoDeAgenda, IntegracaoDeCrm, PainelDeIntegracoes, Whatsapp
 const COR_DO_MOTIVO: Partial<Record<Diagnostico["estado"], string>> = {
   erro: "text-danger-fg",
   atencao: "text-warning-fg",
-}
-
-/** "há 2 h", "desde ontem", "desde 9 set". */
-function desde(instante: string, agora: string): string {
-  const quando = tempoRelativo(instante, agora)
-  return quando.startsWith("há") || quando === "agora" ? quando : `desde ${quando}`
 }
 
 /**
@@ -163,7 +158,7 @@ function WhatsappDosAgentes({
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge tone={TOM_DA_INTEGRACAO[estado]}>{ROTULO_DA_CONEXAO[w.conexao]}</StatusBadge>
-                  {w.desde && <span className="text-xs text-ink-3">{desde(w.desde, agora)}</span>}
+                  {w.desde && <span className="text-xs text-ink-3">{desdeQuando(w.desde, agora)}</span>}
                 </div>
               </div>
               {w.conexao === "desconectado-pela-meta" && (

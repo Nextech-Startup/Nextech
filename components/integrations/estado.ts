@@ -1,4 +1,5 @@
 import type { StatusTone } from "@/components/patterns/status-badge"
+import { tempoRelativo } from "@/lib/formatters/data"
 import {
   diagnosticarIntegracao,
   estadoDoWhatsapp,
@@ -62,4 +63,10 @@ export function resumoDasIntegracoes(p: PainelDeIntegracoes, agora: string): Ite
   return itens
     .filter((i) => i.estado !== "desconectada")
     .sort((a, b) => GRAVIDADE[a.estado] - GRAVIDADE[b.estado])
+}
+
+/** Desde quando uma conexão está como está: "há 2 h", "desde ontem", "desde 9 set". */
+export function desdeQuando(instante: string, agora: string): string {
+  const quando = tempoRelativo(instante, agora)
+  return quando.startsWith("há") || quando === "agora" ? quando : `desde ${quando}`
 }
