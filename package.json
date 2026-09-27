@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed:clinic": "tsx scripts/seed-clinic.ts",
-    "seed:admin": "tsx scripts/seed-platform-admin.ts"
+    "seed:admin": "tsx scripts/seed-platform-admin.ts",
+    "demo:preparar": "tsx scripts/conta-demo.ts"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
