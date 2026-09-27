@@ -137,10 +137,13 @@ beforeAll(async () => {
 
 afterAll(async () => {
   // Conversas, mensagens, sessões e eventos caem em cascata com a clínica.
-  await admin.from("agents").delete().in("clinic_id", [A.id, B.id])
-  await admin.from("clinics").delete().in("id", [A.id, B.id])
-  await admin.auth.admin.deleteUser(A.usuario.id)
-  await admin.auth.admin.deleteUser(B.usuario.id)
+  // Cada uma por si: se o beforeAll parou em B, A ainda sai do banco.
+  for (const c of [A, B]) {
+    if (!c) continue
+    await admin.from("agents").delete().eq("clinic_id", c.id)
+    await admin.from("clinics").delete().eq("id", c.id)
+    await admin.auth.admin.deleteUser(c.usuario.id)
+  }
 })
 
 describe("isolamento por clínica (critério de aceite: RLS isola Conversation e Message)", () => {
@@ -170,47 +173,42 @@ describe("isolamento por clínica (critério de aceite: RLS isola Conversation e
 })
 
 describe("escrita só pelo webhook", () => {
-  it.each(TABELAS)("membro não insere em %s", async (tabela) => {
+  // Uma coluna que as constraints aceitam mudar: se a escrita estivesse
+  // liberada, o update entraria. O teste confere o valor, e não só o erro.
+  const ALTERACOES = [
+    { tabela: "conversations", coluna: "last_message_at", valor: "2030-01-01T00:00:00+00:00" },
+    { tabela: "messages", coluna: "occurred_at", valor: "2030-01-01T00:00:00+00:00" },
+    { tabela: "attendance_sessions", coluna: "ai_response_count", valor: 4 },
+    { tabela: "whatsapp_account_events", coluna: "occurred_at", valor: "2030-01-01T00:00:00+00:00" },
+  ] as const
+
+  async function retrato(tabela: string, coluna: string) {
+    const { data } = await admin.from(tabela).select(`id, ${coluna}`).eq("clinic_id", A.id).order("id")
+    return data!
+  }
+
+  it.each(TABELAS)("membro não insere em %s: a permissão é negada, não a linha", async (tabela) => {
     const client = await comoUsuario(A.usuario)
     const { error } = await client.from(tabela).insert({ clinic_id: A.id })
-    expect(error).not.toBeNull()
+    // 42501, e não 23502: sem o grant, nem chega a validar as colunas.
+    expect(error?.code).toBe("42501")
   })
 
-  it("membro não altera nem apaga a própria conversa", async () => {
+  it.each(ALTERACOES)("membro não altera $tabela", async ({ tabela, coluna, valor }) => {
+    const antes = await retrato(tabela, coluna)
+    expect(antes.length).toBeGreaterThanOrEqual(1)
     const client = await comoUsuario(A.usuario)
-    const alterada = await client
-      .from("conversations")
-      .update({ handled_by: "ai" })
-      .eq("id", A.conversa)
-      .select("id")
-    expect(alterada.data ?? []).toHaveLength(0)
-    const apagada = await client.from("conversations").delete().eq("id", A.conversa).select("id")
-    expect(apagada.data ?? []).toHaveLength(0)
-
-    const { data } = await admin
-      .from("conversations")
-      .select("handled_by")
-      .eq("id", A.conversa)
-      .single()
-    expect(data!.handled_by).toBe("human")
+    const { data } = await client.from(tabela).update({ [coluna]: valor }).eq("clinic_id", A.id).select("id")
+    expect(data ?? []).toHaveLength(0)
+    expect(await retrato(tabela, coluna)).toEqual(antes)
   })
 
-  it("membro não altera nem apaga mensagem", async () => {
+  it.each(TABELAS)("membro não apaga em %s", async (tabela) => {
+    const antes = await retrato(tabela, "clinic_id")
     const client = await comoUsuario(A.usuario)
-    const alterada = await client
-      .from("messages")
-      .update({ media_type: "text" })
-      .eq("clinic_id", A.id)
-      .select("id")
-    expect(alterada.data ?? []).toHaveLength(0)
-    const apagada = await client.from("messages").delete().eq("clinic_id", A.id).select("id")
-    expect(apagada.data ?? []).toHaveLength(0)
-
-    const { count } = await admin
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .eq("clinic_id", A.id)
-    expect(count).toBe(2)
+    const { data } = await client.from(tabela).delete().eq("clinic_id", A.id).select("id")
+    expect(data ?? []).toHaveLength(0)
+    expect(await retrato(tabela, "clinic_id")).toEqual(antes)
   })
 
   it("membro e anônimo não executam a função de registro", async () => {
@@ -226,6 +224,36 @@ describe("integridade entre clínicas", () => {
     const { error } = await admin
       .from("conversations")
       .insert({ clinic_id: A.id, agent_id: B.agente, patient_id: A.paciente, last_message_at: "2026-09-21T10:00:00Z" })
+    expect(error?.code).toBe("23503")
+  })
+
+  it("conversa não aceita paciente de outra clínica", async () => {
+    const { error } = await admin
+      .from("conversations")
+      .insert({ clinic_id: A.id, agent_id: A.agente, patient_id: B.paciente, last_message_at: "2026-09-21T10:00:00Z" })
+    expect(error?.code).toBe("23503")
+  })
+
+  it("sessão não aceita conversa de outra clínica", async () => {
+    // Fechada: uma aberta bateria antes no índice de uma aberta por conversa.
+    const { error } = await admin.from("attendance_sessions").insert({
+      clinic_id: A.id,
+      conversation_id: B.conversa,
+      started_at: "2026-09-21T10:00:00Z",
+      last_message_at: "2026-09-21T10:00:00Z",
+      status: "closed_by_timeout",
+      closed_at: "2026-09-21T10:20:00Z",
+    })
+    expect(error?.code).toBe("23503")
+  })
+
+  it("evento de conta não aceita agente de outra clínica", async () => {
+    const { error } = await admin.from("whatsapp_account_events").insert({
+      clinic_id: A.id,
+      agent_id: B.agente,
+      event: "ACCOUNT_RECONNECTED",
+      occurred_at: "2026-09-21T12:00:00Z",
+    })
     expect(error?.code).toBe("23503")
   })
 
@@ -251,6 +279,38 @@ describe("integridade entre clínicas", () => {
     const { data, error } = await registrar(admin, A, WAMID_COMPARTILHADO, "patient", "2026-09-21T10:00:00Z")
     expect(error).toBeNull()
     expect(data[0]).toMatchObject({ conversation_id: A.conversa, inserted: false })
+  })
+
+  it("registros simultâneos da mesma mensagem: uma linha, uma sessão e um só inserted", async () => {
+    const { data: p, error: e } = await admin
+      .from("patients")
+      .insert({ clinic_id: A.id, whatsapp_phone_number: `+55009${String(Date.now()).slice(-8)}` })
+      .select("id")
+      .single()
+    if (e) throw e
+    const base = { id: A.id, agente: A.agente, paciente: p.id }
+    const wamid = `wamid.corrida.${Date.now()}`
+
+    const resultados = await Promise.all(
+      Array.from({ length: 8 }, () => registrar(admin, base, wamid, "patient", "2026-09-21T13:00:00Z")),
+    )
+    expect(resultados.map((r) => r.error)).toEqual(Array(8).fill(null))
+    expect(resultados.filter((r) => r.data[0].inserted)).toHaveLength(1)
+    const conversas = new Set(resultados.map((r) => r.data[0].conversation_id))
+    expect(conversas.size).toBe(1)
+
+    const [conversa] = [...conversas]
+    const { count: linhas } = await admin
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("clinic_id", A.id)
+      .eq("wa_message_id", wamid)
+    expect(linhas).toBe(1)
+    const { count: sessoes } = await admin
+      .from("attendance_sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("conversation_id", conversa)
+    expect(sessoes).toBe(1)
   })
 
   it("a função recusa resposta da IA, que chega na parte 2", async () => {
@@ -328,6 +388,7 @@ describe("redação do conteúdo no direito de exclusão (LGPD)", () => {
       .from("messages")
       .select("content_encrypted, content_redacted_at")
       .eq("clinic_id", A.id)
+      .eq("conversation_id", A.conversa)
     expect(deA!.every((m) => m.content_encrypted === null && m.content_redacted_at !== null)).toBe(true)
     expect(await conteudos(B.id)).toEqual([
       { content_encrypted: "blob-de-teste", content_redacted_at: null },

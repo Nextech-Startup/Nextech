@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest"
+import { inspect } from "node:util"
 import { createClient } from "@supabase/supabase-js"
 import { GET, POST } from "@/app/api/whatsapp/webhook/route"
 import { decifrarConteudo } from "@/lib/conversations/conteudo"
+import { receberMensagem } from "@/lib/conversations/recepcao"
+import { interpretarWebhook, type MensagemDoWebhook } from "@/lib/whatsapp/webhook"
 import {
   assinar,
   mensagem,
@@ -9,6 +12,7 @@ import {
   webhookDeEcos,
   webhookDeMensagens,
 } from "@/tests/fixtures/meta-webhook"
+import { logPermitido, restaurarEnv } from "./log"
 
 /**
  * Recepção de ponta a ponta contra o banco real, com o mock da Meta:
@@ -48,10 +52,13 @@ let agentePausado: string
 let agenteDoOutroWaba: string
 let sequencia = 0
 
-/** Um número de paciente por caso: cada um começa sem histórico. */
+/**
+ * Um número de paciente por caso: cada um começa sem histórico. DDD 00 não
+ * existe, então nunca colide com um número real do banco compartilhado.
+ */
 function novoWaId(): string {
   sequencia += 1
-  return `55819${SUFIXO.slice(-4)}${String(sequencia).padStart(4, "0")}`
+  return `5500${SUFIXO.slice(-6)}${String(sequencia).padStart(3, "0")}`
 }
 
 let wamids = 0
@@ -129,8 +136,8 @@ beforeAll(async () => {
 
   const { data: c, error: e1 } = await admin
     .from("clinics")
-    // 'pro' para caber os dois agentes do mesmo WABA.
-    .insert({ legal_name: "Clínica do webhook (teste)", status: "draft", plan: "pro" })
+    // 'healthtech', sem limite de agentes: cada cenário de conta tem o seu.
+    .insert({ legal_name: "Clínica do webhook (teste)", status: "draft", plan: "healthtech" })
     .select("id")
     .single()
   if (e1) throw e1
@@ -193,13 +200,8 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  for (const [nome, valor] of [
-    ["WHATSAPP_APP_SECRET", envOriginal.segredo],
-    ["WHATSAPP_WEBHOOK_VERIFY_TOKEN", envOriginal.token],
-  ] as const) {
-    if (valor === undefined) delete process.env[nome]
-    else process.env[nome] = valor
-  }
+  restaurarEnv("WHATSAPP_APP_SECRET", envOriginal.segredo)
+  restaurarEnv("WHATSAPP_WEBHOOK_VERIFY_TOKEN", envOriginal.token)
   // Pacientes, conversas, mensagens, sessões e eventos caem em cascata.
   // Cada clínica por si: se o beforeAll parou no meio, a que existe sai.
   for (const id of [clinica, clinicaB]) {
@@ -225,6 +227,18 @@ describe("handshake e validação", () => {
     expect((await postar(payload, null)).status).toBe(401)
     expect((await postar(payload, assinar(JSON.stringify(payload), "outro"))).status).toBe(401)
     expect(await paciente(waId)).toBeNull()
+  })
+
+  it("sem o segredo do app na env, responde 500 e loga só a etapa", async () => {
+    const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
+    try {
+      delete process.env.WHATSAPP_APP_SECRET
+      expect((await postar(doPaciente(novoWaId(), [[T0, "oi"]]))).status).toBe(500)
+      expect(espiao).toHaveBeenCalledWith("[whatsapp-webhook]", { etapa: "configuracao" })
+    } finally {
+      process.env.WHATSAPP_APP_SECRET = SEGREDO
+      espiao.mockRestore()
+    }
   })
 
   it("recusa JSON inválido, mesmo assinado", async () => {
@@ -365,6 +379,139 @@ describe("mensagem do paciente (conversation-engine-v1, recepção)", () => {
   })
 })
 
+describe("ordem, fronteira e carimbos", () => {
+  it("mensagem atrasada entra no histórico sem voltar os carimbos", async () => {
+    const waId = novoWaId()
+    await postar(doPaciente(waId, [[T0 + 300, "segunda"]]))
+    await postar(doPaciente(waId, [[T0, "primeira, atrasada"]]))
+
+    const c = await conversa(waId)
+    expect(instante(c.last_inbound_at)).toBe(iso(T0 + 300))
+    expect(instante(c.last_message_at)).toBe(iso(T0 + 300))
+    const lista = await mensagens(c.id)
+    expect(lista.map((m) => decifrarConteudo(clinica, m.content_encrypted))).toEqual([
+      "primeira, atrasada",
+      "segunda",
+    ])
+    const [s] = await sessoes(c.id)
+    expect(instante(s.last_message_at)).toBe(iso(T0 + 300))
+  })
+
+  it("20 min exatos continuam a sessão; 20 min e 1 s abrem outra", async () => {
+    const noLimite = novoWaId()
+    await postar(doPaciente(noLimite, [[T0, "oi"]]))
+    await postar(doPaciente(noLimite, [[T0 + 1200, "ainda aqui"]]))
+    expect(await sessoes((await conversa(noLimite)).id)).toHaveLength(1)
+
+    const passou = novoWaId()
+    await postar(doPaciente(passou, [[T0, "oi"]]))
+    await postar(doPaciente(passou, [[T0 + 1201, "voltei"]]))
+    const [anterior, nova] = await sessoes((await conversa(passou)).id)
+    expect(anterior.status).toBe("closed_by_timeout")
+    expect(instante(anterior.closed_at)).toBe(iso(T0 + 1200))
+    expect(nova.status).toBe("open")
+  })
+
+  it("depois do eco, o paciente escrever não devolve a conversa para a IA", async () => {
+    // A retomada por inatividade de 24h é decisão da parte 2, não da recepção.
+    const waId = novoWaId()
+    await postar(doPaciente(waId, [[T0, "oi"]]))
+    await postar(
+      webhookDeEcos({ wabaId: WABA, phoneNumberId: PHONE, waId, ecos: [mensagem(wamid(), T0 + 60, "Pode vir às 15h")] }),
+    )
+    await postar(doPaciente(waId, [[T0 + 120, "combinado"]]))
+
+    const c = await conversa(waId)
+    expect(c.handled_by).toBe("human")
+    expect(instante(c.human_took_over_at)).toBe(iso(T0 + 60))
+    expect(instante(c.last_inbound_at)).toBe(iso(T0 + 120))
+  })
+
+  it("o reenvio regrava o último contato; o eco não mexe nele", async () => {
+    const waId = novoWaId()
+    const payload = doPaciente(waId, [[T0, "oi"]])
+    await postar(payload)
+    const antigo = "2020-01-01T00:00:00.000Z"
+    const envelhecer = () =>
+      admin
+        .from("patients")
+        .update({ last_contact_at: antigo })
+        .eq("clinic_id", clinica)
+        .eq("whatsapp_phone_number", `+${waId}`)
+
+    // A primeira tentativa gravou a mensagem e caiu antes do último contato.
+    await envelhecer()
+    await postar(payload)
+    expect(instante((await paciente(waId))!.last_contact_at)).not.toBe(antigo)
+
+    await envelhecer()
+    await postar(
+      webhookDeEcos({ wabaId: WABA, phoneNumberId: PHONE, waId, ecos: [mensagem(wamid(), T0 + 60, "ok")] }),
+    )
+    expect(instante((await paciente(waId))!.last_contact_at)).toBe(antigo)
+  })
+
+  it("o nome do perfil só entra no primeiro contato", async () => {
+    const waId = novoWaId()
+    await postar(doPaciente(waId, [[T0, "oi"]], "Joana Lima"))
+    await postar(doPaciente(waId, [[T0 + 60, "oi de novo"]], "Jo"))
+    expect((await paciente(waId))!.name).toBe("Joana Lima")
+  })
+
+  it("várias mensagens no mesmo POST, com imagem e legenda cifrada", async () => {
+    const waId = novoWaId()
+    const res = await postar(
+      doPaciente(waId, [
+        [T0, "segue o pedido"],
+        [T0 + 1, { type: "image", image: { id: "m2", caption: "pedido médico" } }],
+      ]),
+    )
+    expect(res.status).toBe(200)
+    const lista = await mensagens((await conversa(waId)).id)
+    expect(lista.map((m) => m.media_type)).toEqual(["text", "image"])
+    expect(lista[1].content_encrypted).not.toContain("pedido")
+    expect(decifrarConteudo(clinica, lista[1].content_encrypted)).toBe("pedido médico")
+  })
+})
+
+describe("contrato com a parte 2 (ResultadoDaRecepcao)", () => {
+  const umaMensagem = (payload: unknown) => interpretarWebhook(payload)[0] as MensagemDoWebhook
+
+  it("devolve a conversa, a mensagem, se é nova, o autor e se o agente atende", async () => {
+    const waId = novoWaId()
+    const m = umaMensagem(doPaciente(waId, [[T0, "oi"]]))
+
+    const primeira = await receberMensagem(m)
+    expect(primeira).toMatchObject({ nova: true, autor: "patient", agenteAtivo: true })
+    const c = await conversa(waId)
+    expect(primeira!.conversationId).toBe(c.id)
+    expect((await mensagens(c.id))[0].id).toBe(primeira!.messageId)
+
+    expect(await receberMensagem(m)).toEqual({ ...primeira, nova: false })
+
+    const eco = umaMensagem(
+      webhookDeEcos({ wabaId: WABA, phoneNumberId: PHONE, waId, ecos: [mensagem(wamid(), T0 + 60, "ok")] }),
+    )
+    expect(await receberMensagem(eco)).toMatchObject({
+      autor: "human",
+      nova: true,
+      conversationId: c.id,
+    })
+  })
+
+  it("agente pausado: registra e avisa que não atende", async () => {
+    const m = umaMensagem(
+      webhookDeMensagens({
+        wabaId: WABA,
+        phoneNumberId: PHONE_PAUSADO,
+        waId: novoWaId(),
+        mensagens: [mensagem(wamid(), T0, "oi")],
+      }),
+    )
+    expect(await receberMensagem(m)).toMatchObject({ nova: true, agenteAtivo: false })
+  })
+})
+
 describe("isolamento entre clínicas no caminho de escrita", () => {
   it("número cadastrado com WABA que a Meta não confirma não recebe nada", async () => {
     const waId = novoWaId()
@@ -495,6 +642,43 @@ describe("eventos de conta (edge case ACCOUNT_OFFBOARDED)", () => {
     expect(await statusDe(agentePausado)).toBe("paused")
   })
 
+  it("reativação recusada pelo trigger de publicação: 200, pausado e log só com metadado", async () => {
+    const waba = `4${SUFIXO}`
+    const { data: agente, error } = await admin
+      .from("agents")
+      .insert({
+        clinic_id: clinica,
+        specialty: "odontologia",
+        name: "Unidade 4",
+        whatsapp_waba_id: waba,
+        whatsapp_phone_number_id: `9${SUFIXO}5`,
+        whatsapp_access_token_encrypted: "blob-de-teste",
+        status: "active",
+      })
+      .select("id")
+      .single()
+    if (error) throw error
+
+    await postar(webhookDeConta({ wabaId: waba, evento: "ACCOUNT_OFFBOARDED", time: T0 + 40_000 }))
+    expect(await statusDe(agente.id)).toBe("paused")
+    // A credencial some enquanto a conta está desconectada.
+    await admin.from("agents").update({ whatsapp_access_token_encrypted: null }).eq("id", agente.id)
+
+    const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
+    try {
+      const reconexao = webhookDeConta({ wabaId: waba, evento: "ACCOUNT_RECONNECTED", time: T0 + 50_000 })
+      expect((await postar(reconexao)).status).toBe(200)
+      expect(espiao).toHaveBeenCalledWith("[whatsapp-webhook]", {
+        etapa: "reativar-agente",
+        tipo: "postgrest",
+        codigo: "NX002",
+      })
+    } finally {
+      espiao.mockRestore()
+    }
+    expect(await statusDe(agente.id)).toBe("paused")
+  })
+
   it("reenvio refaz a pausa que falhou depois do registro", async () => {
     // Estado de uma primeira tentativa que gravou o registro e caiu antes
     // de pausar: a rota devolveu 500, e a Meta vai reenviar.
@@ -518,7 +702,7 @@ describe("eventos de conta (edge case ACCOUNT_OFFBOARDED)", () => {
 })
 
 describe("LGPD: falha não vaza conteúdo (critério de aceite)", () => {
-  it("responde 500 sem logar texto, telefone nem nome, e o reenvio recupera", async () => {
+  it("responde 500 sem logar texto, telefone nem nome, sem gravar pela metade, e o reenvio recupera", async () => {
     const espioes = [
       vi.spyOn(console, "error").mockImplementation(() => {}),
       vi.spyOn(console, "warn").mockImplementation(() => {}),
@@ -533,13 +717,18 @@ describe("LGPD: falha não vaza conteúdo (critério de aceite)", () => {
       delete process.env.MESSAGE_CONTENT_ENCRYPTION_KEY
       expect((await postar(payload)).status).toBe(500)
 
-      const logado = JSON.stringify(espioes.flatMap((e) => e.mock.calls))
-      expect(logado).toContain("whatsapp-webhook")
+      const chamadas = espioes.flatMap((e) => e.mock.calls)
+      expect(chamadas.length).toBeGreaterThanOrEqual(1)
+      for (const chamada of chamadas) expect(logPermitido(chamada)).toBe(true)
+      // `inspect` inclui `message` e `stack`, que o JSON.stringify descarta.
+      const logado = inspect(chamadas, { depth: 10 })
       expect(logado).not.toContain("dor forte")
       expect(logado).not.toContain(waId)
       expect(logado).not.toContain("Carla")
+      // A cifra vem antes de qualquer escrita: nem o paciente foi criado.
+      expect(await paciente(waId)).toBeNull()
     } finally {
-      process.env.MESSAGE_CONTENT_ENCRYPTION_KEY = chave
+      restaurarEnv("MESSAGE_CONTENT_ENCRYPTION_KEY", chave)
       espioes.forEach((e) => e.mockRestore())
     }
 

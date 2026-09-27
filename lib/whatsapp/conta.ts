@@ -88,7 +88,9 @@ async function aplicarAoAgente(e: EventoDeContaDoWebhook, agente: Agente): Promi
   // Meta reenviar.
   if (novoStatus === "paused") throw erroStatus
 
-  // Reativar pode ser recusado pelo trigger de publicação ou pelo limite do
-  // plano. O agente fica pausado, e reenviar não mudaria a recusa.
+  // Reativar pode ser recusado pelo trigger de publicação: a credencial ou
+  // o número sumiram enquanto a conta estava desconectada. O limite do plano
+  // não entra aqui, porque o trigger dele só roda na criação. O agente fica
+  // pausado, e reenviar não mudaria a recusa.
   console.error("[whatsapp-webhook]", { etapa: "reativar-agente", ...erroParaLog(erroStatus) })
 }
