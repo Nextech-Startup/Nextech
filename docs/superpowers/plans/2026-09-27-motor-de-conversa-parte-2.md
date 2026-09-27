@@ -2,7 +2,44 @@
 
 > **Para quem executa:** SUB-SKILL OBRIGATÓRIA: `superpowers:executing-plans`, tarefa por tarefa, sem subagentes. Carregue `supabase-postgres-best-practices` antes da tarefa 6. Os passos usam checkbox (`- [ ]`).
 
-## Status da execução: ⬜ não iniciado
+## Status da execução: ✅ concluído em 2026-09-27
+
+- **Feito:** tarefas 1 a 10, mais a 9b (achados das revisões), na `staging` local, sem push. Os commits vão de `352331e` (plano) até o `docs:` que fecha a parte, passando por `24ba02a`, `951a367`, `cd8414d`, `e82dfc4`, `dd4f8a1`, `9ec57d3`, `5978fc4`, `991605d` e `924db17` (tarefas 1 a 9) e por `4112e74`, `9f709b7`, `a00ddb1` e `a85216f` (tarefa 9b).
+- **Banco:** quatro migrations aplicadas com `supabase db push`, conferidas uma a uma com `--dry-run`. O banco tem 15.
+  - `20260927150000_ai_replies.sql`;
+  - `20260927151000_ai_replies_error_check.sql`: um check deixava passar com NULL; o teste de banco pegou;
+  - `20260927160000_ai_reply_revalidation.sql`: a reserva revalida sob trava;
+  - `20260927170000_ai_reply_lock_order.sql`: a ordem de trava é paciente, agente, conversa.
+- **Testes:** 1020 passando em 92 arquivos no `a00ddb1`, com o commit e a saída 0 gravados no próprio arquivo da suíte. Os testes afetados pelo `a85216f` passaram de novo, arquivo por arquivo. `tsc` limpo e `npm run build` passando.
+- **Revisões:**
+  - `security-reviewer`: revisão e conferência. B1 a B3 fechados, sem deadlock nos caminhos da aplicação; os dois resíduos da conferência entraram no `a85216f`;
+  - `qa-reviewer`: revisão. Todos os achados foram tratados no `a00ddb1`, mas **a conferência de QA sobre as correções não rodou** (ver abaixo).
+
+Ajustes feitos durante a execução, além do que o plano descrevia:
+
+| Tarefa | Ajuste | Por quê |
+|---|---|---|
+| 3 | O teste de "últimas mensagens" compara a lista de conteúdos, e não o texto juntado | `"p20"` contém `"p0"`: o `join` dava falso positivo |
+| 6 | Migration de correção `20260927151000` | `delivery_error_code is null or delivery_status = 'failed'` dá NULL com `delivery_status` nulo, e CHECK com NULL passa. Uma migration aplicada não se edita |
+| 7 | A orquestração usa `lerBusinessHours`, que já existia | O plano previa o parse direto com `businessHoursSchema` |
+| 7 | O histórico deixa de fora a resposta da IA `pending` ou `failed` | O modelo não pode achar que disse o que o paciente nunca leu |
+| 7 | O `enviar` falso do teste usa um contador global de ids da Meta | O id da Meta é único por clínica; um contador por execução repetia o id |
+| 9 | Meta sem configuração no servidor tem mensagem própria na conexão | "A Meta não confirmou estas credenciais" seria enganoso quando falta a env |
+| 9b | A decisão é tomada duas vezes: antes da geração, pela regra pura, e na reserva, sob trava | Achado B2 da segurança; ver a tarefa 9b |
+
+### O que a próxima sessão precisa saber
+
+- **Próxima etapa:** parte 3 da 3b, com urgência, opt-out, qualificação e o cron de timeout da sessão. Ainda não tem plano.
+  - É pré-requisito do go-live: até ela, a IA responde sem triagem de urgência.
+  - O que já existe para ela: `detectarUrgencia()` e `listActiveUrgencyRules(clinicId)` em `lib/clinic-profile/`, e `patients.opted_out`.
+  - Ela entra antes da chamada ao modelo em `lib/conversations/resposta.ts`, e a urgência precisa passar pela revalidação da reserva (`is_urgent` já é conferido lá).
+- **Pendente da parte 2:** a conferência de QA sobre as correções (`a00ddb1` e `a85216f`) não rodou. A suíte inteira passou (1020). Vale pedir ao `qa-reviewer` uma conferência curta no começo da próxima sessão, rodando os arquivos de banco um de cada vez.
+- **O cron da parte 3 também deve varrer as respostas que ficaram `pending`**, quando a confirmação falhou depois do envio.
+- **Teste de banco:**
+  - um login por usuário por arquivo;
+  - arquivos de banco um de cada vez quando outra rodada estiver em curso, pelo limite do Supabase Auth;
+  - a suíte inteira grava o commit e o código de saída no próprio arquivo: `| tail` mascara o código de saída, e `| head` depois do `tsc` também.
+- **Migration e o código que a usa entram no mesmo commit.** Aplicar antes quebrou o commit anterior contra o banco compartilhado durante a revisão de QA.
 
 **Objetivo:** a mensagem do paciente que a parte 1 grava passa a ter resposta. A IA decide se responde (agente no ar, urgência, janela, humano atendendo, retomada em 24h), agrupa mensagens seguidas, gera a resposta pelo OpenRouter, envia pela Cloud API (contra mock), registra o custo e conta o atendimento. Falha da IA ou do envio passa a conversa para a equipe, sem mandar nada ao paciente. Entra também a prova de posse do número na conexão, a raiz do achado S1 da parte 1.
 
@@ -130,7 +167,7 @@ O Jhones autorizou seguir com a alternativa recomendada. Cada decisão abaixo fi
   - `EventoDeStatusDoWebhook`, que entra na união `EventoDoWebhook`;
   - `estadosQueAvancamPara(novo)`.
 
-- [ ] **Passo 1: fixture** (`tests/fixtures/meta-webhook.ts`)
+- [x] **Passo 1: fixture** (`tests/fixtures/meta-webhook.ts`)
 
 ```ts
 export type StatusBruto = {
@@ -150,7 +187,7 @@ export function webhookDeStatus(p: { wabaId?: string; phoneNumberId: string; sta
 }
 ```
 
-- [ ] **Passo 2: testes que falham.**
+- [x] **Passo 2: testes que falham.**
 
 Em `lib/whatsapp/webhook.test.ts`, o caso "ignora status de entrega" sai e entram estes, importando `webhookDeStatus`:
 
@@ -223,8 +260,8 @@ describe("estadosQueAvancamPara", () => {
 })
 ```
 
-- [ ] **Passo 3:** `npx vitest run lib/whatsapp/webhook.test.ts lib/conversations/entrega.test.ts`. Esperado: FALHA.
-- [ ] **Passo 4: implementação.**
+- [x] **Passo 3:** `npx vitest run lib/whatsapp/webhook.test.ts lib/conversations/entrega.test.ts`. Esperado: FALHA.
+- [x] **Passo 4: implementação.**
 
 `lib/whatsapp/webhook.ts`:
 
@@ -308,8 +345,8 @@ export function estadosQueAvancamPara(novo: StatusDeEntrega): EstadoDaEntrega[] 
 }
 ```
 
-- [ ] **Passo 5:** rodar de novo. Esperado: PASSA. O `route.ts` ainda não trata `tipo: "status"`: acrescentar, por ora, `else if (evento.tipo === "conta")` no laço, para o `tsc` passar sem mudar o comportamento. A tarefa 8 liga o status.
-- [ ] **Passo 6:** commit `feat(whatsapp): leitura do status de entrega e a ordem em que ele avança`.
+- [x] **Passo 5:** rodar de novo. Esperado: PASSA. O `route.ts` ainda não trata `tipo: "status"`: acrescentar, por ora, `else if (evento.tipo === "conta")` no laço, para o `tsc` passar sem mudar o comportamento. A tarefa 8 liga o status.
+- [x] **Passo 6:** commit `feat(whatsapp): leitura do status de entrega e a ordem em que ele avança`.
 
 ---
 
@@ -317,7 +354,7 @@ export function estadosQueAvancamPara(novo: StatusDeEntrega): EstadoDaEntrega[] 
 
 **Arquivos:** criar `lib/conversations/decisao.ts`, `lib/conversations/custo.ts` e os testes.
 
-- [ ] **Passo 1: testes que falham.**
+- [x] **Passo 1: testes que falham.**
 
 `lib/conversations/decisao.test.ts`:
 
@@ -419,8 +456,8 @@ describe("custoDaResposta (conversation-engine-v1, instrumentação de custo)", 
 })
 ```
 
-- [ ] **Passo 2:** rodar. Esperado: FALHA.
-- [ ] **Passo 3: implementação.**
+- [x] **Passo 2:** rodar. Esperado: FALHA.
+- [x] **Passo 3: implementação.**
 
 `lib/conversations/decisao.ts`:
 
@@ -501,8 +538,8 @@ export function custoDaResposta(p: { enviadaEm: string; ultimaDoPaciente: string
 }
 ```
 
-- [ ] **Passo 4:** rodar. Esperado: PASSA.
-- [ ] **Passo 5:** commit `feat(conversations): decisão de responder, retomada em 24h e custo da resposta como regra pura`.
+- [x] **Passo 4:** rodar. Esperado: PASSA.
+- [x] **Passo 5:** commit `feat(conversations): decisão de responder, retomada em 24h e custo da resposta como regra pura`.
 
 ---
 
@@ -510,7 +547,7 @@ export function custoDaResposta(p: { enviadaEm: string; ultimaDoPaciente: string
 
 **Arquivos:** criar `lib/agent-config/prompt.ts` e `lib/agent-config/prompt.test.ts`.
 
-- [ ] **Passo 1: teste que falha**
+- [x] **Passo 1: teste que falha**
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -608,8 +645,8 @@ describe("montarConversa", () => {
 })
 ```
 
-- [ ] **Passo 2:** rodar. Esperado: FALHA.
-- [ ] **Passo 3: implementação**
+- [x] **Passo 2:** rodar. Esperado: FALHA.
+- [x] **Passo 3: implementação**
 
 ```ts
 import { chaveDoDia, descreverDia, formatarHora } from "@/lib/formatters/data"
@@ -721,8 +758,8 @@ export function montarConversa(
 }
 ```
 
-- [ ] **Passo 4:** rodar. Esperado: PASSA. Se o texto de `ROTULO_DA_ESPECIALIDADE` ou de `HORARIO_PADRAO` não bater com o que o teste espera, o teste se ajusta ao valor real do schema, sem mudar o schema.
-- [ ] **Passo 5:** commit `feat(agent-config): system prompt e histórico da conversa para o modelo`.
+- [x] **Passo 4:** rodar. Esperado: PASSA. Se o texto de `ROTULO_DA_ESPECIALIDADE` ou de `HORARIO_PADRAO` não bater com o que o teste espera, o teste se ajusta ao valor real do schema, sem mudar o schema.
+- [x] **Passo 5:** commit `feat(agent-config): system prompt e histórico da conversa para o modelo`.
 
 ---
 
@@ -736,7 +773,7 @@ export function montarConversa(
   - `IaError` (`name = "IaError"`, `code`, `repetivel`);
   - `gerarResposta(mensagens, { fetch? }) → { texto, modelo, tokensDeEntrada, tokensDeSaida }`.
 
-- [ ] **Passo 1: testes que falham.**
+- [x] **Passo 1: testes que falham.**
 
 `lib/ai/retentativa.test.ts`:
 
@@ -884,8 +921,8 @@ describe("gerarResposta (OpenRouter)", () => {
 })
 ```
 
-- [ ] **Passo 2:** rodar. Esperado: FALHA.
-- [ ] **Passo 3: implementação.**
+- [x] **Passo 2:** rodar. Esperado: FALHA.
+- [x] **Passo 3: implementação.**
 
 `lib/ai/retentativa.ts`:
 
@@ -925,8 +962,8 @@ export async function comRetentativas<T>(
   5. Devolve `{ texto, modelo: json.model ?? model, tokensDeEntrada: usage?.prompt_tokens ?? null, tokensDeSaida: usage?.completion_tokens ?? null }`.
 - O `code` é o campo que `erroParaLog` lê, e por isso aparece no log.
 
-- [ ] **Passo 4:** rodar. Esperado: PASSA.
-- [ ] **Passo 5:** commit `feat(ai): client do OpenRouter com política de dados e novas tentativas`.
+- [x] **Passo 4:** rodar. Esperado: PASSA.
+- [x] **Passo 5:** commit `feat(ai): client do OpenRouter com política de dados e novas tentativas`.
 
 ---
 
@@ -940,7 +977,7 @@ export async function comRetentativas<T>(
   - `enviarTexto({ phoneNumberId, tokenCifrado, para, texto }, { fetch? }) → { waMessageId }`;
   - `numeroPertenceAoWaba({ wabaId, phoneNumberId, token }, { fetch? }) → boolean`.
 
-- [ ] **Passo 1: teste que falha**
+- [x] **Passo 1: teste que falha**
 
 ```ts
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -1040,8 +1077,8 @@ describe("numeroPertenceAoWaba (prova de posse na conexão)", () => {
 })
 ```
 
-- [ ] **Passo 2:** rodar. Esperado: FALHA.
-- [ ] **Passo 3: implementação** (`lib/whatsapp/client.ts`), descrita:
+- [x] **Passo 2:** rodar. Esperado: FALHA.
+- [x] **Passo 3: implementação** (`lib/whatsapp/client.ts`), descrita:
 - `MetaError extends Error`, com `name = "MetaError"`, `code: string`, `status: number | null` e `repetivel: boolean`, e mensagem fixa.
 - Uma função interna `chamar(url, init, fetch)`:
   - lança `MetaError("rede", null, false)` quando o `fetch` lança;
@@ -1054,8 +1091,8 @@ describe("numeroPertenceAoWaba (prova de posse na conexão)", () => {
   - devolve `messages[0].id`. Sem id: `MetaError("resposta-sem-id", status, false)`.
 - `numeroPertenceAoWaba`: `GET .../<wabaId>/phone_numbers?fields=id&limit=100` e `data.some((n) => n.id === phoneNumberId)`.
 
-- [ ] **Passo 4:** rodar. Esperado: PASSA.
-- [ ] **Passo 5:** commit `feat(whatsapp): client da Cloud API com envio de texto e prova de posse do número`.
+- [x] **Passo 4:** rodar. Esperado: PASSA.
+- [x] **Passo 5:** commit `feat(whatsapp): client da Cloud API com envio de texto e prova de posse do número`.
 
 ---
 
@@ -1111,8 +1148,8 @@ Carregue `supabase-postgres-best-practices` antes. O estilo é o das migrations 
      - mensagem da IA sem instrumentação, inserida direto;
      - código de erro sem `failed`.
 
-- [ ] **Passo 1:** escrever o teste. **Passo 2:** rodar (FALHA). **Passo 3:** escrever a migration. **Passo 4:** `supabase db push --dry-run`, conferir que só ela entra, e aplicar. **Passo 5:** rodar este teste e `tests/rls/conversations.test.ts` (PASSA).
-- [ ] **Passo 6:** commit `feat(conversations): reserva, confirmação e falha da resposta da IA, com custo e entrega`.
+- [x] **Passo 1:** escrever o teste. **Passo 2:** rodar (FALHA). **Passo 3:** escrever a migration. **Passo 4:** `supabase db push --dry-run`, conferir que só ela entra, e aplicar. **Passo 5:** rodar este teste e `tests/rls/conversations.test.ts` (PASSA).
+- [x] **Passo 6:** commit `feat(conversations): reserva, confirmação e falha da resposta da IA, com custo e entrega`.
 
 ---
 
@@ -1185,8 +1222,8 @@ Carregue `supabase-postgres-best-practices` antes. O estilo é o das migrations 
   11. **Cinco respostas** fecham a sessão por contagem.
   12. **Status:** `receberStatus` avança `sent` → `read`. O `delivered` atrasado não volta, e o `failed` depois de `read` é ignorado.
 
-- [ ] **Passo 1:** escrever o teste. **Passo 2:** rodar (FALHA). **Passo 3:** implementar. **Passo 4:** rodar (PASSA), e rodar `tests/whatsapp` (o contrato ganhou `clinicId`).
-- [ ] **Passo 5:** commit `feat(conversations): resposta da IA com agrupamento, retomada, falha e contagem`.
+- [x] **Passo 1:** escrever o teste. **Passo 2:** rodar (FALHA). **Passo 3:** implementar. **Passo 4:** rodar (PASSA), e rodar `tests/whatsapp` (o contrato ganhou `clinicId`).
+- [x] **Passo 5:** commit `feat(conversations): resposta da IA com agrupamento, retomada, falha e contagem`.
 
 ---
 
@@ -1210,8 +1247,8 @@ Carregue `supabase-postgres-best-practices` antes. O estilo é o das migrations 
   3. Um erro dentro do callback do `after` é logado só com metadado e não derruba nada.
 - **De ponta a ponta:** um status `read` pelo POST avança a mensagem da IA que a tarefa 7 gravou.
 
-- [ ] **Passo 1:** testes. **Passo 2:** FALHA. **Passo 3:** implementar. **Passo 4:** `npx vitest run tests/whatsapp tests/architecture` (PASSA).
-- [ ] **Passo 5:** commit `feat(whatsapp): webhook agenda a resposta da IA e registra o status de entrega`.
+- [x] **Passo 1:** testes. **Passo 2:** FALHA. **Passo 3:** implementar. **Passo 4:** `npx vitest run tests/whatsapp tests/architecture` (PASSA).
+- [x] **Passo 5:** commit `feat(whatsapp): webhook agenda a resposta da IA e registra o status de entrega`.
 
 ---
 
@@ -1231,30 +1268,75 @@ Carregue `supabase-postgres-best-practices` antes. O estilo é o das migrations 
 2. Número de outro WABA: recusa, sem nenhum `update`.
 3. Token recusado pela Meta: recusa, sem `update`, e o erro não contém o token.
 
-- [ ] **Passo 1:** teste. **Passo 2:** FALHA. **Passo 3:** implementar. **Passo 4:** PASSA, e rodar `lib/agent-config`.
-- [ ] **Passo 5:** commit `fix(agent-config): conexão do WhatsApp exige prova de posse do número (achado S1)`.
+- [x] **Passo 1:** teste. **Passo 2:** FALHA. **Passo 3:** implementar. **Passo 4:** PASSA, e rodar `lib/agent-config`.
+- [x] **Passo 5:** commit `fix(agent-config): conexão do WhatsApp exige prova de posse do número (achado S1)`.
+
+---
+
+### Tarefa 9b: achados das revisões (acrescentada na execução, 2026-09-27)
+
+As revisões `security-reviewer` e `qa-reviewer` rodaram sobre `924db17`. Decisões pela alternativa recomendada, para a revisão do Jhones no PR.
+
+**Segurança:**
+
+| # | Achado | Decisão |
+|---|---|---|
+| B1 | A resposta sobrevivia à anonimização feita durante a geração: gravava conteúdo de quem pediu exclusão e ia para o telefone já apagado | Migration `20260927160000_ai_reply_revalidation.sql`: a reserva trava o paciente (`for share`) e recusa o anonimizado (`paciente-anonimizado`) |
+| B2 | A decisão era tomada uma vez, antes de até ~65 s de modelo. Eco da equipe, mensagem nova, agente pausado, número trocado ou eco antes da retomada eram ignorados | A reserva revalida tudo sob trava (paciente, depois conversa, na ordem da gravação de mensagem) e devolve o motivo da recusa. A retomada em 24h passa para a reserva. O envio usa o telefone e a credencial devolvidos pela reserva. A regra pura continua antes da geração, para não gastar o modelo à toa |
+| B3 | Reserva `pending` para sempre em erro entre reserva e envio, e na confirmação depois do envio | Entre a reserva e o envio não há mais leitura de banco. A confirmação repete o erro passageiro (500 ms e 2 s). Erro inesperado passa a conversa para a equipe (melhor esforço). A varredura de `pending` antigos entra com o cron da parte 3 |
+| N1 | A prova de posse existe só na aplicação | Dívida em `docs/status.md`: `whatsapp_verified_at` antes do go-live, se houver conexão anterior |
+| N2 | A razão social pode ser o nome civil do profissional (MEI) | Dívida em `docs/status.md`: nome de exibição no perfil da clínica |
+| N3 | O código de erro do status não era saneado | Só entra se for número (`^\d{1,10}$`), com teste |
+| N4 | O logging de prompts do OpenRouter | Passo em `docs/infra-setup.md` |
+| N5 | O comentário da recepção dizia que não havia prova de posse | Atualizado |
+| N6 | A sessão da confirmação sem filtro de clínica | Filtro acrescentado, na mesma migration |
+| Obs. | `failed` avisado depois pela Meta não passava para a equipe | `receberStatus` chama `fail_ai_reply` para a resposta da IA que falhou, com teste |
+
+**QA:**
+
+| # | Achado | Decisão |
+|---|---|---|
+| B1 | A migration de revalidação foi aplicada no banco enquanto a revisão rodava, antes de o código que a usa estar commitado | Migration e código no mesmo commit (`4112e74`). A suíte passa a gravar o commit e o código de saída no próprio arquivo |
+| B2 | O caminho de produção das novas tentativas não tinha teste | `lib/conversations/dependencias.test.ts`, com relógio falso |
+| B3 | Isolamento entre clínicas na confirmação, na falha, no status e na reserva com mensagem de outra conversa | Casos em `tests/rls/ai-replies.test.ts` |
+| B4 | O critério "coerente com a persona" estava `[x]` sem prova | Voltou para `[ ]`, com a nota do que está testado. O teste exige persona, saudação e horário no prompt |
+| N1 | Histórico sem a resposta que falhou | Teste de ponta a ponta |
+| N2 | Erro inesperado não passava para a equipe | `responderConversa` embrulha e chama `fail_ai_reply`, com teste |
+| N3 | `failed` assíncrono | Ver a observação da segurança |
+| N4 | O log do envio não era conferido | Conferido, com `logPermitido` e `ai_failed_at` |
+| N5 | O log da falha sem o id da conversa (spec, comportamento 7) | `conversa` no log. A lista do que é permitido aceita o uuid |
+| N6 | Agente ativo sem credencial | Não se aplica: o trigger de publicação impede agente ativo sem token |
+| N7 | Status com falha transitória na rota | Teste de 500 |
+| N8 | Limite do plano | Pré-requisito do go-live em `docs/status.md` (fase 7) |
+| F1 | Testes do banco dependentes da ordem | Cada caso monta a própria reserva |
+| F2 | `after` simulado sem asserção | O reenvio real agenda uma resposta só |
+| F4 | Dois relógios (`now()` do banco na falha) | Registrado. Um teste da retomada depois de falha, com relógio fixo, precisa de `ai_failed_at` vindo da aplicação, o que fica para quando houver essa necessidade |
+
+- [x] **Passo 1:** revalidação sob trava. Commits `4112e74` e `9f709b7`.
+- [x] **Passo 2:** lacunas de QA. Commit `a00ddb1`.
+- [x] **Passo 3:** resíduos da conferência de segurança: número de chegada no `ResultadoDaRecepcao` e ordem de trava paciente, agente, conversa. Commit `a85216f`.
 
 ---
 
 ### Tarefa 10: Documentação
 
-- [ ] **Passo 1:** `docs/specs/conversation-engine-v1.md`:
+- [x] **Passo 1:** `docs/specs/conversation-engine-v1.md`:
   - na seção de implementação, a parte 2 e as decisões 1 a 10;
   - nos critérios de aceite, marcar o que esta parte cumpre, que é resposta, duplicidade, eco que silencia, retomada e falha do OpenRouter;
   - em "Em aberto", a conferência de `billable` com o `pricing` da Meta.
-- [ ] **Passo 2:** `docs/specs/atendimento-billing-v1.md`: fechamento por contagem implementado.
-- [ ] **Passo 3:** `docs/infra-setup.md`:
+- [x] **Passo 2:** `docs/specs/atendimento-billing-v1.md`: fechamento por contagem implementado.
+- [x] **Passo 3:** `docs/infra-setup.md`:
   - OpenRouter: `OPENROUTER_API_KEY` e `OPENROUTER_MODEL` na Vercel, e o toggle de ZDR do grupo Google na conta, como segunda camada;
   - Meta: `WHATSAPP_API_VERSION` na Vercel;
   - a conexão agora confere o número na Graph API.
-- [ ] **Passo 4:** `docs/status.md` e `docs/roadmap.md`, com a parte 2 de 5. Riscar o bloqueio de go-live da posse do número e deixar a parte 3 como pré-requisito do go-live. Neste plano, o status da execução.
-- [ ] **Passo 5:** memória `nextech-arquitetura-decisoes`, com as decisões 1, 2 e 4.
-- [ ] **Passo 6:** commit `docs: fecha a parte 2 do motor de conversa no plano, specs, roadmap e status`.
+- [x] **Passo 4:** `docs/status.md` e `docs/roadmap.md`, com a parte 2 de 5. Riscar o bloqueio de go-live da posse do número e deixar a parte 3 como pré-requisito do go-live. Neste plano, o status da execução.
+- [x] **Passo 5:** memória `nextech-arquitetura-decisoes`, com as decisões 1, 2 e 4.
+- [x] **Passo 6:** commit `docs: fecha a parte 2 do motor de conversa no plano, specs, roadmap e status`.
 
 ---
 
 ## Verificação final (antes da tarefa 10)
 
-- [ ] `npx vitest run` inteiro (a saída inteira gravada em arquivo e lida, sem `| tail` mascarando o código de saída), `npx tsc --noEmit` e `npm run build`.
-- [ ] Revisão pelos subagentes `qa-reviewer` e `security-reviewer`, com os achados tratados. Esta parte manda dado de paciente para fora da infraestrutura, ao OpenRouter.
-- [ ] Sem tela nesta parte. Antes de trocar de branch, `git checkout -- CLAUDE.md`.
+- [x] `npx vitest run` inteiro (a saída inteira gravada em arquivo e lida, sem `| tail` mascarando o código de saída), `npx tsc --noEmit` e `npm run build`. 1020 testes no `a00ddb1`, com saída 0.
+- [x] Revisão pelos subagentes `qa-reviewer` e `security-reviewer`, com os achados tratados. Esta parte manda dado de paciente para fora da infraestrutura, ao OpenRouter. A conferência de segurança rodou; **a de QA sobre as correções fica para o começo da próxima sessão**.
+- [x] Sem tela nesta parte. Antes de trocar de branch, `git checkout -- CLAUDE.md`.

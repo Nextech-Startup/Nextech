@@ -106,14 +106,14 @@ A conversa é marcada com `qualified_at` quando o paciente demonstra intenção 
 
 ## Critério de aceite
 
-- [ ] Mensagem do paciente gera resposta da IA coerente com a persona do agente.
-- [ ] `wa_message_id` duplicado não gera segunda resposta nem segundo atendimento. *(Parte 1: não duplica mensagem nem sessão, com teste de ponta a ponta. Falta a resposta, na parte 2.)*
-- [ ] Eco do app da clínica muda `handled_by` para `human` e silencia a IA. *(Parte 1: o `handled_by` muda, com teste. Silenciar a IA é da parte 2.)*
-- [ ] Após 24h sem mensagem humana, a IA volta a responder.
+- [ ] Mensagem do paciente gera resposta da IA coerente com a persona do agente. *(Parte 2: a persona, a saudação, o horário, os procedimentos e os convênios entram no prompt, com teste de ponta a ponta. A coerência da resposta só se mede com modelo e tráfego reais.)*
+- [x] `wa_message_id` duplicado não gera segunda resposta nem segundo atendimento. *(Parte 1: não duplica mensagem nem sessão. Parte 2: o reenvio não agenda resposta, e duas execuções para a mesma mensagem respondem uma vez só (`reply_to_message_id` único).)*
+- [x] Eco do app da clínica muda `handled_by` para `human` e silencia a IA. *(Partes 1 e 2, com teste de ponta a ponta.)*
+- [x] Após 24h sem mensagem humana, a IA volta a responder. *(Parte 2: `decidirResposta`, contando do mais recente entre `human_took_over_at` e `ai_failed_at`.)*
 - [ ] Conversa marcada como urgente nunca é retomada automaticamente pela IA.
 - [ ] Palavra-chave de urgência dispara o `protocol_message` da clínica e escala.
 - [ ] Intenção de agendar grava `qualified_at` uma única vez.
-- [ ] Falha do OpenRouter após 3 tentativas escala para humano sem enviar nada ao paciente.
+- [x] Falha do OpenRouter após 3 tentativas escala para humano sem enviar nada ao paciente. *(Parte 2: 1 s e 4 s de espera, `fail_ai_reply`, com teste.)*
 - [ ] Opt-out interrompe todas as sequências do paciente, não só a que ele respondeu.
 - [x] Conteúdo de mensagem nunca aparece em log — inclusive em caminho de erro. *(Recepção, parte 1: teste com a chave ausente confere que o log não tem texto, telefone nem nome. Cada parte seguinte reconfirma no seu caminho.)*
 - [x] RLS isola `Conversation` e `Message` por `clinic_id`. *(Parte 1: `tests/rls/conversations.test.ts`, contra o banco real, cobre também `attendance_sessions` e `whatsapp_account_events`.)*
@@ -142,6 +142,21 @@ Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-1.md`.
 - **Direito de exclusão.** `messages.content_redacted_at` e `redact_patient_messages`: o `anonymizePatient` apaga o conteúdo e mantém o metadado.
 - **Contra mock.** As credenciais da Meta ainda não chegaram. Os payloads de teste seguem o formato documentado (`tests/fixtures/meta-webhook.ts`).
 
+### Parte 2: decisão e resposta da IA (2026-09-27)
+
+Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-2.md`.
+
+- **Agrupamento no `after()`, "a mais recente vence".** Cada mensagem nova do paciente agenda uma resposta, que espera 10 s e só segue se ela ainda for a última do paciente. Sem fila externa.
+- **Reservar, enviar, confirmar.** A resposta entra como `pending`, com `reply_to_message_id` único (a trava contra resposta dupla). `confirm_ai_reply` grava o id da Meta, conta na sessão e fecha por contagem na quinta, numa transação.
+- **Falha da IA ou do envio** passa a conversa para a equipe (`ai_failed_at`), sem mandar nada ao paciente. A retomada em 24h conta a partir do mais recente entre a ação humana e a falha.
+- **O que vai para o modelo:** o system prompt da clínica (regras de segurança antes da persona) e as últimas 20 mensagens. Não vão telefone nem nome do paciente. Toda chamada ao OpenRouter exige `data_collection: "deny"` e `zdr: true`.
+- **Custo:** `category = SERVICE`, `within_24h_window` e `billable` gravados no envio. O serviço dentro da janela passa a ser cobrado em 1º/out/2026 (UTC).
+- **Status de entrega** só avança; `failed` só vale antes da entrega.
+- **Prova de posse na conexão:** `connectWhatsapp` confere na Graph API que o número pertence ao WABA antes de gravar.
+- **Revalidação sob trava.** A decisão é tomada antes da geração (para não gastar o modelo à toa) e de novo na reserva, que trava paciente e conversa e recusa se, nos até ~65 s de modelo, o paciente foi anonimizado, o agente pausado ou o número trocado, a conversa virou urgente, a janela fechou, o paciente escreveu de novo ou a equipe respondeu pelo app. A retomada em 24h acontece na reserva. Achado da revisão de segurança.
+- **Falha registrada:** `ai_failed_at` na conversa e log com o id da conversa e o código, nunca o conteúdo. Erro inesperado também passa a conversa para a equipe; `failed` avisado depois pela Meta também.
+- **Até a parte 3, a resposta sai sem triagem de urgência.** O webhook não está assinado na Meta, então não chega a paciente real; a parte 3 é pré-requisito do go-live.
+
 ## Planos afetados
 O motor é a base do produto — existe em Starter, Pro e HealthTech. O que varia por plano é o limite de atendimentos (`atendimento-billing-v1.md`) e o processamento de áudio, que a landing promete a partir do Pro.
 
@@ -167,4 +182,5 @@ mensagem do histórico.
 - **Tamanho do histórico** enviado ao modelo: afeta custo por atendimento e qualidade. Medir antes de fixar.
 - **Cache de prompt do Gemini via OpenRouter**: mecanismo diferente do `cache_control` da Anthropic. Confirmar a sintaxe atual antes de implementar (skill `integrations`).
 - **Detecção de qualificação**: sai da mesma chamada que gera a resposta, ou de uma segunda chamada? Uma só é mais barata; duas são mais confiáveis. Decidir medindo.
+- **`billable` contra o `pricing` da Meta:** o status de entrega traz `pricing.billable` e a categoria que a Meta cobrou. Conferir o que gravamos com isso quando houver tráfego real, antes de fechar o preço dos planos.
 - **Retomada em conversa urgente**: hoje nunca é automática. Se na prática isso deixar conversas presas, revisitar.

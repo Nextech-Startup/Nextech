@@ -9,12 +9,12 @@
 | 1 — Specs do MVP | ✅ concluída — 9 specs |
 | 2 — Repo, CLAUDE.md, skills | ✅ concluída |
 | **3a — Fundação multi-tenant** | ✅ concluída |
-| **3b — Motor de conversa** | 🟡 parte 1 de 5 (dados e recepção) concluída; próxima: decisão e resposta da IA |
+| **3b — Motor de conversa** | 🟡 partes 1 e 2 de 5 concluídas (dados e recepção; decisão e resposta da IA); próxima: urgência, opt-out e qualificação, pré-requisito do go-live |
 | **3c — Shell de navegação** | ✅ concluída |
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**926 testes passando** · 11 migrations aplicadas · em produção em `app.nextech.ia.br`
+**1020 testes passando** · 15 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 ---
 
@@ -132,6 +132,21 @@ Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-1.md`.
 - **Revisões:** `security-reviewer` e `qa-reviewer`, com revisão e conferência. Os achados e as decisões estão na tarefa 7b do plano.
 - **A parte 2 consome:** `receberMensagem()` devolve `ResultadoDaRecepcao` (`conversationId`, `messageId`, `nova`, `autor`, `agenteAtivo`). A rota tem o lugar do `after()` marcado.
 
+### Parte 2: decisão e resposta da IA ✅ (2026-09-27)
+
+Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-2.md`.
+- **Resposta:** o webhook agenda `responderConversa` no `after()`. A resposta espera 10 s de agrupamento e só a última mensagem do paciente responde. Depois decide (agente, urgência, janela, humano atendendo, retomada em 24h), monta o prompt com o contexto da clínica, gera pelo OpenRouter, reserva, envia pela Cloud API e confirma.
+- **Banco:** migrations `20260927150000_ai_replies.sql`, `20260927151000_ai_replies_error_check.sql`, `20260927160000_ai_reply_revalidation.sql` e `20260927170000_ai_reply_lock_order.sql`. Colunas de entrega e de custo em `messages`, `ai_failed_at` em `conversations`, e as funções `reserve_ai_reply`, `confirm_ai_reply` (fecha a sessão por contagem na quinta) e `fail_ai_reply`, só para `service_role`.
+- **Revalidação sob trava:** a reserva confere de novo, com paciente, agente e conversa travados, o que pode ter mudado nos até ~65 s de modelo (exclusão pedida, agente pausado ou número trocado, urgência, janela, mensagem nova, equipe respondendo). A retomada em 24h acontece ali. Achado da revisão de segurança.
+- **Falha da IA ou do envio:** a conversa passa para a equipe sem mandar nada ao paciente. Erro inesperado e `failed` avisado depois pela Meta também. O wrapper é conservador: qualquer erro gera alerta, inclusive falso positivo.
+- **Revisões:** segurança com conferência; QA com os achados tratados, mas a conferência dessas correções fica para a próxima sessão.
+- **LGPD:**
+  - o OpenRouter é chamado com `data_collection: "deny"` e `zdr: true`;
+  - o modelo não recebe telefone nem nome;
+  - o log leva só tipo e código.
+- **Prova de posse do número na conexão** (`connectWhatsapp`), que fecha o achado S1 da parte 1.
+- **Contra mock:** OpenRouter e Meta são simulados nos testes, sem chamar a rede.
+
 **Herda de `agent-config-v1`:** o **preview de conversa** (comportamento 3 e
 critério de aceite 3 daquela spec) não foi entregue — depende deste motor. A
 tela do agente já mostra o cartão "Testar conversa" como inerte, em vez de
@@ -181,7 +196,12 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 - [ ] **DNS de `nextech.ia.br` sem `www`** — não resolve. Precisa de registro `A` para `76.76.21.21` ou o ALIAS que a Vercel indicar; CNAME não funciona em domínio raiz
 - [ ] **Proteção de deployment do `staging`** — hoje exige login da Vercel (302 para SSO). Desativar em Settings → Deployment Protection, se quiser acesso direto
 - [ ] **Credenciais da Meta** — iniciar o processo, que leva tempo e não trava código
-- [ ] **Antes de assinar o webhook da Meta em produção (bloqueio de go-live):** a conexão do WhatsApp grava o `phone_number_id` e o WABA que a clínica digita, sem prova de posse. Hoje a recepção já recusa a mensagem cujo WABA diverge do agente, mas quem digitar os dois IDs de outra clínica ainda recebe as mensagens dela. A prova de posse na conexão (Graph API com o token informado, ou o Embedded Signup) entra na parte 2 da 3b
+- [x] ~~**Prova de posse do número na conexão**~~: entrou na parte 2 da 3b. `connectWhatsapp` confere na Graph API que o número pertence ao WABA
+- [ ] **Antes de assinar o webhook da Meta em produção (bloqueio de go-live):**
+  - a parte 3 da 3b, com triagem de urgência e opt-out. Até lá, a IA responde sem triagem;
+  - o limite de atendimentos do plano (fase 7). Até lá, a IA responde sem conferir o limite;
+  - a varredura das respostas que ficaram `pending` (confirmação falhou depois do envio), que entra com o cron da parte 3
+- [ ] **Envs da IA e da Meta na Vercel**, nos três ambientes: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` e `WHATSAPP_API_VERSION`, e o ZDR do grupo Google na conta do OpenRouter. Passo a passo em `docs/infra-setup.md`
 - [ ] **`MESSAGE_CONTENT_ENCRYPTION_KEY` na Vercel**, nos três ambientes, uma chave por ambiente. Sem ela, o webhook responde 500 a toda mensagem. Passo a passo em `docs/infra-setup.md`, seção da Meta
 
 - [x] ~~**Revisar o PR #4**~~ — mergeado em 2026-09-16 (commit `80f2423`), com fase 3c, `patient-v1` e `clinic-profile-v1`. `main` e `staging` estão no mesmo ponto
@@ -231,6 +251,8 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
   É o comportamento correto do ponto de vista de segurança; se virar atrito real,
   a saída é um fluxo de Embedded Signup, não afrouxar a leitura
 - [ ] **`patients.name` e `whatsapp_phone_number` em texto puro** — a regra 2 da `lgpd-security` pede PII cifrada em repouso, e agora o nome é preenchido sozinho com o do perfil do WhatsApp. Preexistente (patient-v1); cifrar exige resolver a busca por telefone, que hoje é por igualdade. Achado da revisão de segurança de 2026-09-27
+- [ ] **Conexões de WhatsApp anteriores à prova de posse** — `connectWhatsapp` confere o número na Graph API desde a parte 2 da 3b, mas o banco não registra que a conferência aconteceu, e uma conexão feita antes (ou pelo `service_role`) não passou por ela. Hoje não há conexão real. Se houver antes do go-live, a saída é `whatsapp_verified_at` exigido pelo trigger de publicação. Achado N1 da revisão de segurança da parte 2
+- [ ] **O modelo recebe a razão social da clínica** — `clinics.legal_name` entra no prompt e pode aparecer na resposta ao paciente. Em consultório individual (MEI), a razão social é o nome civil do profissional. Falta um nome de exibição no perfil da clínica. Achado N2 da revisão de segurança da parte 2
 - [ ] **Tabela `projetoAtivo`** — existe no banco, nenhum código a referencia. Resíduo ou uso externo? Mantida na baseline com nota
 - [ ] **Convite mostra senha na tela** — o `(admin)` exibe a senha provisória porque o Resend não está configurado. Vira convite por e-mail quando estiver
 - [ ] **`admin_audit_log` precisa de justificativa** — a fase 3c decidiu que ver conversa de paciente exige motivo registrado. **Desenho pronto (redesign, parte 4):** não precisa de migration. A ação vai na coluna `action`, que é texto (`conversation.list` e `conversation.view`), e a justificativa no `metadata`, só com o motivo de uma lista fechada e o número do chamado, sem texto livre. A regra está em `lib/admin/acesso-de-suporte.ts`, com teste; a gravação entra com a fase 3b

@@ -1416,7 +1416,7 @@ Carregue `supabase-postgres-best-practices` antes. Siga o estilo das migrations 
   - `docs/roadmap.md`: as cinco partes, com a 1 marcada;
   - neste plano: status da execução, com a tabela de ajustes, no formato da parte 4.
 - [x] **Passo 4:** memória: atualizar `nextech-arquitetura-decisoes` com o recorte da 3b e as decisões 1 a 4 deste plano, e `nextech-ambiente-supabase` com a contagem de migrations.
-- [ ] **Passo 5:** commit `docs: fecha a parte 1 do motor de conversa no plano, specs, roadmap e status`.
+- [x] **Passo 5:** commit `docs: fecha a parte 1 do motor de conversa no plano, specs, roadmap e status` (`5a8c601`).
 
 ---
 

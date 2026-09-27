@@ -43,8 +43,8 @@ Um atendimento é fechado (contado) quando, dentro de uma sessão de conversa co
 - Mensagem de sequência (`message-sequences-v1.md`) que o paciente responde → abre uma `AttendanceSession` normal. Mensagem de sequência sem resposta não abre sessão — sem interação de volta, não conta como atendimento (mas ver nota de custo em Em aberto).
 
 ## Critério de aceite
-- [ ] Sessão fecha corretamente por contagem (5 respostas) e por timeout (20 min).
-- [ ] Resposta humana via coexistência não conta pro fechamento por contagem. *(Motor de conversa, parte 1: o eco não abre nem estende sessão, com teste de ponta a ponta. A contagem da IA entra na parte 2.)*
+- [ ] Sessão fecha corretamente por contagem (5 respostas) e por timeout (20 min). *(Motor de conversa, parte 2: por contagem, em `confirm_ai_reply`, com teste. Por timeout: a recepção fecha a vencida quando o paciente volta; o cron entra na parte 3.)*
+- [x] Resposta humana via coexistência não conta pro fechamento por contagem. *(Parte 1: o eco não abre nem estende sessão. Parte 2: só `confirm_ai_reply`, da resposta da IA, soma em `ai_response_count`.)*
 - [ ] `plan-limits.ts` conta corretamente sessões fechadas no mês, isolado por `clinic_id`.
 - [ ] Teste automatizado cobre os dois caminhos de fechamento e o caso de handoff no meio da sessão.
 

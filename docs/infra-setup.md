@@ -44,6 +44,10 @@ Duas classes de segredo, que não se misturam:
 - [ ] Confirmar acesso ao modelo Gemini 2.5 Flash pela API.
 - [ ] Confirmar o percentual de margem que o OpenRouter cobra sobre o preço do provedor — entra na conta de custo por atendimento, junto com o custo do WhatsApp (ver skill `lgpd-security` e `integrations`).
 - [ ] Verificar sintaxe atual de cache de prompt pro Gemini via OpenRouter, se for usar (mecanismo diferente do `cache_control` da Anthropic).
+- [ ] Na Vercel, nos três ambientes: `OPENROUTER_API_KEY` e `OPENROUTER_MODEL` (hoje `google/gemini-2.5-flash`). O client (`lib/ai/client.ts`, motor de conversa, parte 2) não tem valor padrão: sem as duas, toda resposta da IA falha e a conversa passa para a equipe.
+- [ ] Na conta do OpenRouter, em Privacy, ligar a retenção zero (ZDR) do grupo de modelos Google, como segunda camada. O código já exige `data_collection: "deny"` e `zdr: true` em toda chamada. Pela documentação conferida em 2026-09-27, o Gemini tem endpoint ZDR pelo Vertex (o AI Studio não tem).
+- [ ] Na conta do OpenRouter, conferir que o registro de prompts e respostas (logging de input/output) está desligado. O conteúdo é dado de saúde.
+- [ ] Na primeira chamada real, conferir que o modelo configurado responde com `zdr: true`. Se nenhum endpoint do modelo tiver ZDR, a chamada falha, e é preciso escolher outro modelo, e não tirar o `zdr`.
 
 ## Resend (e-mail transacional)
 - [ ] Criar conta.
@@ -73,7 +77,10 @@ O webhook está em `app/api/whatsapp/webhook` desde a parte 1 do motor de conver
   - `WHATSAPP_APP_SECRET`: o app secret, que confere o `X-Hub-Signature-256`;
   - `WHATSAPP_WEBHOOK_VERIFY_TOKEN`: um valor aleatório, o mesmo que vai no campo "Verify token" da Meta;
   - `MESSAGE_CONTENT_ENCRYPTION_KEY`: cifra o conteúdo das mensagens em repouso. Gerar com `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. **Uma chave por ambiente, e nunca trocar sem re-cifrar**: a mensagem cifrada com a chave antiga deixa de abrir.
-- [ ] Mandar uma mensagem real para o número de teste e conferir, no Supabase, a linha em `messages` com `content_encrypted` preenchido.
+  - `WHATSAPP_API_VERSION` (hoje `v21.0`): versão da Graph API, usada no envio e na prova de posse do número. Sem ela, a IA não envia, e conectar um número falha com "A conexão com a Meta ainda não está configurada".
+- [ ] O campo `messages` também traz os status de entrega (`statuses`), que a parte 2 grava na resposta da IA. Não há campo extra para assinar.
+- [ ] **Conectar um número agora exige credencial real:** desde a parte 2, `connectWhatsapp` confere na Graph API, com o token informado, que o número pertence ao WABA (prova de posse, achado S1). IDs inventados deixam de conectar, também em staging.
+- [ ] Mandar uma mensagem real para o número de teste e conferir, no Supabase, a linha em `messages` com `content_encrypted` preenchido e, uns 10 s depois, a resposta da IA com `delivery_status = sent`.
 
 ## Automação: tudo em código, sem ferramenta externa
 Não existe n8n no projeto. A conta foi encerrada em 2026-09-16 e a última referência em código (o webhook do chatbot da landing) foi removida na mesma data — junto com a dependência `axios`, que só existia para ele.
