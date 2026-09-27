@@ -24,7 +24,12 @@ export function ClinicaRow({ clinica }: { clinica: ClinicResumo }) {
   return (
     <>
       <TableRow>
-        <TableCell className="px-4 font-medium text-ink-1">{clinica.legal_name}</TableCell>
+        <TableCell className="px-4 font-medium text-ink-1">
+          <span className="flex items-center gap-2">
+            {clinica.legal_name}
+            {clinica.is_demo && <StatusBadge tone="info">Demonstração</StatusBadge>}
+          </span>
+        </TableCell>
         <TableCell className="px-4 tabular-nums text-ink-2">{clinica.cnpj ?? "—"}</TableCell>
         <TableCell className="px-4">
           {semEquipe ? (

@@ -18,7 +18,7 @@ export async function listClinics(): Promise<ClinicResumo[]> {
 
   const { data, error } = await ctx.supabase
     .from("clinics")
-    .select("id, legal_name, cnpj, status, created_at, clinic_members(count)")
+    .select("id, legal_name, cnpj, status, created_at, is_demo, clinic_members(count)")
     .order("created_at", { ascending: false })
 
   if (error) throw error
@@ -37,6 +37,7 @@ export async function listClinics(): Promise<ClinicResumo[]> {
     // O embed devolve [{ count: n }]; sem membros, lista vazia.
     member_count:
       (c.clinic_members as unknown as Array<{ count: number }>)?.[0]?.count ?? 0,
+    is_demo: c.is_demo === true,
   }))
 }
 

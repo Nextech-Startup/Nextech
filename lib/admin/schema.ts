@@ -42,4 +42,6 @@ export type ClinicResumo = {
   status: "draft" | "active"
   created_at: string
   member_count: number
+  /** Conta de demonstração: aparece com o selo, para não passar por cliente. */
+  is_demo: boolean
 }
