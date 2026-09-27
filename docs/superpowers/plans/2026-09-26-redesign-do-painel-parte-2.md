@@ -1691,3 +1691,44 @@ describe("convite", () => {
   - **Status:** a linha do redesign passa a "✅ protótipos completos; telas reais chegam com cada fase", com o número de testes atualizado.
   - **Memória:** padrão de protótipo (componente de domínio em `components/<domínio>` + `_fixtures`, com a guarda em `tests/architecture/prototipos.test.ts`) e "Gestão" no lugar de "Configuração".
 - [x] **Passo 5: commit.** `docs: fecha a parte 2 do redesign no plano, roadmap e status`
+
+---
+
+## Próximo plano (parte 3) — telas que faltam
+
+Tudo com o padrão da parte 2:
+- componente de domínio em `components/<domínio>/`;
+- dado fictício em `_fixtures/`, com `AGORA`;
+- protótipo só em `/admin/design-system/telas/*`, com `AvisoDePrototipo`;
+- regra pura com teste em `lib/<domínio>/`.
+
+A ordem e o recorte são decisão do Jhones: apresente como opções selecionáveis, com a recomendada primeiro, antes de escrever o plano.
+
+**Painel da clínica**
+1. **Integrações** (`/dashboard/integrations`, só owner, já no menu como "em breve"):
+   - Google Calendar da clínica (OAuth por clínica, fase 5);
+   - CRM (Pipedrive, Kommo, RD Station, Doctoralia, fase 6);
+   - estado do WhatsApp de cada agente, com `ACCOUNT_OFFBOARDED` e reconexão.
+
+   A conexão do WhatsApp continua no editor do agente; aqui só aparece o estado.
+2. **Minha conta**: nome, e-mail, aparência e troca de senha. A senha depende do Resend: no protótipo, desabilitada e explicada.
+3. **Visão geral completa**, como protótipo. A rota real continua honesta, sem número inventado. Mostra:
+   - conversas aguardando;
+   - agendamentos do dia;
+   - funil (`dashboard-overview-v1`);
+   - saúde dos agentes;
+   - alertas (urgência, janela fechando, template rejeitado, limite do plano);
+   - atividade recente.
+4. **Agentes com operação** (prompt mestre, seção 6): saúde, última atividade, volume processado, histórico de alterações e teste seguro antes de publicar. A tela real existe; o protótipo mostra o que chega com a fase 3b.
+
+**Painel interno** (itens "em breve" de `ADMIN_NAV`)
+5. **Consumo**: atendimentos por clínica contra o limite do plano, só agregado.
+6. **Conexões**: estado do WhatsApp por clínica e template rejeitado.
+7. **Saúde**: falhas de webhook, erros do OpenRouter e cron que não rodou.
+8. **Conversas de suporte**: justificativa obrigatória antes de abrir (bloqueio, não aviso) e registro em `admin_audit_log` (desenho de navegação, seção 3).
+9. **Auditoria**: a trilha consultável.
+
+**Estados transversais** (prompt mestre, seção 7)
+10. `loading.tsx` com Skeleton, `error.tsx` com recuperação e permissão negada, nas rotas reais do painel. Isto não é protótipo: vale para as telas que já existem.
+
+**Antes de começar:** o `next dev` da sessão anterior ficou quebrado para rotas dinâmicas (500 "Jest worker"). Reinicie o servidor.

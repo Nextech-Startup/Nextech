@@ -119,9 +119,14 @@ Plano: `docs/superpowers/plans/2026-09-26-redesign-do-painel-parte-2.md`, execut
 
 **Nova trava:** `tests/architecture/prototipos.test.ts` garante que só as telas de protótipo importam `_fixtures`, que componente e lib não importam de `app/` e que toda tela de protótipo mostra o aviso.
 
-Fica de fora:
-- **Minha conta** (depende do Resend);
-- **protótipo de Integrações**;
+Fica para a parte 3 (lista em "Próximo plano (parte 3)" do plano da parte 2):
+- **Integrações**;
+- **Minha conta** (a senha depende do Resend);
+- **Visão geral completa e Agentes com operação**, como protótipo;
+- **as cinco telas "em breve" do painel interno**;
+- **loading, erro e permissão negada** nas rotas reais.
+
+Fora do redesign:
 - **modelo de dados da seção 9 do prompt mestre** (fases 3b a 7);
 - **mover a landing para `components/marketing/`**.
 

@@ -2672,10 +2672,16 @@ git log --oneline staging..HEAD
 
 ## Próximo plano (parte 2) — uma decisão por vez
 
-Estes pontos do prompt mestre precisam de spec ou de decisão do Jhones antes de virar código:
+Estes pontos do prompt mestre precisavam de spec ou de decisão do Jhones antes de virar código. Situação em 2026-09-26:
 
-1. **Protótipos completos das telas futuras** (seção 6): Conversas com thread, painel do paciente e notas internas; Agenda dia/semana com conflitos; editor visual de Sequências; e os demais. Os protótipos atuais são as listas simples da v0.
-2. **Nova arquitetura de informação** (seção 2): grupos "Gestão" e "Conta", item "Integrações" e "Métricas e consumo". Muda o desenho da fase 3c (`lib/navigation`) e é decisão de produto.
-3. **Minha conta**: nome, senha e aparência. A senha depende do Resend.
-4. **Modelo de dados da seção 9**: pertence às fases 3b a 7, cada uma com a própria spec e migrations. Não é design.
-5. **Mover a landing para `components/marketing/`**: puramente organizacional. Fica para quando alguém mexer na landing por outro motivo.
+1. ✅ **Protótipos completos das telas futuras** (seção 6): feitos na parte 2 (`2026-09-26-redesign-do-painel-parte-2.md`). São sete telas: Conversas, Pacientes, Agenda, Templates, Sequências, Equipe e Cobrança.
+2. ✅ **Nova arquitetura de informação** (seção 2), decidida pelo Jhones e feita na parte 2:
+   - grupo "Gestão";
+   - item "Integrações";
+   - sem "Métricas";
+   - "Conta" no menu do usuário.
+3. ⬜ **Minha conta**: nome, senha e aparência. Adiada pelo Jhones, porque a senha depende do Resend. Está na lista da parte 3.
+4. ⬜ **Modelo de dados da seção 9**: pertence às fases 3b a 7, cada uma com a própria spec e migrations. Não é design.
+5. ⬜ **Mover a landing para `components/marketing/`**: puramente organizacional. Fica para quando alguém mexer na landing por outro motivo.
+
+O que falta do redesign está em "Próximo plano (parte 3)", no fim de `2026-09-26-redesign-do-painel-parte-2.md`.
