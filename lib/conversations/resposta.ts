@@ -11,6 +11,7 @@ import { gerarResposta, IaError } from "@/lib/ai/client"
 import { comRetentativas, dormir, ESPERAS_DA_IA_MS } from "@/lib/ai/retentativa"
 import { erroParaLog } from "@/lib/security/erro-para-log"
 import { enviarTexto, MetaError } from "@/lib/whatsapp/client"
+import { falhaDefinitiva } from "@/lib/whatsapp/webhook"
 import { cifrarConteudo, decifrarConteudo } from "./conteudo"
 import { custoDaResposta } from "./custo"
 import { decidirResposta, type MotivoDoSilencio } from "./decisao"
@@ -27,9 +28,22 @@ export type DesfechoDaResposta =
   | "respondida"
   | "agrupada"
   | "ja-respondida"
+  | "paciente-anonimizado"
   | MotivoDoSilencio
   | "falha-da-ia"
   | "falha-no-envio"
+
+/** A linha que `reserve_ai_reply` devolve: a reserva, ou o motivo da recusa. */
+type Reserva = {
+  message_id: string | null
+  patient_phone: string | null
+  phone_number_id: string | null
+  access_token_encrypted: string | null
+  motivo: Exclude<DesfechoDaResposta, "respondida" | "falha-da-ia" | "falha-no-envio"> | null
+}
+
+/** A confirmação depois do envio repete o erro passageiro: o paciente já recebeu. */
+const ESPERAS_DA_CONFIRMACAO_MS = [500, 2000] as const
 
 export type Envio = { phoneNumberId: string; tokenCifrado: string; para: string; texto: string }
 
@@ -61,6 +75,12 @@ type Supabase = ReturnType<typeof serviceContext>["supabase"]
  * Responde à mensagem do paciente (conversation-engine-v1, comportamentos 3,
  * 5 e 7). Roda no `after()` do webhook, sem sessão de usuário: toda query
  * filtra o `clinic_id` que a recepção resolveu.
+ *
+ * A decisão é tomada duas vezes. Antes da geração, pela regra pura, para
+ * não gastar a chamada ao modelo à toa. Depois, na reserva, sob trava:
+ * durante os até ~65 s de modelo a equipe pode ter respondido, o paciente
+ * pode ter escrito de novo ou pedido exclusão, e o agente pode ter sido
+ * pausado. A reserva é a palavra final, e é ela que faz a retomada em 24h.
  *
  * Nada de conteúdo em log. Silêncio por decisão (humano atendendo,
  * urgência...) é caminho normal e não loga; falha da IA ou do envio loga
@@ -132,17 +152,6 @@ export async function responderConversa(
   })
   if (!decisao.responde) return decisao.motivo
 
-  if (decisao.retoma) {
-    const { error } = await supabase
-      .from("conversations")
-      .update({ handled_by: "ai" })
-      .eq("id", conversationId)
-      .eq("clinic_id", clinicId)
-      .eq("handled_by", "human")
-      .eq("is_urgent", false)
-    if (error) throw error
-  }
-
   const [contexto, historico] = await Promise.all([
     contextoDoAgente(supabase, clinicId, agente),
     historicoDaConversa(supabase, clinicId, conversationId),
@@ -157,50 +166,66 @@ export async function responderConversa(
     return "falha-da-ia"
   }
 
-  const custo = custoDaResposta({ enviadaEm: agora, ultimaDoPaciente: conversa.last_inbound_at })
-  const { data: reserva, error: erroReserva } = await supabase.rpc("reserve_ai_reply", {
+  // A hora da reserva, e não a da decisão: a janela e a retomada são
+  // conferidas de novo contra o relógio de agora.
+  const reservadaEm = deps.agora()
+  const custo = custoDaResposta({ enviadaEm: reservadaEm, ultimaDoPaciente: conversa.last_inbound_at })
+  const { data: linhas, error: erroReserva } = await supabase.rpc("reserve_ai_reply", {
     p_clinic_id: clinicId,
     p_conversation_id: conversationId,
     p_reply_to_message_id: r.messageId,
     p_content_encrypted: cifrarConteudo(clinicId, texto),
-    p_occurred_at: agora,
+    p_occurred_at: reservadaEm,
     p_within_window: custo.withinWindow,
     p_billable: custo.billable,
+    p_phone_number_id: agente.whatsapp_phone_number_id,
   })
   if (erroReserva) throw erroReserva
-  // Outra execução já respondeu esta mensagem: desiste sem enviar.
-  if (!reserva) return "ja-respondida"
-
-  const { data: paciente, error: erroPaciente } = await supabase
-    .from("patients")
-    .select("whatsapp_phone_number")
-    .eq("id", conversa.patient_id)
-    .eq("clinic_id", clinicId)
-    .single()
-  if (erroPaciente) throw erroPaciente
+  const reserva = (linhas as Reserva[])[0]
+  // Algo mudou durante a geração (ou outra execução já respondeu): desiste
+  // sem enviar, e a resposta gerada é descartada.
+  if (reserva.motivo) return reserva.motivo
 
   let waMessageId: string
   try {
+    // Telefone e credencial lidos sob a trava da reserva, e não antes da geração.
     ;({ waMessageId } = await deps.enviar({
-      phoneNumberId: agente.whatsapp_phone_number_id!,
-      tokenCifrado: agente.whatsapp_access_token_encrypted!,
+      phoneNumberId: reserva.phone_number_id!,
+      tokenCifrado: reserva.access_token_encrypted!,
       // A Meta quer o wa_id: os dígitos, sem o +.
-      para: paciente.whatsapp_phone_number.replace(/^\+/, ""),
+      para: reserva.patient_phone!.replace(/^\+/, ""),
       texto,
     }))
   } catch (erro) {
-    await registrarFalha(supabase, clinicId, conversationId, reserva as string, erro)
+    await registrarFalha(supabase, clinicId, conversationId, reserva.message_id, erro)
     console.error(ROTULO, { etapa: "envio", ...erroParaLog(erro) })
     return "falha-no-envio"
   }
 
-  const { error: erroConfirmacao } = await supabase.rpc("confirm_ai_reply", {
-    p_clinic_id: clinicId,
-    p_message_id: reserva,
-    p_wa_message_id: waMessageId,
-    p_sent_at: deps.agora(),
-  })
-  if (erroConfirmacao) throw erroConfirmacao
+  try {
+    await comRetentativas(
+      async () => {
+        const { error } = await supabase.rpc("confirm_ai_reply", {
+          p_clinic_id: clinicId,
+          p_message_id: reserva.message_id,
+          p_wa_message_id: waMessageId,
+          p_sent_at: deps.agora(),
+        })
+        if (error) throw error
+      },
+      {
+        esperas: ESPERAS_DA_CONFIRMACAO_MS,
+        repetivel: (erro) => !falhaDefinitiva(erroParaLog(erro)),
+        dormir: deps.dormir,
+      },
+    )
+  } catch (erro) {
+    // O paciente recebeu, mas a resposta ficou pending: sem contagem e fora
+    // do histórico do modelo. A varredura de pendentes antigos entra com o
+    // cron da parte 3.
+    console.error(ROTULO, { etapa: "confirmacao", ...erroParaLog(erro) })
+    throw erro
+  }
   return "respondida"
 }
 

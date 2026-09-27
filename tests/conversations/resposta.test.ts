@@ -322,3 +322,79 @@ describe("contagem e entrega", () => {
     expect(await atual()).toBe("read")
   })
 })
+
+describe("o que muda durante a geração (revisão de segurança da parte 2, B1 e B2)", () => {
+  // O `gerar` falso faz a mudança antes de devolver o texto: é o que
+  // acontece de verdade nos até ~65 s de modelo.
+  const gerandoEnquanto = (mudanca: () => Promise<unknown>) =>
+    vi.fn(async (_mensagens: MensagemDoModelo[]) => {
+      await mudanca()
+      return RESPOSTA
+    })
+
+  it("o paciente pediu exclusão no meio: nada é gravado nem enviado", async () => {
+    const r = await receber(novoWaId(), T0, "Tenho uma dor forte")
+    const { patient_id } = await conversa(r.conversationId)
+    const deps = dependencias({
+      agora: T0 + 15,
+      gerar: gerandoEnquanto(() =>
+        admin
+          .from("patients")
+          .update({ anonymized_at: iso(T0 + 12), whatsapp_phone_number: `+999${SUFIXO.slice(-11).padStart(11, "0")}` })
+          .eq("id", patient_id),
+      ),
+    })
+    expect(await responderConversa(r, deps)).toBe("paciente-anonimizado")
+    expect(deps.enviar).not.toHaveBeenCalled()
+    expect(await respostasDaIa(r.conversationId)).toHaveLength(0)
+  })
+
+  it("a equipe respondeu pelo app no meio: a IA não responde por cima", async () => {
+    const waId = novoWaId()
+    const r = await receber(waId, T0, "oi")
+    const deps = dependencias({ agora: T0 + 15, gerar: gerandoEnquanto(() => eco(waId, T0 + 12, "O doutor vai te ligar")) })
+    expect(await responderConversa(r, deps)).toBe("humano-atendendo")
+    expect(deps.enviar).not.toHaveBeenCalled()
+    expect(await respostasDaIa(r.conversationId)).toHaveLength(0)
+  })
+
+  it("o paciente escreveu de novo no meio: esta desiste, e a mais nova responde", async () => {
+    const waId = novoWaId()
+    const r = await receber(waId, T0, "oi")
+    const deps = dependencias({ agora: T0 + 15, gerar: gerandoEnquanto(() => receber(waId, T0 + 12, "e o preço?")) })
+    expect(await responderConversa(r, deps)).toBe("agrupada")
+    expect(deps.enviar).not.toHaveBeenCalled()
+  })
+
+  it("o agente foi pausado no meio: a resposta não sai", async () => {
+    const r = await receber(novoWaId(), T0, "oi")
+    const pausar = () => admin.from("agents").update({ status: "paused" }).eq("whatsapp_phone_number_id", PHONE)
+    try {
+      const deps = dependencias({ agora: T0 + 15, gerar: gerandoEnquanto(pausar) })
+      expect(await responderConversa(r, deps)).toBe("agente-fora-do-ar")
+      expect(deps.enviar).not.toHaveBeenCalled()
+    } finally {
+      await admin.from("agents").update({ status: "active" }).eq("whatsapp_phone_number_id", PHONE)
+    }
+  })
+
+  it("falha de entrega avisada depois pela Meta também passa a conversa para a equipe", async () => {
+    const r = await receber(novoWaId(), T0, "oi")
+    await responderConversa(r, dependencias({ agora: T0 + 15 }))
+    const [m] = await respostasDaIa(r.conversationId)
+    await receberStatus({
+      tipo: "status",
+      wabaId: WABA,
+      phoneNumberId: PHONE,
+      waMessageId: m.wa_message_id,
+      status: "failed",
+      ocorridoEm: iso(T0 + 30),
+      codigoDoErro: "131026",
+    })
+    const [falhou] = await respostasDaIa(r.conversationId)
+    expect(falhou).toMatchObject({ delivery_status: "failed", delivery_error_code: "131026" })
+    const c = await conversa(r.conversationId)
+    expect(c.handled_by).toBe("human")
+    expect(c.ai_failed_at).not.toBeNull()
+  })
+})

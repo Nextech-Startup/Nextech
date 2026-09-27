@@ -60,6 +60,9 @@ const EVENTOS_DA_CONTA: readonly string[] = ["ACCOUNT_OFFBOARDED", "ACCOUNT_RECO
 
 const STATUS_DE_ENTREGA: readonly string[] = ["sent", "delivered", "read", "failed"]
 
+/** Código de erro da Meta: um número. Qualquer outra coisa não é gravada. */
+const CODIGO_DA_META = /^\d{1,10}$/
+
 function objeto(v: unknown): Bruto | null {
   return typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Bruto) : null
 }
@@ -172,7 +175,9 @@ function statuses(wabaId: string, value: Bruto): EventoDeStatusDoWebhook[] {
     const status = texto(s?.status)
     const ocorridoEm = instante(s?.timestamp)
     if (!s || !waMessageId || !status || !STATUS_DE_ENTREGA.includes(status) || !ocorridoEm) continue
-    const codigo = objeto(lista(s.errors)[0])?.code
+    const codigoBruto = objeto(lista(s.errors)[0])?.code
+    const codigo =
+      typeof codigoBruto === "number" || typeof codigoBruto === "string" ? String(codigoBruto) : null
     saida.push({
       tipo: "status",
       wabaId,
@@ -180,8 +185,7 @@ function statuses(wabaId: string, value: Bruto): EventoDeStatusDoWebhook[] {
       waMessageId,
       status: status as StatusDeEntrega,
       ocorridoEm,
-      codigoDoErro:
-        status === "failed" && (typeof codigo === "number" || typeof codigo === "string") ? String(codigo) : null,
+      codigoDoErro: status === "failed" && codigo !== null && CODIGO_DA_META.test(codigo) ? codigo : null,
     })
   }
   return saida

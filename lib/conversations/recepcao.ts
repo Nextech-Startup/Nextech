@@ -44,9 +44,10 @@ export async function receberMensagem(
   if (erroAgente) throw erroAgente
   if (!agente) return null
 
-  // O `phone_number_id` foi digitado na conexão, sem prova de posse. Se a
-  // Meta diz que o número é de outro WABA, a mensagem não é deste agente.
-  // A prova de posse na própria conexão chega com o client da Meta.
+  // Defesa em profundidade: a conexão já prova a posse do número na Graph
+  // API (connectWhatsapp), mas conexões anteriores a ela não passaram por
+  // isso. Se a Meta diz que o número é de outro WABA, a mensagem não é
+  // deste agente.
   if (agente.whatsapp_waba_id !== m.wabaId) {
     console.warn("[whatsapp-webhook]", { etapa: "waba-divergente" })
     return null

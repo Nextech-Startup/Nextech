@@ -142,6 +142,16 @@ describe("status de entrega", () => {
     ])
   })
 
+  it("código de erro que não é número da Meta não é guardado", () => {
+    const [evento] = interpretarWebhook(
+      webhookDeStatus({
+        phoneNumberId: PHONE,
+        statuses: [{ id: "wamid.1", status: "failed", timestamp: T, errors: [{ code: "falhou para 5581999" }] }],
+      }),
+    )
+    expect(evento).toMatchObject({ status: "failed", codigoDoErro: null })
+  })
+
   it("ignora status desconhecido e o que vem sem id ou sem carimbo", () => {
     const payload = webhookDeStatus({
       phoneNumberId: PHONE,
