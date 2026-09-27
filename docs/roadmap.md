@@ -83,11 +83,47 @@ Entregue:
 
 **`accent` mudou de significado.** No projeto, `accent` passa a ser o do shadcn: a superfície neutra de hover. O verde da marca é `brand`. A landing continua usando `accent` como verde por meio do escopo `.landing-scope` (`app/(marketing)/layout.tsx`), sem nenhum arquivo dela alterado.
 
-Fica para o próximo plano, uma decisão por vez:
-- **Protótipos completos:** Conversas com thread e painel do paciente, Agenda dia/semana, editor visual de Sequências.
-- **Nova divisão do menu** proposta pela v0: grupos "Gestão" e "Conta", "Integrações". É decisão de produto.
-- **Minha conta.**
-- **Mover a landing para `components/marketing/`.**
+### Redesign do painel — segunda parte ✅ (2026-09-26)
+Plano: `docs/superpowers/plans/2026-09-26-redesign-do-painel-parte-2.md`, executado na `staging`.
+
+**Menu (decisão do Jhones):**
+- o terceiro grupo passa de "Configuração" a **"Gestão"**;
+- entra **Integrações** (só owner, "em breve"), por guardar credencial da clínica;
+- **"Métricas e consumo" não vira item**: o consumo fica em Plano e cobrança, e as métricas na Visão geral;
+- **"Conta"** continua no menu do usuário.
+
+**Protótipos completos** em `/admin/design-system/telas/*`. Cada tela é um componente de domínio em `components/<domínio>/` com props tipadas; o dado fictício fica em `app/(admin)/admin/design-system/_fixtures/`. Quando o backend da fase chegar, a rota real só troca a fonte do dado.
+- **Conversas:** fila por prioridade (urgente, aguardando, humano, IA), thread com bolhas que marcam IA e equipe, notas internas, eventos, painel do paciente, assumir e devolver, e a janela de 24h da Meta como linha que esvazia no cabeçalho.
+- **Pacientes:** tabela com busca e recortes; ficha com consentimento, opt-out, convênio e histórico só de metadado. Usa o tipo `Patient` real.
+- **Agenda:** dia por profissional e semana, conflitos marcados antes de confirmar e lista no celular.
+- **Templates:** categoria com custo escrito, validação das variáveis antes do envio, motivo de rejeição da Meta e prévia no WhatsApp.
+- **Sequências:** gatilho, regras de parada, passos com o dia acumulado, bloqueio por template não aprovado e inscritos com o motivo de parada.
+- **Equipe e acessos:** pessoas, convites com expiração, alterações de acesso e matriz de capacidades amarrada ao menu por teste.
+- **Plano e cobrança:** os dois limites (atendimentos por mês e agentes), projeção do ciclo, próxima cobrança e faturas.
+
+**Regras puras** que o backend vai reaproveitar, todas com teste:
+- `lib/conversations/janela.ts`: janela de 24h;
+- `lib/scheduling/conflitos.ts`: conflito de agenda;
+- `lib/whatsapp/corpo-do-template.ts`: regras da Meta para o corpo;
+- `lib/billing/plan-limits.ts` e `consumo.ts`: limites e projeção;
+- `lib/formatters`: datas no fuso da clínica, sem texto do Intl, para não quebrar a hidratação.
+
+**Padrões novos** em `components/patterns`:
+- filtro segmentado;
+- busca na URL;
+- linha do tempo;
+- lista de dados;
+- avatar;
+- medidor de uso;
+- prévia do WhatsApp.
+
+**Nova trava:** `tests/architecture/prototipos.test.ts` garante que só as telas de protótipo importam `_fixtures`, que componente e lib não importam de `app/` e que toda tela de protótipo mostra o aviso.
+
+Fica de fora:
+- **Minha conta** (depende do Resend);
+- **protótipo de Integrações**;
+- **modelo de dados da seção 9 do prompt mestre** (fases 3b a 7);
+- **mover a landing para `components/marketing/`**.
 
 ## Fase 4 — Templates e sequências
 - `whatsapp-templates-v1.md`, `message-sequences-v1.md`

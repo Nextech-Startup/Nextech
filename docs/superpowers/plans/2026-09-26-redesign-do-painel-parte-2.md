@@ -2,7 +2,33 @@
 
 > **Para quem executa:** SUB-SKILL OBRIGATÓRIA: `superpowers:executing-plans`, tarefa por tarefa, nesta sessão e sem subagentes. Carregue `frontend-design` antes de desenhar cada tela. Os passos usam checkbox (`- [ ]`).
 
-## Status da execução: ⬜ não iniciado
+## Status da execução: ✅ concluído em 2026-09-26
+
+As 14 tarefas foram executadas na `staging` local, ainda sem push para o GitHub.
+- **Testes:** 569 passando (eram 402). `tsc` e `npm run build` limpos.
+- **Verificação visual:** as oito rotas de protótipo e o menu novo no painel da clínica, nos dois temas, em 1440px e 390px, sem rolagem horizontal no celular.
+- **Landing:** conferida no navegador (`--accent` = `lab(72.8575% -47.9172 13.5998)`).
+- **Ambiente:** no meio da sessão, o `next dev` passou a devolver 500 ("Jest worker encountered 2 child process exceptions") em toda rota dinâmica, inclusive na `/dashboard/agents/[id]`, que já existia. O build compila a rota normalmente. A ficha do paciente foi conferida num `next start` na porta 3100. O servidor de dev precisa ser reiniciado.
+
+Ajustes feitos durante a execução, além do que o plano descrevia:
+
+| Tarefa | Ajuste | Por quê |
+|---|---|---|
+| 2 | `contemBusca`: busca sem letra usa só a regra dos dígitos | "81" casava pelo texto com todo telefone de DDD 81 |
+| 3 | `FiltroSegmentado` ganhou `quebrar` e `max-w-full` | Numa coluna estreita, o último recorte ficava cortado pela metade |
+| 5 | A janela de 24h ganhou linha própria no cabeçalho, e "Paciente" vira ícone no celular | O nome do paciente truncava em 1440px e em 390px |
+| 5 | Avatar sem letra no nome vira ícone | Paciente só com telefone mostrava "(0" como iniciais |
+| 5 | Retomada da IA já vencida diz que a próxima mensagem volta para a IA | A faixa mostrava um horário que já tinha passado |
+| 6 | Consentimento e opt-out descem para baixo do nome no celular | As colunas deles somem abaixo de `sm` |
+| 8 | Uma `GradeDeHorarios` serve às visões dia e semana, em vez de dois componentes | O layout é o mesmo; duplicá-lo seria convidar à divergência |
+| 8 | Hora com 5rem; bloco curto (menos de 50 min, ou meia coluna) em duas linhas; conflito marcado por barra na borda da coluna | O nome era cortado e a hachura cobria o texto dos blocos |
+| 8 | Com o mesmo início, o compromisso mais longo fica à esquerda | Convenção de calendário; o teste de faixas assumia isso |
+| 8 | Filtro de profissional com `contain: inline-size` | A faixa impunha 399px à página em 390px |
+| 10 | Prévia do template fica no topo e acompanha a rolagem | Esticava até o fim da grade, com um vão vazio |
+| 11 | Atraso 0 vira "Sai no mesmo dia"; o resumo de inscritos some sem inscritos; a coluna Passo some no celular | "Espera 0 dias", zeros sem sentido e selo cortado |
+| 12 | Número de destaque sem `tabular-nums` | A Cal Sans espaçava os dígitos ("R$ 697 ,00") |
+| 12, 13 | "Ver fatura" e "Mudar acesso" viram ícone no celular; o papel desce para baixo do e-mail; a matriz perde a largura mínima | Cortados em 390px, e dois papéis ficavam escondidos na rolagem |
+| 14 | O histórico da ficha fica no topo da coluna | Esticava até a altura da lateral |
 
 **Formato (decidido pelo Jhones):** plano enxuto. O código completo aparece só na lógica pura e nos testes dela, que são o contrato. Cada tela é descrita por props, estrutura, estados e critério visual. O TSX é escrito uma vez só, direto no arquivo.
 
@@ -94,7 +120,7 @@ Antes de trocar de branch, rode `git checkout -- CLAUDE.md`.
 - Modificar: `lib/navigation/dashboard-nav.ts`, `lib/navigation/navigation.test.ts`, `components/shell/icones.ts` e `components/shell/trilha.test.ts`
 - Modificar: `docs/superpowers/specs/2026-09-16-navegacao-e-rotas-design.md` (bloco "Atualização 2026-09-26")
 
-- [ ] **Passo 1: testes que falham** (em `navigation.test.ts`)
+- [x] **Passo 1: testes que falham** (em `navigation.test.ts`)
 
 ```ts
 it("tem os três grupos, nesta ordem", () => {
@@ -140,8 +166,8 @@ it("perfil da clínica fica sob Gestão", () => {
 })
 ```
 
-- [ ] **Passo 2:** rode `npx vitest run lib/navigation components/shell`. Esperado: falha em "Gestão".
-- [ ] **Passo 3: implementar.**
+- [x] **Passo 2:** rode `npx vitest run lib/navigation components/shell`. Esperado: falha em "Gestão".
+- [x] **Passo 3: implementar.**
   - Em `DASHBOARD_NAV`, o terceiro grupo passa a `label: "Gestão"`, com os itens nesta ordem:
     - Perfil;
     - Equipe;
@@ -149,9 +175,9 @@ it("perfil da clínica fica sob Gestão", () => {
     - Cobrança.
   - Atualize os comentários: "staff — Operação e Automação, sem Gestão"; o cabeçalho vazio vira "Gestão".
   - Em `icones.ts`, adicione `"/dashboard/integrations": Plug`.
-- [ ] **Passo 4:** rode `npx vitest run lib/navigation components/shell tests/architecture`. Esperado: tudo passa. `rotas.test.ts` confirma que `/dashboard/integrations` não tem página.
-- [ ] **Passo 5: doc.** No topo de `2026-09-16-navegacao-e-rotas-design.md`, registre a atualização com as quatro decisões da tabela "Decisões do Jhones". Na tabela da seção 1, renomeie o grupo e acrescente a linha de Integrações (rota `/dashboard/integrations`, fases 5 e 6, "Estado das conexões da clínica: Google Calendar, CRM e WhatsApp de cada agente").
-- [ ] **Passo 6: commit.** `feat(nav): grupo Gestão com Integrações, só para o responsável`
+- [x] **Passo 4:** rode `npx vitest run lib/navigation components/shell tests/architecture`. Esperado: tudo passa. `rotas.test.ts` confirma que `/dashboard/integrations` não tem página.
+- [x] **Passo 5: doc.** No topo de `2026-09-16-navegacao-e-rotas-design.md`, registre a atualização com as quatro decisões da tabela "Decisões do Jhones". Na tabela da seção 1, renomeie o grupo e acrescente a linha de Integrações (rota `/dashboard/integrations`, fases 5 e 6, "Estado das conexões da clínica: Google Calendar, CRM e WhatsApp de cada agente").
+- [x] **Passo 6: commit.** `feat(nav): grupo Gestão com Integrações, só para o responsável`
 
 ---
 
@@ -191,7 +217,7 @@ export function plural(n: number, um: string, varios: string): string           
 export function contemBusca(campos: readonly (string | null)[], busca: string): boolean
 ```
 
-- [ ] **Passo 1: testes que falham** (`lib/formatters/formatters.test.ts`)
+- [x] **Passo 1: testes que falham** (`lib/formatters/formatters.test.ts`)
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -334,8 +360,8 @@ describe("texto", () => {
 })
 ```
 
-- [ ] **Passo 2:** rode `npx vitest run lib/formatters`. Esperado: falha (módulos inexistentes).
-- [ ] **Passo 3: implementar.** Regras que o código precisa seguir:
+- [x] **Passo 2:** rode `npx vitest run lib/formatters`. Esperado: falha (módulos inexistentes).
+- [x] **Passo 3: implementar.** Regras que o código precisa seguir:
   - `partesDaData` usa um `Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", weekday: "short", year/month/day/hour/minute numéricos })`, em cache por fuso, e lê só números com `formatToParts`. Nomes de mês (`jan…dez`, `janeiro…dezembro`) e de dia (`dom…sáb`, `domingo…sábado`) vêm de tabela própria. Data inválida lança `RangeError("Data inválida")`.
   - As chaves de dia fazem a aritmética em `Date.UTC`.
   - `tempoRelativo`, nesta ordem:
@@ -354,8 +380,8 @@ describe("texto", () => {
   - `formatarNumero` e `formatarMoeda` fazem o milhar por regex, sem Intl.
   - `contemBusca`: termo normalizado contido em algum campo normalizado, ou, se a busca tem 3 dígitos ou mais, dígitos contidos nos dígitos de algum campo. Busca vazia casa tudo.
   - Mova `iniciais` de `user-menu.tsx` para `texto.ts` sem mudar o corpo. `normalizarTermo` passa a ser `return normalizarTexto(valor)`, mantendo o comentário.
-- [ ] **Passo 4:** rode `npx vitest run lib/formatters lib/clinic-profile components/shell && npx tsc --noEmit`. Esperado: passa.
-- [ ] **Passo 5: commit.** `feat(formatters): datas no fuso da clínica, moeda e busca sem Intl textual`
+- [x] **Passo 4:** rode `npx vitest run lib/formatters lib/clinic-profile components/shell && npx tsc --noEmit`. Esperado: passa.
+- [x] **Passo 5: commit.** `feat(formatters): datas no fuso da clínica, moeda e busca sem Intl textual`
 
 ---
 
@@ -386,7 +412,7 @@ export const AGORA = "2026-09-28T14:32:00-03:00"
 - **`ListaDeDados`:** `<dl>`, termo `text-xs text-ink-3`, valor `text-sm text-ink-1`.
 - **`AvatarDeIniciais`:** `Avatar` com `AvatarFallback` do shadcn, `aria-hidden` (o nome sempre aparece ao lado), neutro (`bg-surface-2 text-ink-2`).
 
-- [ ] **Passo 1: testes que falham.** O arquivo `tests/architecture/prototipos.test.ts`, completo:
+- [x] **Passo 1: testes que falham.** O arquivo `tests/architecture/prototipos.test.ts`, completo:
 
 ```ts
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
@@ -438,12 +464,12 @@ Em `components/patterns/patterns.test.tsx`, as asserções (com `renderToStaticM
 - `ListaDeDados`: `<dt>` e `<dd>` pareados;
 - `AvatarDeIniciais`: iniciais no fallback e `aria-hidden="true"`.
 
-- [ ] **Passo 2:** rode `npx vitest run tests/architecture components/patterns`. Esperado:
+- [x] **Passo 2:** rode `npx vitest run tests/architecture components/patterns`. Esperado:
   - o teste do aviso falha: nenhuma página usa `<AvisoDePrototipo` direto, porque a v0 usa `WorkspacePage prototipo=`;
   - os padrões falham por não existirem.
-- [ ] **Passo 3:** implemente os padrões e `_fixtures/agora.ts`. Em `tokens.test.ts`, `PAINEL` passa a incluir `readdirSync("components")` filtrado por diretório, menos `ui` e `marketing`. Nas 7 páginas antigas, tire a prop `prototipo` do `WorkspacePage` e ponha `<AvisoDePrototipo entrega="…" />` explícito antes dele. Nunca se commita com teste vermelho.
-- [ ] **Passo 4:** rode de novo. Esperado: tudo passa.
-- [ ] **Passo 5: commit.** `feat(patterns): filtro, busca, linha do tempo e guardas do dado fictício`
+- [x] **Passo 3:** implemente os padrões e `_fixtures/agora.ts`. Em `tokens.test.ts`, `PAINEL` passa a incluir `readdirSync("components")` filtrado por diretório, menos `ui` e `marketing`. Nas 7 páginas antigas, tire a prop `prototipo` do `WorkspacePage` e ponha `<AvisoDePrototipo entrega="…" />` explícito antes dele. Nunca se commita com teste vermelho.
+- [x] **Passo 4:** rode de novo. Esperado: tudo passa.
+- [x] **Passo 5: commit.** `feat(patterns): filtro, busca, linha do tempo e guardas do dado fictício`
 
 ---
 
@@ -459,7 +485,7 @@ export type Janela =
 export function janelaDeAtendimento(ultimaDoPaciente: string | null, agora: string | Date): Janela
 ```
 
-- [ ] **Passo 1: teste** (`lib/conversations/janela.test.ts`)
+- [x] **Passo 1: teste** (`lib/conversations/janela.test.ts`)
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -508,8 +534,8 @@ describe("janela de atendimento da Meta", () => {
 })
 ```
 
-- [ ] **Passo 2:** rode e veja falhar.
-- [ ] **Passo 3: implementar.**
+- [x] **Passo 2:** rode e veja falhar.
+- [x] **Passo 3: implementar.**
 
 ```ts
 /**
@@ -555,8 +581,8 @@ export function janelaDeAtendimento(
 }
 ```
 
-- [ ] **Passo 4:** rode e veja passar.
-- [ ] **Passo 5: commit.** `feat(conversations): regra da janela de 24h da Meta`
+- [x] **Passo 4:** rode e veja passar.
+- [x] **Passo 5: commit.** `feat(conversations): regra da janela de 24h da Meta`
 
 ---
 
@@ -612,7 +638,7 @@ export function lerFiltroDeEstado(valor: string | undefined): FiltroDeEstado   /
 export function tomDaJanela(j: Janela): StatusTone   // aberta com folga: success; aberta e menos de ALERTA: warning; fechada: neutral
 ```
 
-- [ ] **Passo 1: teste** (`components/conversations/estado.test.ts`)
+- [x] **Passo 1: teste** (`components/conversations/estado.test.ts`)
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -700,9 +726,9 @@ describe("tom da janela", () => {
 })
 ```
 
-- [ ] **Passo 2:** veja falhar. **Passo 3:** implemente `estado.ts`. **Passo 4:** veja passar.
+- [x] **Passo 2:** veja falhar. **Passo 3:** implemente `estado.ts`. **Passo 4:** veja passar.
 
-- [ ] **Passo 5: a tela.**
+- [x] **Passo 5: a tela.**
 
 **`CaixaDeConversas`** (server). Props:
 ```ts
@@ -782,15 +808,15 @@ No `xl`, fica numa coluna fixa de 17rem à direita da conversa; abaixo disso, no
 3. acha a aberta;
 4. renderiza `<AvisoDePrototipo entrega="motor de conversa (fase 3b)" />` e a `CaixaDeConversas`, com `caminho="/admin/design-system/telas/conversas"`, `caminhoDaFicha="/admin/design-system/telas/pacientes"` e `agora={AGORA}`.
 
-- [ ] **Passo 6: testes de renderização** (`conversas.test.tsx`). As asserções:
+- [x] **Passo 6: testes de renderização** (`conversas.test.tsx`). As asserções:
   - a lista mostra o texto do estado de cada conversa e `aria-current` só na selecionada;
   - a lista com uma conversa urgente começa por ela;
   - `Conversa` com a IA atendendo mostra "Assumir conversa" e nenhum textarea de resposta;
   - `Conversa` com a janela fechada mostra "só um template aprovado";
   - uma nota aparece com "Nota interna" e o nome do autor;
   - a bolha da IA mostra o autor "IA", e a da equipe o nome da pessoa.
-- [ ] **Passo 7:** rode `npx vitest run components tests/architecture && npx tsc --noEmit`, depois as capturas de `/admin/design-system/telas/conversas` (os 3 tamanhos) e de `?c=<id>` em 390px. Critique e corrija.
-- [ ] **Passo 8: commit.** `feat(conversations): protótipo da caixa com janela de 24h e passagem para humano`
+- [x] **Passo 7:** rode `npx vitest run components tests/architecture && npx tsc --noEmit`, depois as capturas de `/admin/design-system/telas/conversas` (os 3 tamanhos) e de `?c=<id>` em 390px. Critique e corrija.
+- [x] **Passo 8: commit.** `feat(conversations): protótipo da caixa com janela de 24h e passagem para humano`
 
 ---
 
@@ -821,7 +847,7 @@ export function filtrarPacientes(ps: readonly PacienteNaTabela[], f: { segmento:
 export function contarSegmentos(ps: readonly PacienteNaTabela[], agora: string): Record<SegmentoDePacientes, number>
 ```
 
-- [ ] **Passo 1: teste** (`segmentos.test.ts`)
+- [x] **Passo 1: teste** (`segmentos.test.ts`)
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -872,9 +898,9 @@ describe("segmentos de pacientes", () => {
 })
 ```
 
-- [ ] **Passos 2 a 4:** falha, implementação, passa.
+- [x] **Passos 2 a 4:** falha, implementação, passa.
 
-- [ ] **Passo 5: a tela.**
+- [x] **Passo 5: a tela.**
 
 **`TabelaDePacientes`** (server). Props: `{ pacientes; contagens; filtro; agora; caminho }`.
 - `PageHeader`:
@@ -907,13 +933,13 @@ describe("segmentos de pacientes", () => {
 
 **Página `[id]`:** `notFound()` quando o id não existe no fixture.
 
-- [ ] **Passo 6: testes de renderização.** As asserções:
+- [x] **Passo 6: testes de renderização.** As asserções:
   - sem nome aparece "Sem nome ainda";
   - os badges "Pendente" e "Não recebe" aparecem;
   - a ficha de quem saiu mostra "Nunca volta a ser inscrito";
   - o histórico renderiza `<time`.
-- [ ] **Passo 7:** rode os testes, `tsc` e as capturas (lista e ficha, 3 tamanhos cada). Critique e corrija.
-- [ ] **Passo 8: commit.** `feat(patients): protótipo da lista e da ficha com consentimento e opt-out`
+- [x] **Passo 7:** rode os testes, `tsc` e as capturas (lista e ficha, 3 tamanhos cada). Critique e corrija.
+- [x] **Passo 8: commit.** `feat(patients): protótipo da lista e da ficha com consentimento e opt-out`
 
 ---
 
@@ -929,7 +955,7 @@ export function encontrarConflitos(ags: readonly Agendamento[]): Conflito[]
 export function idsEmConflito(cs: readonly Conflito[]): Set<string>
 ```
 
-- [ ] **Passo 1: teste** (`lib/scheduling/conflitos.test.ts`)
+- [x] **Passo 1: teste** (`lib/scheduling/conflitos.test.ts`)
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -979,8 +1005,8 @@ describe("conflitos da agenda", () => {
 })
 ```
 
-- [ ] **Passo 2:** veja falhar.
-- [ ] **Passo 3: implementar.**
+- [x] **Passo 2:** veja falhar.
+- [x] **Passo 3: implementar.**
   - `sobrepoe`: `ini(a) < fim(b) && ini(b) < fim(a)`.
   - `encontrarConflitos`:
     1. valida duração maior que zero;
@@ -989,8 +1015,8 @@ describe("conflitos da agenda", () => {
     4. varre cada `i`, comparando com `j > i` enquanto `ini(j) < fim(i)`;
     5. o trecho sobreposto vai de `max(inícios)` a `min(fins)`, em ISO;
     6. ordena o resultado por `inicio` e, no empate, pelos ids.
-- [ ] **Passo 4:** veja passar.
-- [ ] **Passo 5: commit.** `feat(scheduling): detecção de conflito por profissional`
+- [x] **Passo 4:** veja passar.
+- [x] **Passo 5: commit.** `feat(scheduling): detecção de conflito por profissional`
 
 ---
 
@@ -1016,7 +1042,7 @@ export function faixas(itens: readonly { id: string; inicio: string; fim: string
 export function lerVisao(v: string | undefined): Visao
 ```
 
-- [ ] **Passo 1: teste** (`grade.test.ts`)
+- [x] **Passo 1: teste** (`grade.test.ts`)
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -1066,9 +1092,9 @@ describe("grade da agenda", () => {
 })
 ```
 
-- [ ] **Passos 2 a 4:** falha, implementação, passa. `faixas` agrupa por sobreposição transitiva e, dentro do grupo, dá a menor faixa livre; `total` é o número de faixas do grupo. `posicaoNaGrade` usa `partesDaData` e é arredondada a 2 casas.
+- [x] **Passos 2 a 4:** falha, implementação, passa. `faixas` agrupa por sobreposição transitiva e, dentro do grupo, dá a menor faixa livre; `total` é o número de faixas do grupo. `posicaoNaGrade` usa `partesDaData` e é arredondada a 2 casas.
 
-- [ ] **Passo 5: a tela.**
+- [x] **Passo 5: a tela.**
 
 **`TelaDaAgenda`** (server). Props:
 ```ts
@@ -1115,13 +1141,13 @@ Aviso de conflito: se há conflitos no período, uma caixa `danger` com "2 confl
 - um "faltou" às 08:00;
 - um pendente.
 
-- [ ] **Passo 6: testes de renderização.** As asserções:
+- [x] **Passo 6: testes de renderização.** As asserções:
   - o bloco em conflito contém "Conflito";
   - o cancelado não aparece na grade;
   - a lista do celular mostra o nome do profissional;
   - o dia fechado na semana mostra "Fechado".
-- [ ] **Passo 7:** rode os testes, `tsc` e as capturas (dia e semana; 1440 nos dois temas, 390 no escuro). Critique e corrija.
-- [ ] **Passo 8: commit.** `feat(schedule): protótipo da agenda por profissional com conflitos visíveis`
+- [x] **Passo 7:** rode os testes, `tsc` e as capturas (dia e semana; 1440 nos dois temas, 390 no escuro). Critique e corrija.
+- [x] **Passo 8: commit.** `feat(schedule): protótipo da agenda por profissional com conflitos visíveis`
 
 ---
 
@@ -1139,7 +1165,7 @@ export function segmentarCorpo(corpo: string): Trecho[]
 ```
 Comentário do módulo: "Regras da Meta para o corpo vigentes em set/2026. Revisar contra a documentação antes da fase 4 (whatsapp-templates-v1, Em aberto). Mudança de regra fica aqui, nunca na tela."
 
-- [ ] **Passo 1: teste** (`lib/whatsapp/corpo-do-template.test.ts`)
+- [x] **Passo 1: teste** (`lib/whatsapp/corpo-do-template.test.ts`)
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -1187,8 +1213,8 @@ describe("trechos para a prévia", () => {
 })
 ```
 
-- [ ] **Passos 2 a 4:** falha, implementação (regex `/\{\{(\d+)\}\}/g`), passa.
-- [ ] **Passo 5: commit.** `feat(whatsapp): validação do corpo de template antes de enviar à Meta`
+- [x] **Passos 2 a 4:** falha, implementação (regex `/\{\{(\d+)\}\}/g`), passa.
+- [x] **Passo 5: commit.** `feat(whatsapp): validação do corpo de template antes de enviar à Meta`
 
 ---
 
@@ -1220,14 +1246,14 @@ export function StatusDoTemplate({ status }: { status: StatusDoTemplate }): JSX.
 export function podeEnviarParaAprovacao(t: Pick<TemplateDoWhatsApp, "status" | "corpo">): boolean // draft ou rejected, sem problemas no corpo
 ```
 
-- [ ] **Passo 1: teste** (`status.test.tsx`):
+- [x] **Passo 1: teste** (`status.test.tsx`):
   - o mapa de tom é exatamente o acima;
   - só `draft` e `rejected` com corpo válido podem ser enviados;
   - `approved` com corpo válido não pode, porque editar exige reenvio pelo fluxo de rascunho;
   - o badge sempre contém o rótulo.
-- [ ] **Passos 2 a 4:** falha, implementação, passa.
+- [x] **Passos 2 a 4:** falha, implementação, passa.
 
-- [ ] **Passo 5: a tela.**
+- [x] **Passo 5: a tela.**
 
 **`TelaDeTemplates`** (server): `{ templates; filtro: { status: StatusDoTemplate | "todos"; busca }; aberto: TemplateDoWhatsApp | null; celularNoEditor: boolean; agora; caminho }`.
 - `PageHeader`: título "Templates"; descrição "Mensagens aprovadas pela Meta para falar com o paciente fora da janela de 24h."; ação "Novo template" desabilitada.
@@ -1262,13 +1288,13 @@ export function podeEnviarParaAprovacao(t: Pick<TemplateDoWhatsApp, "status" | "
 - follow-up em análise;
 - dois rascunhos, um deles com `{{3}}` pulando o `{{2}}`, para mostrar a validação.
 
-- [ ] **Passo 6: testes de renderização.** As asserções:
+- [x] **Passo 6: testes de renderização.** As asserções:
   - o rejeitado mostra "Motivo da Meta" e o texto;
   - a prévia substitui a variável pelo exemplo;
   - o rascunho inválido mostra a mensagem de "fora_de_sequencia";
   - o `PreviewDeConversa` do agente continua mostrando "Prévia no WhatsApp".
-- [ ] **Passo 7:** rode os testes (incluindo `components/agents`), `tsc` e as capturas. Critique e corrija.
-- [ ] **Passo 8: commit.** `feat(templates): protótipo da biblioteca com validação e prévia no WhatsApp`
+- [x] **Passo 7:** rode os testes (incluindo `components/agents`), `tsc` e as capturas. Critique e corrija.
+- [x] **Passo 8: commit.** `feat(templates): protótipo da biblioteca com validação e prévia no WhatsApp`
 
 ---
 
@@ -1305,7 +1331,7 @@ export const TOM_DA_SEQUENCIA: Record<StatusDaSequencia, StatusTone> // neutral,
 export function resumoDasInscricoes(is: readonly Inscricao[]): Record<StatusDaInscricao, number>
 ```
 
-- [ ] **Passo 1: teste** (`regras.test.ts`)
+- [x] **Passo 1: teste** (`regras.test.ts`)
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -1364,9 +1390,9 @@ describe("inscrições", () => {
 
 Rótulos da inscrição: "Em andamento", "Respondeu", "Agendou", "Pediu para sair" e "Concluiu sem resposta".
 
-- [ ] **Passos 2 a 4:** falha, implementação, passa.
+- [x] **Passos 2 a 4:** falha, implementação, passa.
 
-- [ ] **Passo 5: a tela.**
+- [x] **Passo 5: a tela.**
 
 **`TelaDeSequencias`**: `{ sequencias; aberta: Sequencia | null; celularNoEditor: boolean; agora; caminho; caminhoDoTemplate }`.
 - `PageHeader`: título "Sequências"; descrição "Recall, reativação e follow-up: mensagens espaçadas que param sozinhas quando o paciente responde, agenda ou pede para sair."; ação "Nova sequência" desabilitada.
@@ -1392,13 +1418,13 @@ Rótulos da inscrição: "Em andamento", "Respondeu", "Agendou", "Pediu para sai
 - Recall semestral: rascunho, 2 passos, o segundo com o template rejeitado;
 - Follow-up pós-consulta: pausada, 1 passo em análise.
 
-- [ ] **Passo 6: testes de renderização.** As asserções:
+- [x] **Passo 6: testes de renderização.** As asserções:
   - o passo bloqueado mostra o aviso;
   - "Dia 10" aparece no segundo passo;
   - a tabela de inscritos mostra "Agendou";
   - o `title` de "Ativar sequência" explica o bloqueio.
-- [ ] **Passo 7:** rode os testes, `tsc` e as capturas. Critique e corrija.
-- [ ] **Passo 8: commit.** `feat(sequences): protótipo do editor de passos com gatilho e motivo de parada`
+- [x] **Passo 7:** rode os testes, `tsc` e as capturas. Critique e corrija.
+- [x] **Passo 8: commit.** `feat(sequences): protótipo do editor de passos com gatilho e motivo de parada`
 
 ---
 
@@ -1437,7 +1463,7 @@ export type ResumoDaCobranca = {
 export const ROTULO_DA_FATURA / TOM_DA_FATURA // Paga success, Em aberto info, Vencida danger
 ```
 
-- [ ] **Passo 1: teste** (`lib/billing/billing.test.ts`)
+- [x] **Passo 1: teste** (`lib/billing/billing.test.ts`)
 
 ```ts
 import { readFileSync } from "node:fs"
@@ -1486,9 +1512,9 @@ describe("projeção do ciclo", () => {
 - a renderização tem `role="meter"` com `aria-valuenow` e `aria-valuemax`;
 - ilimitado não renderiza barra e mostra o texto `ilimitado`.
 
-- [ ] **Passos 2 a 4:** falha, implementação, passa.
+- [x] **Passos 2 a 4:** falha, implementação, passa.
 
-- [ ] **Passo 5: a tela.**
+- [x] **Passo 5: a tela.**
 
 **`TelaDeCobranca`**: `{ resumo: ResumoDaCobranca; agora }`.
 - `PageHeader`: título "Plano e cobrança", badge com o nome do plano e descrição "Quanto do plano você já usou neste ciclo, e o que vem na próxima cobrança."
@@ -1514,12 +1540,12 @@ Dois `MedidorDeUso` lado a lado. Os dois limites são o centro da tela e as regr
 - 2 agentes;
 - 4 faturas, uma vencida.
 
-- [ ] **Passo 6: testes de renderização.** As asserções:
+- [x] **Passo 6: testes de renderização.** As asserções:
   - "412" e "500" aparecem;
   - a explicação do atendimento está no HTML, e não num atributo `title`;
   - a fatura vencida mostra "Vencida".
-- [ ] **Passo 7:** rode os testes, `tsc` e as capturas. Critique e corrija.
-- [ ] **Passo 8: commit.** `feat(billing): protótipo de consumo com os dois limites do plano`
+- [x] **Passo 7:** rode os testes, `tsc` e as capturas. Critique e corrija.
+- [x] **Passo 8: commit.** `feat(billing): protótipo de consumo com os dois limites do plano`
 
 ---
 
@@ -1558,7 +1584,7 @@ export function situacaoDoConvite(c: Pick<Convite, "expiraEm">, agora: string): 
 | equipe | Convidar pessoas e mudar acessos | `/dashboard/settings/team` | tudo | nada | nada |
 | cobranca | Ver plano e cobrança | `/dashboard/billing` | tudo | nada | nada |
 
-- [ ] **Passo 1: testes**
+- [x] **Passo 1: testes**
 
 ```ts
 // components/team/capacidades.test.ts
@@ -1608,9 +1634,9 @@ describe("convite", () => {
 })
 ```
 
-- [ ] **Passos 2 a 4:** falha, implementação (`formatarDuracao` para os textos), passa.
+- [x] **Passos 2 a 4:** falha, implementação (`formatarDuracao` para os textos), passa.
 
-- [ ] **Passo 5: a tela.**
+- [x] **Passo 5: a tela.**
 
 **`TelaDeEquipe`**: `{ membros; convites; alteracoes; agora }`.
 - `PageHeader`: título "Equipe e acessos"; descrição "Quem entra no painel da clínica e o que cada pessoa pode fazer."; ação "Convidar pessoa" desabilitada.
@@ -1636,12 +1662,12 @@ describe("convite", () => {
 - 2 convites, um vencido;
 - 4 alterações.
 
-- [ ] **Passo 6: testes de renderização.** As asserções:
+- [x] **Passo 6: testes de renderização.** As asserções:
   - toda célula da matriz tem texto acessível ("Pode", "Só os próprios" ou "Não pode");
   - "Você" aparece uma vez;
   - o convite vencido mostra "Expirado".
-- [ ] **Passo 7:** rode os testes, `tsc` e as capturas. Critique e corrija.
-- [ ] **Passo 8: commit.** `feat(team): protótipo de equipe com matriz de capacidades e convites`
+- [x] **Passo 7:** rode os testes, `tsc` e as capturas. Critique e corrija.
+- [x] **Passo 8: commit.** `feat(team): protótipo de equipe com matriz de capacidades e convites`
 
 ---
 
@@ -1652,10 +1678,10 @@ describe("convite", () => {
 - Apagar: `components/patterns/workspace-page.tsx` e `components/patterns/search-input.tsx`. Confirme com `grep -rn "workspace-page\|search-input" app components` que não sobrou uso.
 - Modificar: este plano ("Status da execução"), `docs/roadmap.md`, `docs/status.md` e a memória `nextech-sistema-de-design.md`.
 
-- [ ] **Passo 1: suíte inteira.** `npx vitest run`, `npx tsc --noEmit` e `npm run build`. Esperado: tudo passa. Se o build falhar por variável de ambiente, registre em vez de contornar.
-- [ ] **Passo 2: passada visual.** As 8 rotas de protótipo (as 7 telas e a ficha do paciente) nos 3 tamanhos, mais `/dashboard` e `/dashboard/settings`, para ver o menu novo. Rode também `--cores /`, que precisa mostrar `--accent no escopo -> lab(72.8575% -47.9172 13.5998)`.
-- [ ] **Passo 3: Minha conta.** Se sobrar tempo, pergunte ao Jhones (opções selecionáveis) antes de começar.
-- [ ] **Passo 4: docs.**
+- [x] **Passo 1: suíte inteira.** `npx vitest run`, `npx tsc --noEmit` e `npm run build`. Esperado: tudo passa. Se o build falhar por variável de ambiente, registre em vez de contornar.
+- [x] **Passo 2: passada visual.** As 8 rotas de protótipo (as 7 telas e a ficha do paciente) nos 3 tamanhos, mais `/dashboard` e `/dashboard/settings`, para ver o menu novo. Rode também `--cores /`, que precisa mostrar `--accent no escopo -> lab(72.8575% -47.9172 13.5998)`.
+- [x] **Passo 3: Minha conta.** Se sobrar tempo, pergunte ao Jhones (opções selecionáveis) antes de começar.
+- [x] **Passo 4: docs.**
   - **Plano:** status "✅ concluído", com os números de testes e a tabela de ajustes da execução.
   - **Roadmap:** seção "Redesign do painel, parte 2" com o que entrou, as decisões do menu e o que fica. Fica de fora:
     - Minha conta;
@@ -1664,4 +1690,4 @@ describe("convite", () => {
     - mover a landing.
   - **Status:** a linha do redesign passa a "✅ protótipos completos; telas reais chegam com cada fase", com o número de testes atualizado.
   - **Memória:** padrão de protótipo (componente de domínio em `components/<domínio>` + `_fixtures`, com a guarda em `tests/architecture/prototipos.test.ts`) e "Gestão" no lugar de "Configuração".
-- [ ] **Passo 5: commit.** `docs: fecha a parte 2 do redesign no plano, roadmap e status`
+- [x] **Passo 5: commit.** `docs: fecha a parte 2 do redesign no plano, roadmap e status`

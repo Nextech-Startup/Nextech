@@ -11,10 +11,10 @@
 | **3a — Fundação multi-tenant** | ✅ concluída |
 | **3b — Motor de conversa** | ⬜ spec pronta, nada implementado |
 | **3c — Shell de navegação** | ✅ concluída |
-| Redesign do painel | 🟡 design system, shell e telas atuais prontos; protótipos completos pendentes — ver roadmap |
+| Redesign do painel | ✅ design system, shell, telas atuais e protótipos completos; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**402 testes passando** · 8 migrations aplicadas · em produção em `app.nextech.ia.br`
+**569 testes passando** · 8 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 ---
 
@@ -177,10 +177,12 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 ### Design
 
 - [x] **Redesign do painel, primeira parte**: concluída em 2026-09-26 na branch
-  `design/app-redesign` (design system, shell, telas atuais e protótipos no admin).
-  Ainda não foi para `staging`
-- [ ] **Redesign do painel, segunda parte**: protótipos completos das telas futuras,
-  nova divisão do menu e Minha conta. Lista em `docs/roadmap.md`
+  `design/app-redesign` (design system, shell, telas atuais e protótipos no admin),
+  já integrada na `staging`
+- [x] **Redesign do painel, segunda parte**: concluída em 2026-09-26 na `staging`
+  (menu com "Gestão" e Integrações, protótipos completos das sete telas futuras)
+- [ ] **Minha conta**: nome, senha e aparência. A senha depende do Resend
+- [ ] **Protótipo de Integrações**: o item entrou no menu como "em breve", ainda sem tela
 - [ ] **Clínicas "Completa Ltda" no banco**: duas, sem responsável, parecem resíduo
   de teste antigo. Confirmar e apagar
 
