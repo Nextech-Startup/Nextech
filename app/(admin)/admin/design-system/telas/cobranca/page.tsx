@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
 import { TelaDeCobranca } from "@/components/billing/tela-de-cobranca"
-import { AGORA } from "../../_fixtures/agora"
-import { COBRANCA } from "../../_fixtures/cobranca"
+import { AGORA } from "@/app/_fixtures/agora"
+import { COBRANCA } from "@/app/_fixtures/cobranca"
 
 export const metadata: Metadata = {
   title: "Protótipo: Plano e cobrança",

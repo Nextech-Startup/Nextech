@@ -3,8 +3,8 @@ import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
 import { lerVisao } from "@/components/schedule/grade"
 import { TelaDaAgenda } from "@/components/schedule/tela-da-agenda"
 import { chaveDoDia } from "@/lib/formatters/data"
-import { AGORA } from "../../_fixtures/agora"
-import { COMPROMISSOS, EXPEDIENTE, PROFISSIONAIS } from "../../_fixtures/agenda"
+import { AGORA } from "@/app/_fixtures/agora"
+import { COMPROMISSOS, EXPEDIENTE, PROFISSIONAIS } from "@/app/_fixtures/agenda"
 
 export const metadata: Metadata = {
   title: "Protótipo: Agenda",

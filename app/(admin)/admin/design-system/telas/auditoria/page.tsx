@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import { TelaDeAuditoria } from "@/components/admin/tela-de-auditoria"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
 import type { TipoDeRegistro } from "@/lib/admin/auditoria"
-import { AGORA } from "../../_fixtures/agora"
-import { TRILHA } from "../../_fixtures/painel-interno"
+import { AGORA } from "@/app/_fixtures/agora"
+import { TRILHA } from "@/app/_fixtures/painel-interno"
 
 export const metadata: Metadata = {
   title: "Protótipo: Auditoria",

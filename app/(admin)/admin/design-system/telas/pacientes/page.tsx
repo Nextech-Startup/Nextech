@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
 import { TabelaDePacientes } from "@/components/patients/tabela-de-pacientes"
 import { contarSegmentos, filtrarPacientes, lerSegmento } from "@/components/patients/segmentos"
-import { AGORA } from "../../_fixtures/agora"
-import { PACIENTES } from "../../_fixtures/pacientes"
+import { AGORA } from "@/app/_fixtures/agora"
+import { PACIENTES } from "@/app/_fixtures/pacientes"
 
 export const metadata: Metadata = {
   title: "Protótipo: Pacientes",

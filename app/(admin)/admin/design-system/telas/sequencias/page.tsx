@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
 import { TelaDeSequencias } from "@/components/sequences/tela-de-sequencias"
-import { AGORA } from "../../_fixtures/agora"
-import { SEQUENCIAS } from "../../_fixtures/sequencias"
+import { AGORA } from "@/app/_fixtures/agora"
+import { SEQUENCIAS } from "@/app/_fixtures/sequencias"
 
 export const metadata: Metadata = {
   title: "Protótipo: Sequências",

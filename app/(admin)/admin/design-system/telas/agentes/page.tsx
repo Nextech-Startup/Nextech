@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
 import { ListaDeAgentesEmOperacao } from "@/components/agents/lista-em-operacao"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
-import { AGENTES } from "../../_fixtures/agentes"
-import { AGORA } from "../../_fixtures/agora"
+import { AGENTES } from "@/app/_fixtures/agentes"
+import { AGORA } from "@/app/_fixtures/agora"
 
 export const metadata: Metadata = {
   title: "Protótipo: Agentes",

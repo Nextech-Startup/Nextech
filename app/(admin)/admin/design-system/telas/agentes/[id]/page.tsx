@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { OperacaoDoAgente } from "@/components/agents/operacao-do-agente"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
-import { DETALHES_DOS_AGENTES } from "../../../_fixtures/agentes"
-import { AGORA } from "../../../_fixtures/agora"
+import { DETALHES_DOS_AGENTES } from "@/app/_fixtures/agentes"
+import { AGORA } from "@/app/_fixtures/agora"
 
 export const metadata: Metadata = {
   title: "Protótipo: Agente",

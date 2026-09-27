@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
 import { contarPorStatus, filtrarTemplates, lerFiltroDeStatus } from "@/components/templates/regras"
 import { TelaDeTemplates } from "@/components/templates/tela-de-templates"
-import { TEMPLATES } from "../../_fixtures/templates"
+import { TEMPLATES } from "@/app/_fixtures/templates"
 
 export const metadata: Metadata = {
   title: "Protótipo: Templates",

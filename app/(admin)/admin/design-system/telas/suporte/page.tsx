@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { ClinicasParaSuporte } from "@/components/admin/tela-de-suporte"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
-import { RESUMOS_DE_SUPORTE } from "../../_fixtures/painel-interno"
+import { RESUMOS_DE_SUPORTE } from "@/app/_fixtures/painel-interno"
 
 export const metadata: Metadata = {
   title: "Protótipo: Conversas de suporte",

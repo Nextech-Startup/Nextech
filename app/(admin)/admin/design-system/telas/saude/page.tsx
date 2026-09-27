@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
 import { TelaDeSaude } from "@/components/admin/tela-de-saude"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
-import { AGORA } from "../../_fixtures/agora"
-import { SAUDE } from "../../_fixtures/painel-interno"
+import { AGORA } from "@/app/_fixtures/agora"
+import { SAUDE } from "@/app/_fixtures/painel-interno"
 
 export const metadata: Metadata = {
   title: "Protótipo: Saúde",

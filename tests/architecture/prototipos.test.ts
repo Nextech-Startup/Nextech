@@ -11,17 +11,42 @@ function arquivos(dir: string): string[] {
   })
 }
 
-const PROTOTIPOS = "app/(admin)/admin/design-system"
+const TELAS_DO_ADMIN = "app/(admin)/admin/design-system/telas"
+const FIXTURES = "app/_fixtures"
+const PAINEL = "app/(dashboard)"
 const todos = [...arquivos("app"), ...arquivos("components"), ...arquivos("lib")]
 
+/** Qualquer literal de caminho com `_fixtures/`: import estático ou dinâmico. */
+const importaFixtures = (f: string) => /["'][^"']*_fixtures\/[^"']*["']/.test(readFileSync(f, "utf8"))
+const paginaDoPainel = (f: string) => f.startsWith(`${PAINEL}/`) && f.endsWith("/page.tsx")
+
 describe("dado fictício", () => {
-  // O dado inventado existe para desenhar tela. Se ele vazar para uma rota
-  // que a clínica alcança, vira informação falsa sobre paciente de verdade.
-  it("só as telas de protótipo importam _fixtures", () => {
+  // O dado inventado existe para desenhar tela e para a conta de
+  // demonstração (spec demo-account-v1). Numa clínica comum, viraria
+  // informação falsa sobre paciente de verdade.
+  it("importam _fixtures só as telas de protótipo do admin e as páginas do painel", () => {
     const infratores = todos.filter(
-      (f) => !f.startsWith(`${PROTOTIPOS}/`) && readFileSync(f, "utf8").includes("_fixtures"),
+      (f) =>
+        !f.startsWith(`${FIXTURES}/`) &&
+        !f.startsWith(`${TELAS_DO_ADMIN}/`) &&
+        !paginaDoPainel(f) &&
+        importaFixtures(f),
     )
     expect(infratores).toEqual([])
+  })
+
+  it("toda página do painel que importa _fixtures lê isDemo", () => {
+    const semDemo = todos
+      .filter((f) => paginaDoPainel(f) && importaFixtures(f))
+      .filter((f) => !/\bisDemo\b/.test(readFileSync(f, "utf8")))
+    expect(semDemo).toEqual([])
+  })
+
+  it("página do painel não mostra o aviso de protótipo", () => {
+    const comAviso = todos.filter(
+      (f) => paginaDoPainel(f) && readFileSync(f, "utf8").includes("AvisoDePrototipo"),
+    )
+    expect(comAviso).toEqual([])
   })
 
   it("componente e lib não importam nada de app/", () => {
@@ -32,7 +57,7 @@ describe("dado fictício", () => {
   })
 
   it("toda tela de protótipo mostra o aviso de dado fictício", () => {
-    const paginas = arquivos(`${PROTOTIPOS}/telas`).filter((f) => f.endsWith("/page.tsx"))
+    const paginas = arquivos(TELAS_DO_ADMIN).filter((f) => f.endsWith("/page.tsx"))
     expect(paginas.length).toBeGreaterThanOrEqual(19)
     const semAviso = paginas.filter((f) => !readFileSync(f, "utf8").includes("<AvisoDePrototipo"))
     expect(semAviso).toEqual([])

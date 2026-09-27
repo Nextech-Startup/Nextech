@@ -6,8 +6,8 @@ import {
   filtrarConversas,
   lerFiltroDeEstado,
 } from "@/components/conversations/estado"
-import { AGORA } from "../../_fixtures/agora"
-import { CONVERSAS } from "../../_fixtures/conversas"
+import { AGORA } from "@/app/_fixtures/agora"
+import { CONVERSAS } from "@/app/_fixtures/conversas"
 
 export const metadata: Metadata = {
   title: "Protótipo: Conversas",

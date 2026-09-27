@@ -4,8 +4,8 @@ import { notFound } from "next/navigation"
 import { TelaDeAcessoDeSuporte } from "@/components/admin/tela-de-suporte"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
 import { acessoVigente } from "@/lib/admin/acesso-de-suporte"
-import { AGORA } from "../../../_fixtures/agora"
-import { ACESSO_DE_EXEMPLO, CONVERSAS_DE_SUPORTE, RESUMOS_DE_SUPORTE } from "../../../_fixtures/painel-interno"
+import { AGORA } from "@/app/_fixtures/agora"
+import { ACESSO_DE_EXEMPLO, CONVERSAS_DE_SUPORTE, RESUMOS_DE_SUPORTE } from "@/app/_fixtures/painel-interno"
 
 export const metadata: Metadata = {
   title: "Protótipo: Acesso de suporte",

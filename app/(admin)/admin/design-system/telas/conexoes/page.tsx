@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
 import { TelaDeConexoes } from "@/components/admin/tela-de-conexoes"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
-import { AGORA } from "../../_fixtures/agora"
-import { CONEXOES } from "../../_fixtures/painel-interno"
+import { AGORA } from "@/app/_fixtures/agora"
+import { CONEXOES } from "@/app/_fixtures/painel-interno"
 
 export const metadata: Metadata = {
   title: "Protótipo: Conexões",

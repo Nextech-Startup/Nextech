@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
 import { TelaDeEquipe } from "@/components/team/tela-de-equipe"
-import { AGORA } from "../../_fixtures/agora"
-import { ALTERACOES, CONVITES, MEMBROS } from "../../_fixtures/equipe"
+import { AGORA } from "@/app/_fixtures/agora"
+import { ALTERACOES, CONVITES, MEMBROS } from "@/app/_fixtures/equipe"
 
 export const metadata: Metadata = {
   title: "Protótipo: Equipe e acessos",

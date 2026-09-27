@@ -211,7 +211,7 @@ As páginas já buscam dado de `lib/`. Mantenha isso e troque só a apresentaç�
 Não existe backend para estas telas ainda. Construa:
 
 1. O componente de domínio em `components/<dominio>/`, recebendo props tipadas.
-2. Uma página de protótipo em `app/(admin)/admin/design-system/telas/<tela>/page.tsx`, que alimenta o componente com dado fictício de `app/(admin)/admin/design-system/_fixtures/`.
+2. Uma página de protótipo em `app/(admin)/admin/design-system/telas/<tela>/page.tsx`, que alimenta o componente com dado fictício de `app/_fixtures/`.
 3. Cada protótipo mostra os estados: carregando, vazio (clínica nova), com dados, erro. Quando o papel muda o que se vê, mostra também a versão de cada papel.
 
 **Não crie** a rota real em `app/(dashboard)`. O item do menu continua "em breve" até a fase de backend ligar o dado. Assim a clínica nunca vê tela vazia nem dado falso, e a equipe revisa tudo no admin.

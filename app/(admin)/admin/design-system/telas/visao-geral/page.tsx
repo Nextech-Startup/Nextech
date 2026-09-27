@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
 import { TelaDeVisaoGeral } from "@/components/overview/tela-de-visao-geral"
 import type { Periodo } from "@/components/overview/tipos"
-import { AGORA } from "../../_fixtures/agora"
-import { VISAO_GERAL } from "../../_fixtures/visao-geral"
+import { AGORA } from "@/app/_fixtures/agora"
+import { VISAO_GERAL } from "@/app/_fixtures/visao-geral"
 
 export const metadata: Metadata = {
   title: "Protótipo: Visão geral",

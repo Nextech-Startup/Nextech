@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
 import { TelaMinhaConta } from "@/components/account/tela-minha-conta"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
-import { AGORA } from "../../_fixtures/agora"
-import { MINHA_CONTA } from "../../_fixtures/minha-conta"
+import { AGORA } from "@/app/_fixtures/agora"
+import { MINHA_CONTA } from "@/app/_fixtures/minha-conta"
 
 export const metadata: Metadata = {
   title: "Protótipo: Minha conta",
