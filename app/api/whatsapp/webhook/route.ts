@@ -89,9 +89,11 @@ export async function POST(request: Request) {
         if (r && protocolo) {
           after(() => emSegundoPlano("protocolo", () => enviarProtocolo({ ...r, protocolo })))
         }
-        // Reenvio (`nova: false`) já teve a resposta agendada da primeira vez.
-        // Pedido de opt-out e mensagem urgente não têm resposta da IA.
-        if (r && r.autor === "patient" && r.nova && r.agenteAtivo && !r.optOut && !r.urgente) {
+        // Reenvio (`nova: false`) só agenda de novo se a mensagem ainda não
+        // tiver resposta. Pedido de opt-out e mensagem urgente não têm
+        // resposta da IA.
+        const semResposta = r?.nova || !r?.jaRespondida
+        if (r && r.autor === "patient" && semResposta && r.agenteAtivo && !r.optOut && !r.urgente) {
           after(() => emSegundoPlano("resposta", () => responderConversa(r)))
         }
       } else if (evento.tipo === "status") {

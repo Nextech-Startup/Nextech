@@ -148,6 +148,7 @@ describe("a rota agenda a resposta da IA (motor de conversa, parte 2)", () => {
     nova: true,
     autor: "patient",
     agenteAtivo: true,
+    jaRespondida: false,
     optOut: false,
     urgente: false,
     protocolo: null,
@@ -161,20 +162,22 @@ describe("a rota agenda a resposta da IA (motor de conversa, parte 2)", () => {
       mensagens: Array.from({ length: n }, (_, i) => mensagem(`wamid.${i + 1}`, 1790000001 + i, "oi")),
     })
 
-  it("só mensagem nova do paciente, com agente ativo e sem opt-out, agenda uma resposta", async () => {
+  it("só mensagem do paciente ainda sem resposta, com agente ativo e sem opt-out, agenda uma resposta", async () => {
     vi.mocked(receberMensagem)
       .mockResolvedValueOnce(resultado())
-      .mockResolvedValueOnce(resultado({ nova: false }))
+      .mockResolvedValueOnce(resultado({ nova: false, jaRespondida: true }))
       .mockResolvedValueOnce(resultado({ agenteAtivo: false }))
       .mockResolvedValueOnce(resultado({ autor: "human" }))
       .mockResolvedValueOnce(resultado({ optOut: true }))
-    expect((await postar(varias(5))).status).toBe(200)
-    expect(receberMensagem).toHaveBeenCalledTimes(5)
+      // Reenvio de mensagem que ficou sem resposta: a primeira entrega falhou depois de gravar.
+      .mockResolvedValueOnce(resultado({ nova: false, messageId: "sem-resposta" }))
+    expect((await postar(varias(6))).status).toBe(200)
+    expect(receberMensagem).toHaveBeenCalledTimes(6)
 
-    expect(after).toHaveBeenCalledTimes(1)
-    const [agendada] = vi.mocked(after).mock.calls[0] as unknown as [() => Promise<void>]
-    await agendada()
-    expect(responderConversa).toHaveBeenCalledWith(resultado())
+    expect(after).toHaveBeenCalledTimes(2)
+    for (const [agendada] of vi.mocked(after).mock.calls as unknown as Array<[() => Promise<void>]>) await agendada()
+    expect(responderConversa).toHaveBeenNthCalledWith(1, resultado())
+    expect(responderConversa).toHaveBeenNthCalledWith(2, resultado({ nova: false, messageId: "sem-resposta" }))
   })
 
   it("falha transitória numa mensagem adia as seguintes da mesma conversa, e só delas", async () => {

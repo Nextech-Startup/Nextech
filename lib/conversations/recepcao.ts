@@ -19,6 +19,11 @@ export type ResultadoDaRecepcao = {
   nova: boolean
   autor: "patient" | "human"
   agenteAtivo: boolean
+  /**
+   * A mensagem já tem resposta ou reserva. Só importa no reenvio: se a
+   * primeira entrega falhou depois de gravar, a resposta nunca foi agendada.
+   */
+  jaRespondida: boolean
   /** O paciente pediu para sair das sequências. Esta mensagem não tem resposta. */
   optOut: boolean
   /** A mensagem casou uma regra de urgência: a IA não responde a ela. */
@@ -96,6 +101,12 @@ export async function receberMensagem(
   // de escrever. Carimbar "agora" num reenvio atrasado é o erro menor.
   if (m.autor === "patient") await touchLastContact(clinicId, paciente.id)
 
+  // Reenvio: a rota agenda a resposta de novo se ela ainda não existir. Se a
+  // primeira entrega agendou e o lote voltou 500 por outro evento, o modelo
+  // pode ser chamado duas vezes; a reserva garante um envio só.
+  const jaRespondida =
+    !registrada.inserted && m.autor === "patient" && (await temResposta(clinicId, registrada.message_id))
+
   // Direito do paciente: vale com o agente pausado e com a equipe
   // atendendo, e também no reenvio, pelo mesmo motivo do touchLastContact.
   const pediuOptOut = m.autor === "patient" && pedidoDeOptOut(m.texto)
@@ -127,8 +138,21 @@ export async function receberMensagem(
     nova: registrada.inserted,
     autor: m.autor,
     agenteAtivo: agente.status === "active",
+    jaRespondida,
     optOut: pediuOptOut,
     urgente: triagem.urgente,
     protocolo: triagem.protocolo,
   }
+}
+
+/** A mensagem do paciente já tem resposta da IA ou protocolo, enviado ou reservado. */
+async function temResposta(clinicId: string, messageId: string): Promise<boolean> {
+  const { supabase } = serviceContext()
+  const { count, error } = await supabase
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("clinic_id", clinicId)
+    .eq("reply_to_message_id", messageId)
+  if (error) throw error
+  return (count ?? 0) > 0
 }

@@ -307,16 +307,40 @@ describe("mensagem do paciente (conversation-engine-v1, recepção)", () => {
     expect(instante(s.last_message_at)).toBe(iso(T0))
   })
 
-  it("reenvio do mesmo payload não duplica mensagem nem sessão, nem agenda outra resposta", async () => {
+  it("reenvio do mesmo payload não duplica mensagem nem sessão, e só agenda de novo enquanto não há resposta", async () => {
     const waId = novoWaId()
     const payload = doPaciente(waId, [[T0, "oi"]])
     vi.mocked(after).mockClear()
     expect((await postar(payload)).status).toBe(200)
+    // Ainda sem resposta nem reserva (o `after` simulado não roda): o reenvio
+    // agenda de novo, e a reserva garante um envio só.
     expect((await postar(payload)).status).toBe(200)
-    expect(after).toHaveBeenCalledTimes(1)
+    expect(after).toHaveBeenCalledTimes(2)
 
     const c = await conversa(waId)
-    expect(await mensagens(c.id)).toHaveLength(1)
+    const [m] = await mensagens(c.id)
+    const { error } = await admin.from("messages").insert({
+      clinic_id: clinica,
+      conversation_id: c.id,
+      direction: "outbound",
+      author: "ai",
+      media_type: "text",
+      content_encrypted: "blob-da-resposta",
+      occurred_at: iso(T0 + 15),
+      delivery_status: "pending",
+      delivery_updated_at: iso(T0 + 15),
+      category: "SERVICE",
+      within_24h_window: true,
+      billable: true,
+      reply_to_message_id: m.id,
+    })
+    expect(error).toBeNull()
+    // Com a reserva gravada, o reenvio não agenda mais.
+    expect((await postar(payload)).status).toBe(200)
+    expect(after).toHaveBeenCalledTimes(2)
+
+    const doPacienteNaConversa = (await mensagens(c.id)).filter((x) => x.author === "patient")
+    expect(doPacienteNaConversa).toHaveLength(1)
     const lista = await sessoes(c.id)
     expect(lista).toHaveLength(1)
     expect(instante(lista[0].last_message_at)).toBe(iso(T0))
