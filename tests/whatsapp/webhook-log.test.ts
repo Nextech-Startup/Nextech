@@ -3,11 +3,28 @@ import { inspect } from "node:util"
 
 vi.mock("@/lib/conversations/recepcao", () => ({ receberMensagem: vi.fn() }))
 vi.mock("@/lib/whatsapp/conta", () => ({ receberEventoDeConta: vi.fn() }))
+vi.mock("@/lib/conversations/resposta", () => ({ responderConversa: vi.fn() }))
+vi.mock("@/lib/conversations/status", () => ({ receberStatus: vi.fn() }))
+// Fora de uma requisição do Next, `after` não funciona: o teste guarda o
+// callback e decide quando rodar.
+vi.mock("next/server", async (original) => ({
+  ...(await original<typeof import("next/server")>()),
+  after: vi.fn(),
+}))
 
+import { after } from "next/server"
 import { POST } from "@/app/api/whatsapp/webhook/route"
-import { receberMensagem } from "@/lib/conversations/recepcao"
+import { receberMensagem, type ResultadoDaRecepcao } from "@/lib/conversations/recepcao"
+import { responderConversa } from "@/lib/conversations/resposta"
+import { receberStatus } from "@/lib/conversations/status"
 import { receberEventoDeConta } from "@/lib/whatsapp/conta"
-import { assinar, mensagem, webhookDeConta, webhookDeMensagens } from "@/tests/fixtures/meta-webhook"
+import {
+  assinar,
+  mensagem,
+  webhookDeConta,
+  webhookDeMensagens,
+  webhookDeStatus,
+} from "@/tests/fixtures/meta-webhook"
 import { logPermitido, restaurarEnv } from "./log"
 
 /**
@@ -117,5 +134,74 @@ describe("logPermitido", () => {
     expect(
       logPermitido(["[whatsapp-webhook]", { etapa: "recepcao", definitiva: false, tipo: "Error", codigo: null }]),
     ).toBe(true)
+  })
+})
+
+describe("a rota agenda a resposta da IA (motor de conversa, parte 2)", () => {
+  const resultado = (p: Partial<ResultadoDaRecepcao> = {}): ResultadoDaRecepcao => ({
+    clinicId: "clinica",
+    conversationId: "conversa",
+    messageId: "mensagem",
+    nova: true,
+    autor: "patient",
+    agenteAtivo: true,
+    ...p,
+  })
+
+  const quatro = () =>
+    webhookDeMensagens({
+      phoneNumberId: "1",
+      waId: WA_ID,
+      mensagens: [1, 2, 3, 4].map((i) => mensagem(`wamid.${i}`, 1790000000 + i, "oi")),
+    })
+
+  it("só mensagem nova do paciente, com agente ativo, agenda uma resposta", async () => {
+    vi.mocked(receberMensagem)
+      .mockResolvedValueOnce(resultado())
+      .mockResolvedValueOnce(resultado({ nova: false }))
+      .mockResolvedValueOnce(resultado({ agenteAtivo: false }))
+      .mockResolvedValueOnce(resultado({ autor: "human" }))
+    expect((await postar(quatro())).status).toBe(200)
+
+    expect(after).toHaveBeenCalledTimes(1)
+    const [agendada] = vi.mocked(after).mock.calls[0] as unknown as [() => Promise<void>]
+    await agendada()
+    expect(responderConversa).toHaveBeenCalledWith(resultado())
+  })
+
+  it("falha transitória numa mensagem adia as seguintes da mesma conversa, e só delas", async () => {
+    const outro = "5500987654321"
+    const deX = webhookDeMensagens({
+      phoneNumberId: "1",
+      waId: WA_ID,
+      mensagens: [mensagem("wamid.x1", 1790000001, "oi"), mensagem("wamid.x2", 1790000002, "tudo bem?")],
+    })
+    const deY = webhookDeMensagens({ phoneNumberId: "1", waId: outro, mensagens: [mensagem("wamid.y1", 1790000003, "oi")] })
+    vi.mocked(receberMensagem)
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce(resultado({ messageId: "y1" }))
+
+    // 500: a Meta reenvia o lote, e a segunda de X entra depois da primeira.
+    expect((await postar({ ...deX, entry: [...deX.entry, ...deY.entry] })).status).toBe(500)
+    expect(receberMensagem).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(receberMensagem).mock.calls[1][0]).toMatchObject({ waIdDoPaciente: outro })
+    conferirLog()
+  })
+
+  it("erro dentro da resposta em segundo plano é logado só com metadado", async () => {
+    vi.mocked(receberMensagem).mockResolvedValueOnce(resultado())
+    vi.mocked(responderConversa).mockRejectedValueOnce(new Error(`falhou com "${TEXTO}" de ${NOME}`))
+    expect((await postar(payloadDoPaciente())).status).toBe(200)
+
+    const [agendada] = vi.mocked(after).mock.calls[0] as unknown as [() => Promise<void>]
+    await expect(agendada()).resolves.toBeUndefined()
+    expect(espioes[0]).toHaveBeenCalledWith("[whatsapp-webhook]", { etapa: "resposta", tipo: "Error", codigo: null })
+    conferirLog()
+  })
+
+  it("status de entrega vai para receberStatus", async () => {
+    const payload = webhookDeStatus({ phoneNumberId: "1", statuses: [{ id: "wamid.s", status: "read", timestamp: 1790000000 }] })
+    expect((await postar(payload)).status).toBe(200)
+    expect(receberStatus).toHaveBeenCalledWith(expect.objectContaining({ tipo: "status", status: "read", waMessageId: "wamid.s" }))
   })
 })

@@ -1,11 +1,15 @@
-import { receberMensagem } from "@/lib/conversations/recepcao"
+import { after } from "next/server"
+import { receberMensagem, type ResultadoDaRecepcao } from "@/lib/conversations/recepcao"
+import { responderConversa } from "@/lib/conversations/resposta"
+import { receberStatus } from "@/lib/conversations/status"
 import { erroParaLog } from "@/lib/security/erro-para-log"
 import { assinaturaValida, desafioDaVerificacao } from "@/lib/whatsapp/assinatura"
 import { receberEventoDeConta } from "@/lib/whatsapp/conta"
 import { falhaDefinitiva, interpretarWebhook } from "@/lib/whatsapp/webhook"
 
 /**
- * Webhook da Meta (conversation-engine-v1, recepção, eco e eventos de conta).
+ * Webhook da Meta (conversation-engine-v1, recepção, eco, eventos de conta
+ * e status de entrega).
  *
  * Grava antes de responder: a gravação leva milissegundos, e um 200 com a
  * gravação falha perderia a mensagem para sempre. Com 500, a Meta reenvia,
@@ -13,9 +17,16 @@ import { falhaDefinitiva, interpretarWebhook } from "@/lib/whatsapp/webhook"
  * transitória vira 500: a definitiva se repetiria em todo reenvio e
  * travaria os eventos que vieram junto.
  *
+ * A resposta da IA roda depois do 200, no `after()`: é o que demora
+ * (agrupamento de 10 s, modelo, envio), e a Meta reenviaria por timeout.
+ *
  * Log só com metadado: nunca o payload, o conteúdo, o telefone nem o erro
  * inteiro (lgpd-security).
  */
+
+// Pior caso da resposta: 10 s de agrupamento, três tentativas de 20 s no
+// modelo com 5 s de espera entre elas, e o envio.
+export const maxDuration = 120
 
 const ROTULO = "[whatsapp-webhook]"
 
@@ -51,19 +62,51 @@ export async function POST(request: Request) {
 
   const eventos = interpretarWebhook(payload)
   let transitorias = 0
+  // Conversas com falha transitória neste POST. As mensagens seguintes
+  // delas esperam o reenvio da Meta: entrar agora faria a IA responder à
+  // mensagem N+1 antes de a N existir.
+  const adiadas = new Set<string>()
+
   // Em sequência: duas mensagens do mesmo paciente no mesmo payload
   // disputariam a mesma conversa e a mesma sessão.
   for (const evento of eventos) {
+    const conversa = evento.tipo === "mensagem" ? `${evento.phoneNumberId}:${evento.waIdDoPaciente}` : null
+    if (conversa && adiadas.has(conversa)) {
+      transitorias += 1
+      continue
+    }
+
     try {
-      if (evento.tipo === "mensagem") await receberMensagem(evento)
-      else if (evento.tipo === "conta") await receberEventoDeConta(evento)
+      if (evento.tipo === "mensagem") {
+        const r = await receberMensagem(evento)
+        // Reenvio (`nova: false`) já teve a resposta agendada da primeira vez.
+        if (r && r.autor === "patient" && r.nova && r.agenteAtivo) {
+          after(() => responderEmSegundoPlano(r))
+        }
+      } else if (evento.tipo === "status") {
+        await receberStatus(evento)
+      } else {
+        await receberEventoDeConta(evento)
+      }
     } catch (erro) {
       const falha = erroParaLog(erro)
       const definitiva = falhaDefinitiva(falha)
-      if (!definitiva) transitorias += 1
+      if (!definitiva) {
+        transitorias += 1
+        if (conversa) adiadas.add(conversa)
+      }
       console.error(ROTULO, { etapa: "recepcao", definitiva, ...falha })
     }
   }
 
   return new Response(null, { status: transitorias > 0 ? 500 : 200 })
+}
+
+/** Depois do 200 não há a quem devolver erro: loga o metadado e para. */
+async function responderEmSegundoPlano(r: ResultadoDaRecepcao): Promise<void> {
+  try {
+    await responderConversa(r)
+  } catch (erro) {
+    console.error(ROTULO, { etapa: "resposta", ...erroParaLog(erro) })
+  }
 }

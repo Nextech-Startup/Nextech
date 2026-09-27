@@ -1,9 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest"
+
+// Fora de uma requisição do Next, `after` não funciona. Aqui ele só é
+// contado; a resposta da IA tem o próprio teste (tests/conversations).
+vi.mock("next/server", async (original) => ({
+  ...(await original<typeof import("next/server")>()),
+  after: vi.fn(),
+}))
 import { inspect } from "node:util"
 import { createClient } from "@supabase/supabase-js"
 import { GET, POST } from "@/app/api/whatsapp/webhook/route"
 import { decifrarConteudo } from "@/lib/conversations/conteudo"
 import { receberMensagem } from "@/lib/conversations/recepcao"
+import { responderConversa } from "@/lib/conversations/resposta"
 import { interpretarWebhook, type MensagemDoWebhook } from "@/lib/whatsapp/webhook"
 import {
   assinar,
@@ -11,6 +19,7 @@ import {
   webhookDeConta,
   webhookDeEcos,
   webhookDeMensagens,
+  webhookDeStatus,
 } from "@/tests/fixtures/meta-webhook"
 import { logPermitido, restaurarEnv } from "./log"
 
@@ -734,5 +743,35 @@ describe("LGPD: falha não vaza conteúdo (critério de aceite)", () => {
 
     expect((await postar(payload)).status).toBe(200)
     expect(await mensagens((await conversa(waId)).id)).toHaveLength(1)
+  })
+})
+
+describe("status de entrega pelo POST (motor de conversa, parte 2)", () => {
+  it("read avança a resposta que a IA enviou", async () => {
+    const waId = novoWaId()
+    const r = await receberMensagem(interpretarWebhook(doPaciente(waId, [[T0, "oi"]]))[0] as MensagemDoWebhook)
+    const enviada = `wamid.ia.${SUFIXO}`
+    // Modelo e Meta simulados; o relógio dentro da janela da mensagem.
+    const desfecho = await responderConversa(r!, {
+      gerar: async () => "Olá!",
+      enviar: async () => ({ waMessageId: enviada }),
+      dormir: async () => {},
+      agora: () => iso(T0 + 15),
+    })
+    expect(desfecho).toBe("respondida")
+
+    const status = webhookDeStatus({
+      wabaId: WABA,
+      phoneNumberId: PHONE,
+      statuses: [{ id: enviada, status: "read", timestamp: T0 + 60 }],
+    })
+    expect((await postar(status)).status).toBe(200)
+    const { data } = await admin
+      .from("messages")
+      .select("delivery_status")
+      .eq("clinic_id", clinica)
+      .eq("wa_message_id", enviada)
+      .single()
+    expect(data!.delivery_status).toBe("read")
   })
 })
