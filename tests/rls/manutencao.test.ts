@@ -176,10 +176,12 @@ describe("só o banco (pg_cron) e o service_role rodam a manutenção", () => {
 })
 
 describe("fechamento por timeout (atendimento-billing-v1, regra 3)", () => {
-  it("fecha a sessão parada há mais de 20 min no instante em que venceu, e deixa a recente aberta", async () => {
+  it("fecha a sessão parada há mais de 1h20 no instante em que venceu, e deixa a recente e a da folga abertas", async () => {
     const ultima = Date.now() - 120 * MINUTO
     const parada = await registrar(await novoPaciente(), iso(ultima))
     const recente = await registrar(await novoPaciente(), iso(Date.now() - 5 * MINUTO))
+    // Vencida há 20 min, mas dentro da folga de 1 h para mensagem atrasada.
+    const naFolga = await registrar(await novoPaciente(), iso(Date.now() - 40 * MINUTO))
 
     const { data, error } = await rodar("close_stale_attendance_sessions")
     expect(error).toBeNull()
@@ -189,6 +191,7 @@ describe("fechamento por timeout (atendimento-billing-v1, regra 3)", () => {
     expect(fechada.status).toBe("closed_by_timeout")
     expect(Date.parse(fechada.closed_at!)).toBe(ultima + 20 * MINUTO)
     expect((await sessoes(recente.conversation_id))[0]).toMatchObject({ status: "open", closed_at: null })
+    expect((await sessoes(naFolga.conversation_id))[0]).toMatchObject({ status: "open", closed_at: null })
 
     // A próxima mensagem do paciente abre outra sessão; a fechada não reabre.
     const { data: c } = await admin.from("conversations").select("patient_id").eq("id", parada.conversation_id).single()

@@ -114,4 +114,17 @@ describe("LGPD: log nunca carrega objeto de erro inteiro", () => {
       })
     expect(comSegredo).toEqual([])
   })
+
+  it("migration que chama HTTP pelo pg_net lê o segredo do Vault", () => {
+    // Pega também o cabeçalho de outro nome (x-cron-secret...), que a
+    // checagem de literal acima não reconhece.
+    const pasta = join(process.cwd(), "supabase", "migrations")
+    const semVault = readdirSync(pasta)
+      .filter((f) => f.endsWith(".sql"))
+      .filter((f) => {
+        const sql = readFileSync(join(pasta, f), "utf8")
+        return /net\.http_/i.test(sql) && !/vault\.decrypted_secrets/i.test(sql)
+      })
+    expect(semVault).toEqual([])
+  })
 })
