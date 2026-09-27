@@ -175,6 +175,10 @@ describe("resposta da IA (conversation-engine-v1, comportamento 5)", () => {
     expect(mensagens[0].content).toContain("Clínica Resposta (teste)")
     expect(mensagens[0].content).toContain("- Limpeza (40 min), R$ 180,00")
     expect(mensagens[0].content).toContain("Amil")
+    // A persona, a saudação (primeira resposta) e o horário do agente.
+    expect(mensagens[0].content).toContain("Seja acolhedor.")
+    expect(mensagens[0].content).toContain("Olá! Aqui é a recepção.")
+    expect(mensagens[0].content).toContain("Horário de atendimento da equipe:")
     expect(mensagens.at(-1)).toEqual({ role: "user", content: "Queria marcar uma limpeza" })
     // O telefone do paciente não vai para o modelo.
     expect(JSON.stringify(mensagens)).not.toContain(waId)
@@ -252,7 +256,12 @@ describe("falha (conversation-engine-v1, comportamento 7)", () => {
     })
     try {
       expect(await responderConversa(r, deps)).toBe("falha-da-ia")
-      expect(espiao).toHaveBeenCalledWith("[whatsapp-webhook]", { etapa: "ia", tipo: "IaError", codigo: "http-503" })
+      expect(espiao).toHaveBeenCalledWith("[whatsapp-webhook]", {
+        etapa: "ia",
+        conversa: r.conversationId,
+        tipo: "IaError",
+        codigo: "http-503",
+      })
       for (const chamada of espiao.mock.calls) expect(logPermitido(chamada)).toBe(true)
       expect(inspect(espiao.mock.calls)).not.toContain("dor forte")
     } finally {
@@ -276,12 +285,63 @@ describe("falha (conversation-engine-v1, comportamento 7)", () => {
     })
     try {
       expect(await responderConversa(r, deps)).toBe("falha-no-envio")
+      expect(espiao).toHaveBeenCalledWith("[whatsapp-webhook]", {
+        etapa: "envio",
+        conversa: r.conversationId,
+        tipo: "MetaError",
+        codigo: "131047",
+      })
+      for (const chamada of espiao.mock.calls) expect(logPermitido(chamada)).toBe(true)
     } finally {
       espiao.mockRestore()
     }
     const [m] = await respostasDaIa(r.conversationId)
     expect(m).toMatchObject({ delivery_status: "failed", delivery_error_code: "131047", wa_message_id: null })
-    expect((await conversa(r.conversationId)).handled_by).toBe("human")
+    const c = await conversa(r.conversationId)
+    expect(c.handled_by).toBe("human")
+    expect(c.ai_failed_at).not.toBeNull()
+  })
+
+  it("a resposta que não chegou ao paciente não volta para o modelo", async () => {
+    const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
+    const waId = novoWaId()
+    const r1 = await receber(waId, T0, "oi")
+    try {
+      await responderConversa(
+        r1,
+        dependencias({
+          agora: T0 + 15,
+          gerar: async () => "TEXTO QUE NÃO CHEGOU",
+          enviar: async () => {
+            throw new MetaError("131047", 400, false)
+          },
+        }),
+      )
+    } finally {
+      espiao.mockRestore()
+    }
+    // A equipe devolve para a IA (parte 4 terá o botão; aqui, direto no banco).
+    await admin.from("conversations").update({ handled_by: "ai", ai_failed_at: null }).eq("id", r1.conversationId)
+
+    const r2 = await receber(waId, T0 + 60, "alguém aí?")
+    const deps = dependencias({ agora: T0 + 75 })
+    expect(await responderConversa(r2, deps)).toBe("respondida")
+    const [mensagens] = deps.gerar.mock.calls[0]
+    expect(JSON.stringify(mensagens)).not.toContain("TEXTO QUE NÃO CHEGOU")
+  })
+
+  it("erro inesperado no meio também passa a conversa para a equipe", async () => {
+    const r = await receber(novoWaId(), T0, "oi")
+    const deps = {
+      ...dependencias({ agora: T0 + 15 }),
+      agora: () => {
+        throw new Error("relógio indisponível")
+      },
+    }
+    await expect(responderConversa(r, deps)).rejects.toThrow("relógio indisponível")
+    const c = await conversa(r.conversationId)
+    expect(c.handled_by).toBe("human")
+    expect(c.ai_failed_at).not.toBeNull()
   })
 })
 

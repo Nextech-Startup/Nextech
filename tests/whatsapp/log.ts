@@ -7,7 +7,8 @@
 
 export const ROTULO = "[whatsapp-webhook]"
 
-const CHAVES = new Set(["etapa", "definitiva", "tipo", "codigo", "eventos"])
+// `conversa` é o id (uuid) da conversa: metadado que liga o log ao alerta.
+const CHAVES = new Set(["etapa", "definitiva", "tipo", "codigo", "eventos", "conversa"])
 
 export function logPermitido(args: unknown[]): boolean {
   if (args.length !== 2 || args[0] !== ROTULO) return false

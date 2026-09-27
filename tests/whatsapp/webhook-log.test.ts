@@ -199,6 +199,13 @@ describe("a rota agenda a resposta da IA (motor de conversa, parte 2)", () => {
     conferirLog()
   })
 
+  it("falha transitória ao gravar o status devolve 500, para a Meta reenviar", async () => {
+    vi.mocked(receberStatus).mockRejectedValueOnce(new TypeError("fetch failed"))
+    const payload = webhookDeStatus({ phoneNumberId: "1", statuses: [{ id: "wamid.s", status: "read", timestamp: 1790000000 }] })
+    expect((await postar(payload)).status).toBe(500)
+    conferirLog()
+  })
+
   it("status de entrega vai para receberStatus", async () => {
     const payload = webhookDeStatus({ phoneNumberId: "1", statuses: [{ id: "wamid.s", status: "read", timestamp: 1790000000 }] })
     expect((await postar(payload)).status).toBe(200)

@@ -91,6 +91,20 @@ export async function responderConversa(
   r: ResultadoDaRecepcao,
   deps: Dependencias = DEPENDENCIAS_PADRAO,
 ): Promise<DesfechoDaResposta> {
+  try {
+    return await responder(r, deps)
+  } catch (erro) {
+    // Erro inesperado (banco, confirmação depois do envio): a conversa não
+    // pode ficar com a IA sem resposta e sem alerta. Melhor esforço: se o
+    // banco estiver fora do ar, esta gravação também falha, e o erro
+    // original é o que sobe.
+    const { supabase } = serviceContext()
+    await registrarFalha(supabase, r.clinicId, r.conversationId, null, erro).catch(() => {})
+    throw erro
+  }
+}
+
+async function responder(r: ResultadoDaRecepcao, deps: Dependencias): Promise<DesfechoDaResposta> {
   await deps.dormir(JANELA_DE_AGRUPAMENTO_MS)
   const { supabase } = serviceContext()
   const { clinicId, conversationId } = r
@@ -162,7 +176,8 @@ export async function responderConversa(
     texto = await deps.gerar(montarConversa(contexto, historico, agora))
   } catch (erro) {
     await registrarFalha(supabase, clinicId, conversationId, null, erro)
-    console.error(ROTULO, { etapa: "ia", ...erroParaLog(erro) })
+    // O id da conversa é metadado (spec, comportamento 7): liga o log ao alerta do painel.
+    console.error(ROTULO, { etapa: "ia", conversa: conversationId, ...erroParaLog(erro) })
     return "falha-da-ia"
   }
 
@@ -198,7 +213,7 @@ export async function responderConversa(
     }))
   } catch (erro) {
     await registrarFalha(supabase, clinicId, conversationId, reserva.message_id, erro)
-    console.error(ROTULO, { etapa: "envio", ...erroParaLog(erro) })
+    console.error(ROTULO, { etapa: "envio", conversa: conversationId, ...erroParaLog(erro) })
     return "falha-no-envio"
   }
 
@@ -223,7 +238,7 @@ export async function responderConversa(
     // O paciente recebeu, mas a resposta ficou pending: sem contagem e fora
     // do histórico do modelo. A varredura de pendentes antigos entra com o
     // cron da parte 3.
-    console.error(ROTULO, { etapa: "confirmacao", ...erroParaLog(erro) })
+    console.error(ROTULO, { etapa: "confirmacao", conversa: conversationId, ...erroParaLog(erro) })
     throw erro
   }
   return "respondida"

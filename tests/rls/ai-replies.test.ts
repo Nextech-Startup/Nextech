@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest"
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
+import { receberStatus } from "@/lib/conversations/status"
 
 /**
  * Funções da resposta da IA (motor de conversa, parte 2): reservar (com a
@@ -222,26 +223,30 @@ describe("reserva, confirmação e contagem (atendimento-billing-v1, regra 2)", 
     expect(await reserva(A, A.primeira)).toMatchObject({ message_id: null, motivo: "ja-respondida" })
   })
 
-  it("recusa responder a mensagem de outra conversa, de outra clínica ou da própria IA", async () => {
+  it("recusa responder a mensagem de outra clínica, de outra conversa da mesma clínica ou da própria IA", async () => {
     expect((await reservar(admin, A, B.primeira)).error?.code).toBe("22023")
-    const { data: daIa } = await admin.from("messages").select("id").eq("reply_to_message_id", A.primeira).single()
-    expect((await reservar(admin, A, daIa!.id)).error?.code).toBe("22023")
+    const outra = await novaConversa()
+    expect((await reservar(admin, A, outra.mensagem)).error?.code).toBe("22023")
+    const daIa = await reserva({ ...A, conversa: outra.conversa }, outra.mensagem, "2026-09-21T14:00:10Z")
+    expect((await reservar(admin, { ...A, conversa: outra.conversa }, daIa.message_id!)).error?.code).toBe("22023")
   })
 
   it("confirmar grava o envio e conta na sessão, uma vez só", async () => {
-    const { data: r } = await admin.from("messages").select("id").eq("reply_to_message_id", A.primeira).single()
-    const { data, error } = await confirmar(admin, A.id, r!.id, `wamid.enviada.${SUFIXO}.1`, "2026-09-21T10:01:00Z")
+    const m = await registrar(A, "2026-09-21T10:00:50Z")
+    const reservada = await reserva(A, m.message_id, "2026-09-21T10:00:55Z")
+    const r = { id: reservada.message_id! }
+    const { data, error } = await confirmar(admin, A.id, r.id, `wamid.enviada.${SUFIXO}.1`, "2026-09-21T10:01:00Z")
     expect(error).toBeNull()
     expect(data).toEqual([{ ai_response_count: 1, session_closed: false }])
 
-    const { data: m } = await admin.from("messages").select("*").eq("id", r!.id).single()
-    expect(m).toMatchObject({ delivery_status: "sent", wa_message_id: `wamid.enviada.${SUFIXO}.1` })
-    expect(instante(m!.occurred_at)).toBe("2026-09-21T10:01:00.000Z")
+    const { data: enviada } = await admin.from("messages").select("*").eq("id", r.id).single()
+    expect(enviada).toMatchObject({ delivery_status: "sent", wa_message_id: `wamid.enviada.${SUFIXO}.1` })
+    expect(instante(enviada!.occurred_at)).toBe("2026-09-21T10:01:00.000Z")
     const { data: c } = await admin.from("conversations").select("last_message_at").eq("id", A.conversa).single()
     expect(instante(c!.last_message_at)).toBe("2026-09-21T10:01:00.000Z")
 
     // Confirmar de novo não conta de novo.
-    const repetida = await confirmar(admin, A.id, r!.id, `wamid.enviada.${SUFIXO}.1`, "2026-09-21T10:01:00Z")
+    const repetida = await confirmar(admin, A.id, r.id, `wamid.enviada.${SUFIXO}.1`, "2026-09-21T10:01:00Z")
     expect(repetida.data).toEqual([])
     expect((await sessoes(A.conversa))[0].ai_response_count).toBe(1)
   })
@@ -365,6 +370,55 @@ describe("a reserva revalida sob trava o que pode ter mudado durante a geração
     })
     const { data: mantida } = await admin.from("conversations").select("handled_by").eq("id", d.conversa).single()
     expect(mantida!.handled_by).toBe("human")
+  })
+})
+
+describe("isolamento entre clínicas nas funções da resposta", () => {
+  // Uma resposta de A reservada e pendente, numa conversa só dela.
+  async function pendenteDeA() {
+    const c = await novaConversa()
+    const r = await reserva({ ...A, conversa: c.conversa }, c.mensagem, "2026-09-21T14:00:10Z")
+    return { conversa: c.conversa, mensagem: r.message_id! }
+  }
+
+  async function estado(mensagem: string, conversa: string) {
+    const { data: m } = await admin.from("messages").select("delivery_status, wa_message_id").eq("id", mensagem).single()
+    const { data: c } = await admin.from("conversations").select("handled_by, ai_failed_at").eq("id", conversa).single()
+    return { ...m!, ...c! }
+  }
+
+  it("confirmar com o clinic_id de B não toca a resposta de A", async () => {
+    const a = await pendenteDeA()
+    const { data } = await confirmar(admin, B.id, a.mensagem, `wamid.intrusa.${SUFIXO}`, "2026-09-21T14:01:00Z")
+    expect(data).toEqual([])
+    expect(await estado(a.mensagem, a.conversa)).toMatchObject({ delivery_status: "pending", wa_message_id: null })
+  })
+
+  it("registrar falha com o clinic_id de B não toca a conversa nem a resposta de A", async () => {
+    const a = await pendenteDeA()
+    expect((await falhar(admin, { id: B.id, conversa: a.conversa }, a.mensagem, "131047")).error).toBeNull()
+    expect(await estado(a.mensagem, a.conversa)).toEqual({
+      delivery_status: "pending",
+      wa_message_id: null,
+      handled_by: "ai",
+      ai_failed_at: null,
+    })
+  })
+
+  it("status mandado pelo número de B com o id de uma mensagem de A não a altera", async () => {
+    const a = await pendenteDeA()
+    const wamid = `wamid.de-a.${SUFIXO}`
+    await confirmar(admin, A.id, a.mensagem, wamid, "2026-09-21T14:01:00Z")
+    await receberStatus({
+      tipo: "status",
+      wabaId: `8${SUFIXO}2`,
+      phoneNumberId: B.numero,
+      waMessageId: wamid,
+      status: "failed",
+      ocorridoEm: "2026-09-21T14:02:00Z",
+      codigoDoErro: "131026",
+    })
+    expect(await estado(a.mensagem, a.conversa)).toMatchObject({ delivery_status: "sent", handled_by: "ai" })
   })
 })
 

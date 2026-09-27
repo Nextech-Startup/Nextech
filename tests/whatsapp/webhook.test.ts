@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest"
+import { after } from "next/server"
 
 // Fora de uma requisição do Next, `after` não funciona. Aqui ele só é
 // contado; a resposta da IA tem o próprio teste (tests/conversations).
@@ -304,11 +305,13 @@ describe("mensagem do paciente (conversation-engine-v1, recepção)", () => {
     expect(instante(s.last_message_at)).toBe(iso(T0))
   })
 
-  it("reenvio do mesmo payload não duplica mensagem nem sessão", async () => {
+  it("reenvio do mesmo payload não duplica mensagem nem sessão, nem agenda outra resposta", async () => {
     const waId = novoWaId()
     const payload = doPaciente(waId, [[T0, "oi"]])
+    vi.mocked(after).mockClear()
     expect((await postar(payload)).status).toBe(200)
     expect((await postar(payload)).status).toBe(200)
+    expect(after).toHaveBeenCalledTimes(1)
 
     const c = await conversa(waId)
     expect(await mensagens(c.id)).toHaveLength(1)
