@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
-  chaveDoDia, descreverDia, formatarData, formatarDataCurta, formatarDuracao, formatarHora,
+  chaveDoDia, descreverDia, diasEntre, formatarData, formatarDataCurta, formatarDuracao, formatarHora,
   partesDaData, rotuloCurtoDoDia, semanaDe, somarDias, tempoRelativo,
 } from "./data"
 import { formatarTelefone } from "./telefone"
@@ -147,5 +147,17 @@ describe("formatarPercentual", () => {
 
   it("meio ponto arredonda para cima", () => {
     expect(formatarPercentual(0.125)).toBe("13%")
+  })
+})
+
+describe("diasEntre", () => {
+  it("conta dias de calendário, com sinal", () => {
+    expect(diasEntre("2026-09-28", "2026-10-07")).toBe(9)
+    expect(diasEntre("2026-10-07", "2026-09-28")).toBe(-9)
+    expect(diasEntre("2026-09-28", "2026-09-28")).toBe(0)
+  })
+
+  it("atravessa fevereiro de ano bissexto", () => {
+    expect(diasEntre("2028-02-28", "2028-03-01")).toBe(2)
   })
 })

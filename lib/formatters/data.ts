@@ -115,6 +115,11 @@ export function somarDias(chave: string, dias: number): string {
   return chaveDoUtc(utcDaChave(chave) + dias * DIA)
 }
 
+/** Dias de calendário de `de` até `ate`; negativo quando `ate` vem antes. */
+export function diasEntre(de: string, ate: string): number {
+  return Math.round((utcDaChave(ate) - utcDaChave(de)) / DIA)
+}
+
 export function diaDaSemanaDaChave(chave: string): number {
   return new Date(utcDaChave(chave)).getUTCDay()
 }
