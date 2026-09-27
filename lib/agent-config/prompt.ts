@@ -1,5 +1,6 @@
 import { chaveDoDia, descreverDia, formatarHora } from "@/lib/formatters/data"
 import { formatarMoeda } from "@/lib/formatters/numero"
+import { CRITERIO_DE_QUALIFICACAO } from "./saida"
 import { DIAS, ROTULO_DA_ESPECIALIDADE, ROTULO_DO_DIA, type BusinessHours, type MedicalSpecialty } from "./schema"
 
 /**
@@ -68,6 +69,7 @@ function systemPrompt(c: ContextoDoAgente, agora: string, primeiraResposta: bool
     "- Não invente horário livre, preço, convênio nem procedimento. Se não estiver abaixo, diga que a equipe confirma.",
     "- Não peça documento nem dado de saúde que o paciente não ofereceu.",
     "- Responda em português do Brasil, em mensagens curtas, como numa conversa de WhatsApp.",
+    `- Devolva sempre o JSON pedido. Em "resposta", só a mensagem que vai ao paciente. Em "intencao_de_agendar", ${CRITERIO_DE_QUALIFICACAO}`,
     "Horário de atendimento da equipe:",
     horarioDaEquipe(c.horario),
     "Procedimentos:",

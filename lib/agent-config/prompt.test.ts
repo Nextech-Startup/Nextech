@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { HORARIO_PADRAO } from "./schema"
 import { montarConversa, TAMANHO_DO_HISTORICO, type ContextoDoAgente, type ItemDoHistorico } from "./prompt"
+import { CRITERIO_DE_QUALIFICACAO } from "./saida"
 
 // Segunda-feira, 14:30 em Brasília.
 const AGORA = "2026-09-28T17:30:00.000Z"
@@ -38,6 +39,13 @@ describe("montarConversa", () => {
   it("as regras de segurança vêm antes das instruções da clínica", () => {
     const [sistema] = montarConversa(contexto(), [doPaciente("oi")], AGORA)
     expect(sistema.content.indexOf("Nunca dê diagnóstico")).toBeLessThan(sistema.content.indexOf("Seja acolhedor"))
+  })
+
+  it("pede o JSON com o critério da qualificação (comportamento 6), entre as regras que valem acima da clínica", () => {
+    const [sistema] = montarConversa(contexto(), [doPaciente("oi")], AGORA)
+    expect(sistema.content).toContain('"intencao_de_agendar"')
+    expect(sistema.content).toContain(CRITERIO_DE_QUALIFICACAO)
+    expect(sistema.content.indexOf(CRITERIO_DE_QUALIFICACAO)).toBeLessThan(sistema.content.indexOf("Seja acolhedor"))
   })
 
   it("sem procedimento nem convênio, diz ao modelo que não há o que citar", () => {
