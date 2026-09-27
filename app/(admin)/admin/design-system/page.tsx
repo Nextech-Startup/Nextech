@@ -82,6 +82,18 @@ export default function PrototiposPage() {
           </li>
         ))}
       </ul>
+      <Link
+        href="/admin/design-system/estados"
+        className="flex items-center justify-between gap-3 rounded-card border border-hairline px-5 py-4 transition-colors hover:bg-accent"
+      >
+        <div className="grid gap-0.5">
+          <p className="text-sm font-medium text-ink-1">Estados das rotas reais</p>
+          <p className="text-sm text-ink-2">
+            Carregamento, falha e permissão negada. Já estão no ar; aqui ficam lado a lado para revisão.
+          </p>
+        </div>
+        <ChevronRight aria-hidden="true" className="size-4 text-ink-3" />
+      </Link>
     </div>
   )
 }
