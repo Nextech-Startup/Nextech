@@ -1,4 +1,4 @@
-import type { ClinicaDoPainel, ConexoesDoPainel, ConsumoDaClinica } from "@/components/admin/tipos"
+import type { ClinicaDoPainel, ConexoesDoPainel, ConsumoDaClinica, SaudeDaOperacao } from "@/components/admin/tipos"
 import { AGENTES } from "./agentes"
 import { INTEGRACOES } from "./integracoes"
 import { TEMPLATES } from "./templates"
@@ -92,3 +92,20 @@ export const CONEXOES: ConexoesDoPainel[] = [
     templatesRejeitados: 0,
   },
 ]
+
+const MIN = 60 * 1000
+
+/**
+ * A última hora da operação: a Meta com falhas pontuais (atenção), o
+ * OpenRouter falhando em 7% das chamadas (falha) e os crons de
+ * message-sequences-v1 mais o de lembretes, parado desde as 11:00.
+ */
+export const SAUDE: SaudeDaOperacao = {
+  webhooks: { total: 1840, falhas: 3 },
+  ia: { total: 912, falhas: 61 },
+  crons: [
+    { nome: "Inscrição em sequências", intervaloMs: 15 * MIN, ultimaExecucao: "2026-09-28T14:30:00-03:00", ultimoResultado: "ok" },
+    { nome: "Envio de sequências", intervaloMs: 5 * MIN, ultimaExecucao: "2026-09-28T14:31:00-03:00", ultimoResultado: "erro" },
+    { nome: "Lembretes de consulta", intervaloMs: 60 * MIN, ultimaExecucao: "2026-09-28T11:00:00-03:00", ultimoResultado: "ok" },
+  ],
+}
