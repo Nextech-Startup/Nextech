@@ -123,6 +123,80 @@ describe("clinics.is_demo", () => {
     expect(data?.is_demo).toBe(false)
   })
 
+  // A demonstração não pode receber mensagem real (spec, LGPD): o dono,
+  // cuja senha é usada diante de terceiros, não conecta número por nenhum
+  // caminho, e o painel interno também não.
+  describe("WhatsApp na clínica de demonstração", () => {
+    const numero = (rotulo: string) => `teste-demo-${rotulo}-${Date.now()}`
+    let agenteDemo: string
+
+    it("o dono não cria agente já conectado", async () => {
+      const client = await comoUsuario(donoDemo)
+      const { error } = await client.from("agents").insert({
+        clinic_id: demo,
+        name: "Recepção (teste)",
+        specialty: "odontologia",
+        greeting_message: "Olá!",
+        whatsapp_phone_number_id: numero("insert"),
+      })
+      expect(error?.code).toBe("NX004")
+    })
+
+    it("o dono cria rascunho, mas não conecta número nem publica", async () => {
+      const client = await comoUsuario(donoDemo)
+      const { data, error } = await client
+        .from("agents")
+        .insert({ clinic_id: demo, name: "Recepção (teste)", specialty: "odontologia", greeting_message: "Olá!" })
+        .select("id")
+        .single()
+      if (error) throw error
+      agenteDemo = data.id
+
+      const conectar = await client
+        .from("agents")
+        .update({ whatsapp_phone_number_id: numero("update"), whatsapp_waba_id: "waba-teste" })
+        .eq("id", agenteDemo)
+      expect(conectar.error?.code).toBe("NX004")
+
+      const publicar = await client.from("agents").update({ status: "active" }).eq("id", agenteDemo)
+      expect(publicar.error?.code).toBe("NX004")
+    })
+
+    it("o service_role do painel interno também não conecta", async () => {
+      const { error } = await admin
+        .from("agents")
+        .update({ whatsapp_phone_number_id: numero("admin") })
+        .eq("id", agenteDemo)
+      expect(error?.code).toBe("NX004")
+
+      const { data } = await admin
+        .from("agents")
+        .select("whatsapp_phone_number_id, status")
+        .eq("id", agenteDemo)
+        .single()
+      expect(data).toEqual({ whatsapp_phone_number_id: null, status: "draft" })
+    })
+
+    it("clínica com agente conectado não vira demonstração", async () => {
+      // Controle: na clínica comum, o dono conecta normalmente.
+      const client = await comoUsuario(donoComum)
+      const { error: erroConexao } = await client.from("agents").insert({
+        clinic_id: comum,
+        name: "Recepção comum (teste)",
+        specialty: "odontologia",
+        greeting_message: "Olá!",
+        whatsapp_phone_number_id: numero("comum"),
+      })
+      expect(erroConexao).toBeNull()
+
+      const { error } = await admin.from("clinics").update({ is_demo: true }).eq("id", comum)
+      expect(error?.code).toBe("NX004")
+
+      const { data } = await admin.from("clinics").select("is_demo").eq("id", comum).single()
+      expect(data?.is_demo).toBe(false)
+    })
+  })
+
   // Controle: sem ele, o 42501 acima poderia vir de outra coisa.
   it("o dono continua editando a razão social", async () => {
     const client = await comoUsuario(donoComum)

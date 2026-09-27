@@ -5,7 +5,7 @@ vi.mock("@/lib/auth/context", () => ({ requireClinicContext: vi.fn() }))
 vi.mock("@/lib/auth/service-context", () => ({ serviceContext: vi.fn() }))
 
 import { requireClinicContext } from "@/lib/auth/context"
-import { connectWhatsapp } from "./mutations"
+import { AgentMutationError, connectWhatsapp, publishAgent } from "./mutations"
 
 /**
  * Prova de posse do número na conexão (achado S1 da revisão de segurança da
@@ -107,5 +107,44 @@ describe("connectWhatsapp com prova de posse", () => {
     })
     expect(fetch).not.toHaveBeenCalled()
     expect(supabase.chamadas).toEqual([])
+  })
+})
+
+// A clínica de demonstração não recebe mensagem real (demo-account-v1). A
+// barreira é o trigger `agents_block_demo` (NX004); aqui, a recusa chega
+// antes de o token sair para a Meta, e o NX004 vira a mensagem da tela.
+describe("clínica de demonstração", () => {
+  it("recusa a conexão antes de chamar a Meta, sem gravar nada", async () => {
+    vi.mocked(requireClinicContext).mockResolvedValue({
+      supabase,
+      clinicId: "clinica",
+      role: "owner",
+      isDemo: true,
+    } as unknown as Awaited<ReturnType<typeof requireClinicContext>>)
+    const fetch = vi.fn()
+    vi.stubGlobal("fetch", fetch)
+
+    await expect(conectar()).rejects.toThrow(/demonstração/)
+    expect(fetch).not.toHaveBeenCalled()
+    expect(supabase.chamadas).toEqual([])
+  })
+
+  it("a recusa do banco (NX004) vira a mensagem da demonstração", async () => {
+    const recusa = { code: "NX004", message: "texto do trigger", details: null, hint: null }
+    const builder: Record<string, unknown> = {}
+    for (const metodo of ["update", "eq", "select", "single"]) builder[metodo] = () => builder
+    builder.then = (ok: (r: unknown) => unknown) => Promise.resolve({ data: null, error: recusa }).then(ok)
+    vi.mocked(requireClinicContext).mockResolvedValue({
+      supabase: { from: () => builder },
+      clinicId: "clinica",
+      role: "owner",
+      isDemo: false,
+    } as unknown as Awaited<ReturnType<typeof requireClinicContext>>)
+
+    const erro = await publishAgent("agente").catch((e: unknown) => e)
+    expect(erro).toBeInstanceOf(AgentMutationError)
+    expect((erro as Error).message).toBe(
+      "A conta de demonstração não conecta WhatsApp nem publica agente.",
+    )
   })
 })

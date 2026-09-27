@@ -51,6 +51,7 @@ const CHECK_VIOLATION = "23514"
 const PUBLICAR_SEM_NUMERO = "NX001"
 const PUBLICAR_SEM_TOKEN = "NX002"
 const LIMITE_DE_PLANO_ATINGIDO = "NX003"
+const CLINICA_DE_DEMONSTRACAO = "NX004"
 
 /**
  * Mensagens das travas do banco, escritas aqui em TypeScript.
@@ -67,6 +68,8 @@ const SEM_TOKEN =
   "Credencial do WhatsApp ausente: reconecte o número antes de publicar."
 const LIMITE_DO_PLANO =
   "O plano atual não permite mais agentes. Fale com a equipe Nextech sobre um upgrade."
+const DEMONSTRACAO =
+  "A conta de demonstração não conecta WhatsApp nem publica agente."
 
 /**
  * Mensagem de número já conectado — deliberadamente idêntica nos dois
@@ -129,6 +132,9 @@ function traduzirErro(erro: unknown): never {
   }
   if (erro.code === LIMITE_DE_PLANO_ATINGIDO) {
     throw new AgentMutationError(LIMITE_DO_PLANO)
+  }
+  if (erro.code === CLINICA_DE_DEMONSTRACAO) {
+    throw new AgentMutationError(DEMONSTRACAO)
   }
 
   // CHECK violation que não veio de trigger nosso: uma das constraints da
@@ -257,7 +263,10 @@ export async function connectWhatsapp(
   agentId: string,
   input: WhatsappCredentialsInput,
 ): Promise<Agent> {
-  const { supabase, clinicId } = await contextoDeEdicao()
+  const { supabase, clinicId, isDemo } = await contextoDeEdicao()
+  // A barreira é o trigger `agents_block_demo`; recusar aqui evita mandar
+  // o token de uma clínica de demonstração para a Meta.
+  if (isDemo) throw new AgentMutationError(DEMONSTRACAO)
   const parsed = whatsappCredentialsSchema.parse(input)
   await conferirPosse(parsed)
 
