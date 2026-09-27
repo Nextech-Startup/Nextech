@@ -1,8 +1,11 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import { ArrowRight, CalendarCheck, Check, MessagesSquare, Repeat2, UserX } from "lucide-react"
 import { requireClinicContext } from "@/lib/auth/context"
+import { relogioDaDemonstracao } from "@/lib/demo/relogio"
 import { podeAcessar } from "@/lib/navigation/acesso"
+import { primeiraRotaVisivel } from "@/lib/navigation/landing"
 import { getCurrentClinic } from "@/lib/clinics/queries"
 import {
   getRegulatoryIdentity,
@@ -18,9 +21,12 @@ import { KpiCard } from "@/components/patterns/kpi-card"
 import { StatusBadge } from "@/components/patterns/status-badge"
 import { Vazio } from "@/components/patterns/vazio"
 import { StatusDoAgente } from "@/components/agents/status-do-agente"
+import { TelaDeVisaoGeral } from "@/components/overview/tela-de-visao-geral"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
+import { AGORA } from "@/app/_fixtures/agora"
+import { VISAO_GERAL } from "@/app/_fixtures/visao-geral"
 
 export const metadata: Metadata = {
   title: "Visão geral",
@@ -30,13 +36,38 @@ export const metadata: Metadata = {
 // Reflete cada passo que a clínica acabou de concluir — nunca cacheia.
 export const dynamic = "force-dynamic"
 
-export default async function DashboardPage() {
-  const { role } = await requireClinicContext()
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const { role, isDemo } = await requireClinicContext()
 
   // Profissional não tem visão geral no menu (seção 2 do desenho de
   // navegação), mas `/dashboard` é a raiz e ele cai aqui ao entrar: em vez
-  // de "sem acesso", diz o que vai aparecer para ele.
-  if (!podeAcessar(role, "/dashboard")) return <AguardandoMinhasTelas />
+  // de "sem acesso", diz o que vai aparecer para ele. Na conta de
+  // demonstração as telas dele já abrem, então ele vai direto à primeira.
+  if (!podeAcessar(role, "/dashboard")) {
+    const primeira = isDemo ? primeiraRotaVisivel(role, true) : null
+    if (primeira) redirect(primeira)
+    return <AguardandoMinhasTelas />
+  }
+
+  // Conta de demonstração (spec demo-account-v1): o protótipo completo, com
+  // o dado de exemplo trazido para hoje, e nenhuma consulta ao dado real.
+  if (isDemo) {
+    const { periodo } = await searchParams
+    const relogio = relogioDaDemonstracao(AGORA)
+    return (
+      <TelaDeVisaoGeral
+        dados={relogio.deslocar(VISAO_GERAL)}
+        periodo={periodo === "7d" ? "7d" : "mes"}
+        agora={relogio.agora}
+        hrefDoPeriodo={{ "7d": "/dashboard?periodo=7d", mes: "/dashboard" }}
+        hrefDaConversa={(id) => `/dashboard/conversations?c=${id}`}
+      />
+    )
+  }
 
   const clinic = await getCurrentClinic()
   const ativa = clinic.status === "active"

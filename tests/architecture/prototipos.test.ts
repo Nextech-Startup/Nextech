@@ -36,8 +36,10 @@ describe("dado fictício", () => {
   })
 
   it("toda página do painel que importa _fixtures lê isDemo", () => {
-    const semDemo = todos
-      .filter((f) => paginaDoPainel(f) && importaFixtures(f))
+    const comFixture = todos.filter((f) => paginaDoPainel(f) && importaFixtures(f))
+    // 11 telas da tabela da spec, mais a ficha do paciente e o agente.
+    expect(comFixture.length).toBeGreaterThanOrEqual(13)
+    const semDemo = comFixture
       .filter((f) => !/\bisDemo\b/.test(readFileSync(f, "utf8")))
     expect(semDemo).toEqual([])
   })
