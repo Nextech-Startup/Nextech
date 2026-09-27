@@ -26,7 +26,7 @@ export default async function AgentsPage() {
   // escrita. Esta checagem é o que impede alguém de chegar aqui digitando
   // a URL e ver a configuração dos agentes.
   if (!podeAcessar(role, ROTA)) {
-    return <PermissaoNegada titulo="Agentes" rota={ROTA} role={role} />
+    return <PermissaoNegada titulo="Agentes" rota={ROTA} role={role} demo={isDemo} />
   }
 
   // Conta de demonstração (spec demo-account-v1): os agentes em operação do

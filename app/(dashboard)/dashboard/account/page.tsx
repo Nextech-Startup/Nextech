@@ -26,10 +26,11 @@ export default async function MinhaContaPage() {
   const { role, isDemo, email } = await requireClinicContext()
   if (!isDemo) notFound()
   if (!podeAcessar(role, ROTA)) {
-    return <PermissaoNegada titulo="Minha conta" rota={ROTA} role={role} />
+    return <PermissaoNegada titulo="Minha conta" rota={ROTA} role={role} demo />
   }
 
   const relogio = relogioDaDemonstracao(AGORA)
+  const conta = relogio.deslocar(MINHA_CONTA)
   const clinica = await getCurrentClinic()
 
   // A pessoa logada é a persona das fixtures (o mesmo nome da equipe e do
@@ -38,8 +39,8 @@ export default async function MinhaContaPage() {
   return (
     <TelaMinhaConta
       conta={{
-        ...relogio.deslocar(MINHA_CONTA),
-        email: email ?? "",
+        ...conta,
+        email: email ?? conta.email,
         papel: role,
         clinica: clinica.legal_name,
       }}

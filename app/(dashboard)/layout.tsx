@@ -5,8 +5,8 @@ import { logout } from "@/lib/auth/actions"
 import { getCurrentClinic } from "@/lib/clinics/queries"
 import { PanelShell } from "@/components/shell/panel-shell"
 import { Button } from "@/components/ui/button"
-import { ROTULO_DO_PAPEL, primeiraRotaVisivel } from "@/lib/navigation/landing"
-import { hrefDaMinhaConta } from "@/lib/navigation/dashboard-nav"
+import { ROTULO_DO_PAPEL } from "@/lib/navigation/landing"
+import { shellDaClinica } from "@/components/shell/painel"
 
 export default async function DashboardLayout({
   children,
@@ -28,17 +28,18 @@ export default async function DashboardLayout({
 
   // Atalho entre os painéis: só para quem é das duas coisas.
   const [daEquipe, clinica] = await Promise.all([isPlatformAdmin(), getCurrentClinic()])
+  const { painel, marca, conta } = shellDaClinica(ctx.role, ctx.isDemo)
 
   return (
     <PanelShell
-      painel={{ tipo: "clinica", role: ctx.role, demo: ctx.isDemo }}
-      marca={primeiraRotaVisivel(ctx.role, ctx.isDemo) ?? "/dashboard"}
+      painel={painel}
+      marca={marca}
       espaco={{ titulo: clinica.legal_name, subtitulo: "Painel da clínica" }}
       usuario={{
         nome: ctx.email ?? "Minha conta",
         papel: ROTULO_DO_PAPEL[ctx.role],
         atalho: daEquipe ? { href: "/admin", label: "Painel interno" } : undefined,
-        conta: hrefDaMinhaConta(ctx.isDemo) ?? undefined,
+        conta,
       }}
     >
       <div data-clinic-id={ctx.clinicId}>{children}</div>

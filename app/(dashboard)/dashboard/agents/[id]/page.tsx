@@ -29,7 +29,7 @@ export default async function AgentPage({
   const { role, isDemo } = await requireClinicContext()
 
   if (!podeAcessar(role, ROTA)) {
-    return <PermissaoNegada titulo="Agentes" rota={ROTA} role={role} />
+    return <PermissaoNegada titulo="Agentes" rota={ROTA} role={role} demo={isDemo} />
   }
 
   // Conta de demonstração (spec demo-account-v1): a operação do agente do

@@ -16,13 +16,16 @@ export function PermissaoNegada({
   titulo,
   rota,
   role,
+  demo = false,
 }: {
   titulo: string
   rota: string
   role: ClinicRole
+  /** Conta de demonstração: o caminho de volta conta as telas que abrem nela. */
+  demo?: boolean
 }) {
   const papeis = papeisDaRota(rota)
-  const inicio = primeiraRotaVisivel(role)
+  const inicio = primeiraRotaVisivel(role, demo)
 
   return (
     <div className="grid gap-6">

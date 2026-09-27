@@ -29,7 +29,7 @@ export default async function SequenciasPage({
   const { role, isDemo } = await requireClinicContext()
   if (!isDemo) notFound()
   if (!podeAcessar(role, ROTA)) {
-    return <PermissaoNegada titulo="Sequências" rota={ROTA} role={role} />
+    return <PermissaoNegada titulo="Sequências" rota={ROTA} role={role} demo />
   }
 
   const relogio = relogioDaDemonstracao(AGORA)

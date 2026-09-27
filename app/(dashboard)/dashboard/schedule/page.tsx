@@ -35,7 +35,7 @@ export default async function AgendaPage({
   const { role, isDemo } = await requireClinicContext()
   if (!isDemo) notFound()
   if (!podeAcessar(role, ROTA)) {
-    return <PermissaoNegada titulo="Agenda" rota={ROTA} role={role} />
+    return <PermissaoNegada titulo="Agenda" rota={ROTA} role={role} demo />
   }
 
   const relogio = relogioDaDemonstracao(AGORA)

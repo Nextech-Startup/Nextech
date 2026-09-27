@@ -23,7 +23,7 @@ export default async function PacientePage({ params }: { params: Promise<{ id: s
   const { role, isDemo } = await requireClinicContext()
   if (!isDemo) notFound()
   if (!podeAcessar(role, ROTA)) {
-    return <PermissaoNegada titulo="Pacientes" rota={ROTA} role={role} />
+    return <PermissaoNegada titulo="Pacientes" rota={ROTA} role={role} demo />
   }
 
   const ficha = fichaDoPaciente((await params).id)

@@ -34,7 +34,7 @@ export default async function TemplatesPage({
   const { role, isDemo } = await requireClinicContext()
   if (!isDemo) notFound()
   if (!podeAcessar(role, ROTA)) {
-    return <PermissaoNegada titulo="Templates" rota={ROTA} role={role} />
+    return <PermissaoNegada titulo="Templates" rota={ROTA} role={role} demo />
   }
 
   const todos = relogioDaDemonstracao(AGORA).deslocar(TEMPLATES)
