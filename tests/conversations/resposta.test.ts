@@ -31,6 +31,8 @@ import { logPermitido } from "@/tests/whatsapp/log"
 const falhasDaConfirmacao = vi.hoisted(() => ({ restantes: 0, codigo: "08006" }))
 /** A reserva vai ao banco real, e a resposta dela se perde na rede. */
 const reservaPerdida = vi.hoisted(() => ({ ativa: false }))
+/** O update da qualificação falha uma vez; o resto de `conversations` é real. */
+const falhaDaQualificacao = vi.hoisted(() => ({ ativa: false }))
 
 vi.mock("@/lib/auth/service-context", async (importOriginal) => {
   const real = await importOriginal<typeof import("@/lib/auth/service-context")>()
@@ -51,6 +53,19 @@ vi.mock("@/lib/auth/service-context", async (importOriginal) => {
         }
         return rpc(fn, ...resto)
       }) as unknown as typeof contexto.supabase.rpc
+      const from = contexto.supabase.from.bind(contexto.supabase)
+      contexto.supabase.from = ((tabela: string) => {
+        const construtor = from(tabela)
+        if (tabela === "conversations" && falhaDaQualificacao.ativa) {
+          const erro = { code: "08006", message: "simulado", details: null, hint: null }
+          const cadeia = { eq: () => cadeia, is: () => Promise.resolve({ data: null, error: erro }) }
+          construtor.update = (() => {
+            falhaDaQualificacao.ativa = false
+            return cadeia
+          }) as unknown as typeof construtor.update
+        }
+        return construtor
+      }) as typeof contexto.supabase.from
       return contexto
     },
   }
@@ -107,7 +122,7 @@ async function eco(waId: string, t: number, texto: string) {
 let enviadas = 0
 
 function dependencias(p: { agora: number; gerar?: Dependencias["gerar"]; enviar?: Dependencias["enviar"] }) {
-  const gerar = vi.fn(p.gerar ?? (async (_mensagens: MensagemDoModelo[]) => RESPOSTA))
+  const gerar = vi.fn(p.gerar ?? (async (_mensagens: MensagemDoModelo[]) => ({ texto: RESPOSTA, intencaoDeAgendar: false })))
   const enviar = vi.fn(
     p.enviar ??
       (async (_envio: Envio) => {
@@ -372,7 +387,7 @@ describe("falha (conversation-engine-v1, comportamento 7)", () => {
         r1,
         dependencias({
           agora: T0 + 15,
-          gerar: async () => "TEXTO QUE NÃO CHEGOU",
+          gerar: async () => ({ texto: "TEXTO QUE NÃO CHEGOU", intencaoDeAgendar: false }),
           enviar: async () => {
             throw new MetaError("131047", 400, false)
           },
@@ -517,6 +532,69 @@ describe("confirmação depois do envio", () => {
   })
 })
 
+describe("qualificação (conversation-engine-v1, comportamento 6)", () => {
+  const comIntencao = (intencaoDeAgendar: boolean) =>
+    vi.fn(async (_mensagens: MensagemDoModelo[]) => ({ texto: RESPOSTA, intencaoDeAgendar }))
+  const qualificadaEm = async (id: string) => {
+    const { qualified_at } = await conversa(id)
+    return qualified_at === null ? null : Date.parse(qualified_at)
+  }
+
+  it("a intenção de agendar grava qualified_at na hora da detecção, uma vez só", async () => {
+    const waId = novoWaId()
+    const r1 = await receber(waId, T0, "Quanto custa a consulta?")
+    expect(await responderConversa(r1, dependencias({ agora: T0 + 15, gerar: comIntencao(true) }))).toBe("respondida")
+    expect(await qualificadaEm(r1.conversationId)).toBe((T0 + 15) * 1000)
+
+    // Outra intenção depois não muda a data: o funil mede conversão, não recorrência.
+    const r2 = await receber(waId, T0 + 120, "Tem horário amanhã?")
+    expect(await responderConversa(r2, dependencias({ agora: T0 + 135, gerar: comIntencao(true) }))).toBe("respondida")
+    expect(await qualificadaEm(r2.conversationId)).toBe((T0 + 15) * 1000)
+  })
+
+  it("sem intenção, qualified_at fica nulo", async () => {
+    const r = await receber(novoWaId(), T0, "Bom dia")
+    expect(await responderConversa(r, dependencias({ agora: T0 + 15, gerar: comIntencao(false) }))).toBe("respondida")
+    expect(await qualificadaEm(r.conversationId)).toBeNull()
+  })
+
+  it("vale mesmo quando a reserva recusa: a intenção é do paciente, não da nossa resposta", async () => {
+    const waId = novoWaId()
+    const r = await receber(waId, T0, "Qual o valor da limpeza?")
+    const gerar = vi.fn(async (_mensagens: MensagemDoModelo[]) => {
+      await eco(waId, T0 + 12, "Oi, aqui é da recepção")
+      return { texto: RESPOSTA, intencaoDeAgendar: true }
+    })
+    const deps = dependencias({ agora: T0 + 15, gerar })
+    expect(await responderConversa(r, deps)).toBe("humano-atendendo")
+    expect(deps.enviar).not.toHaveBeenCalled()
+    expect(await qualificadaEm(r.conversationId)).toBe((T0 + 15) * 1000)
+  })
+
+  it("a falha ao gravar não impede a resposta, e o log só tem o código", async () => {
+    const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
+    const r = await receber(novoWaId(), T0, "Aceitam o meu convênio?")
+    falhaDaQualificacao.ativa = true
+    try {
+      expect(await responderConversa(r, dependencias({ agora: T0 + 15, gerar: comIntencao(true) }))).toBe("respondida")
+      expect(falhaDaQualificacao.ativa).toBe(false)
+      expect(espiao).toHaveBeenCalledWith("[whatsapp-webhook]", {
+        etapa: "qualificacao",
+        conversa: r.conversationId,
+        tipo: "postgrest",
+        codigo: "08006",
+      })
+      for (const chamada of espiao.mock.calls) expect(logPermitido(chamada)).toBe(true)
+    } finally {
+      espiao.mockRestore()
+      falhaDaQualificacao.ativa = false
+    }
+    const c = await conversa(r.conversationId)
+    expect(c.qualified_at).toBeNull()
+    expect(c.handled_by).toBe("ai")
+  })
+})
+
 describe("contagem e entrega", () => {
   it("cinco respostas fecham a sessão por contagem (atendimento-billing-v1, regra 2)", async () => {
     const waId = novoWaId()
@@ -561,7 +639,7 @@ describe("o que muda durante a geração (revisão de segurança da parte 2, B1 
   const gerandoEnquanto = (mudanca: () => PromiseLike<unknown>) =>
     vi.fn(async (_mensagens: MensagemDoModelo[]) => {
       await mudanca()
-      return RESPOSTA
+      return { texto: RESPOSTA, intencaoDeAgendar: false }
     })
 
   it("o paciente pediu exclusão no meio: nada é gravado nem enviado", async () => {

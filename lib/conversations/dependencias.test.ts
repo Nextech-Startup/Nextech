@@ -66,6 +66,38 @@ describe("DEPENDENCIAS_PADRAO.gerar (conversation-engine-v1, comportamento 7)", 
   })
 })
 
+describe("DEPENDENCIAS_PADRAO.gerar com a saída estruturada (comportamento 6)", () => {
+  it("pede o formato e devolve o texto e a intenção lidos do JSON", async () => {
+    const conteudo = '{"resposta":"Temos horário.","intencao_de_agendar":true}'
+    const fetch = vi.fn(async (..._args: unknown[]) =>
+      json(200, { choices: [{ message: { content: conteudo }, finish_reason: "stop" }] }),
+    )
+    vi.stubGlobal("fetch", fetch)
+    await expect(DEPENDENCIAS_PADRAO.gerar([{ role: "user", content: "tem horário?" }])).resolves.toEqual({
+      texto: "Temos horário.",
+      intencaoDeAgendar: true,
+    })
+    const corpo = JSON.parse((fetch.mock.calls[0][1] as RequestInit).body as string)
+    expect(corpo.response_format.json_schema.name).toBe("resposta_ao_paciente")
+    expect(corpo.provider).toMatchObject({ data_collection: "deny", zdr: true, require_parameters: true })
+  })
+
+  it("JSON fora do formato: três tentativas, com 1 s e 4 s de espera, e desiste com saida-invalida", async () => {
+    const fetch = vi.fn(async () =>
+      json(200, { choices: [{ message: { content: "Olá! Temos horário." }, finish_reason: "stop" }] }),
+    )
+    vi.stubGlobal("fetch", fetch)
+    const relogio = vi.spyOn(globalThis, "setTimeout")
+
+    const resultado = DEPENDENCIAS_PADRAO.gerar([{ role: "user", content: "oi" }]).catch((e: unknown) => e)
+    await vi.runAllTimersAsync()
+
+    expect(await resultado).toMatchObject({ name: "IaError", code: "saida-invalida" })
+    expect(fetch).toHaveBeenCalledTimes(3)
+    expect(esperasPedidas(relogio)).toEqual([1000, 4000])
+  })
+})
+
 describe("DEPENDENCIAS_PADRAO.enviar", () => {
   const envio = () => ({ phoneNumberId: "123", tokenCifrado: cifrarSegredo("token-de-teste-longo"), para: "5500123456789", texto: "oi" })
 

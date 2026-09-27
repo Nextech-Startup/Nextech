@@ -782,7 +782,7 @@ describe("status de entrega pelo POST (motor de conversa, parte 2)", () => {
     const enviada = `wamid.ia.${SUFIXO}`
     // Modelo e Meta simulados; o relógio dentro da janela da mensagem.
     const desfecho = await responderConversa(r!, {
-      gerar: async () => "Olá!",
+      gerar: async () => ({ texto: "Olá!", intencaoDeAgendar: false }),
       enviar: async () => ({ waMessageId: enviada }),
       dormir: async () => {},
       agora: () => iso(T0 + 15),

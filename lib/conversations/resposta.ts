@@ -6,6 +6,7 @@ import {
   type ItemDoHistorico,
   type MensagemDoModelo,
 } from "@/lib/agent-config/prompt"
+import { FORMATO_DA_RESPOSTA, lerSaidaDoModelo, type SaidaDoModelo } from "@/lib/agent-config/saida"
 import { lerBusinessHours, type MedicalSpecialty } from "@/lib/agent-config/schema"
 import { gerarResposta, IaError } from "@/lib/ai/client"
 import { comRetentativas, dormir, ESPERAS_DA_IA_MS } from "@/lib/ai/retentativa"
@@ -49,7 +50,7 @@ export type Envio = { phoneNumberId: string; tokenCifrado: string; para: string;
 
 /** O que sai do processo: o modelo, a Meta, o relógio. Injetável para o teste. */
 export type Dependencias = {
-  gerar: (mensagens: MensagemDoModelo[]) => Promise<string>
+  gerar: (mensagens: MensagemDoModelo[]) => Promise<SaidaDoModelo>
   enviar: (p: Envio) => Promise<{ waMessageId: string }>
   dormir: (ms: number) => Promise<void>
   agora: () => string
@@ -58,8 +59,13 @@ export type Dependencias = {
 const repetivel = (erro: unknown) => (erro instanceof IaError || erro instanceof MetaError) && erro.repetivel
 
 export const DEPENDENCIAS_PADRAO: Dependencias = {
-  gerar: async (mensagens) =>
-    (await comRetentativas(() => gerarResposta(mensagens), { esperas: ESPERAS_DA_IA_MS, repetivel, dormir })).texto,
+  // A leitura do JSON fica dentro da retentativa: a saída fora do formato
+  // é falha passageira, e a próxima tentativa costuma vir certa.
+  gerar: (mensagens) =>
+    comRetentativas(
+      async () => lerSaidaDoModelo((await gerarResposta(mensagens, { formato: FORMATO_DA_RESPOSTA })).texto),
+      { esperas: ESPERAS_DA_IA_MS, repetivel, dormir },
+    ),
   // Só o limite de taxa se repete (MetaError.repetivel): um 5xx pode ter
   // enviado, e repetir mandaria a resposta duas vezes.
   enviar: (p) => comRetentativas(() => enviarTexto(p), { esperas: [1000], repetivel, dormir }),
@@ -198,9 +204,9 @@ async function responder(r: ResultadoDaRecepcao, deps: Dependencias, execucao: E
     historicoDaConversa(supabase, clinicId, conversationId),
   ])
 
-  let texto: string
+  let saida: SaidaDoModelo
   try {
-    texto = await deps.gerar(montarConversa(contexto, historico, agora))
+    saida = await deps.gerar(montarConversa(contexto, historico, agora))
   } catch (erro) {
     // O id da conversa é metadado (spec, comportamento 7): liga o log ao alerta do painel.
     console.error(ROTULO, { etapa: "ia", conversa: conversationId, ...erroParaLog(erro) })
@@ -208,6 +214,11 @@ async function responder(r: ResultadoDaRecepcao, deps: Dependencias, execucao: E
     await registrarFalha(supabase, clinicId, conversationId, null, erro)
     return "falha-da-ia"
   }
+  const { texto } = saida
+
+  // Comportamento 6: a intenção é do paciente, e vale mesmo que a reserva
+  // recuse a resposta logo abaixo.
+  if (saida.intencaoDeAgendar) await marcarQualificada(supabase, clinicId, conversationId, deps.agora())
 
   // A hora da reserva, e não a da decisão: a janela e a retomada são
   // conferidas de novo contra o relógio de agora.
@@ -317,6 +328,30 @@ async function registrarFalha(
     p_error_code: erroParaLog(erro).codigo,
   })
   if (error) throw error
+}
+
+/**
+ * A primeira intenção de agendar da conversa (comportamento 6), gravada uma
+ * vez só: o `is null` vale também para duas execuções pela mesma mensagem.
+ * É métrica do funil: a falha loga só o código, e a resposta segue.
+ */
+async function marcarQualificada(
+  supabase: Supabase,
+  clinicId: string,
+  conversationId: string,
+  agora: string,
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from("conversations")
+      .update({ qualified_at: agora })
+      .eq("id", conversationId)
+      .eq("clinic_id", clinicId)
+      .is("qualified_at", null)
+    if (error) throw error
+  } catch (erro) {
+    console.error(ROTULO, { etapa: "qualificacao", conversa: conversationId, ...erroParaLog(erro) })
+  }
 }
 
 async function contextoDoAgente(

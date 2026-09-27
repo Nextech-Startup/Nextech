@@ -110,7 +110,7 @@ async function respostasDaIa(conversationId: string) {
 
 function dependencias(p: { agora: number; gerar?: Dependencias["gerar"] }) {
   return {
-    gerar: vi.fn(p.gerar ?? (async () => "Olá!")),
+    gerar: vi.fn(p.gerar ?? (async () => ({ texto: "Olá!", intencaoDeAgendar: false }))),
     enviar: vi.fn(async (_envio: Envio) => ({ waMessageId: `wamid.enviada.${SUFIXO}.${++wamids}` })),
     dormir: vi.fn(async (_ms: number) => {}),
     agora: () => iso(p.agora),
@@ -275,7 +275,7 @@ describe("triagem de urgência na recepção (conversation-engine-v1, comportame
       // O paciente escreve a urgência enquanto o modelo gera a resposta ao "oi".
       gerar: async () => {
         await receber(payload(waId, T0 + 5, "dor no peito"))
-        return "Olá! Como posso ajudar?"
+        return { texto: "Olá! Como posso ajudar?", intencaoDeAgendar: false }
       },
     })
     expect(await responderConversa(r1, deps)).toBe("urgente")
