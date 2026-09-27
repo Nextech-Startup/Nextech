@@ -9,6 +9,11 @@ import type { MensagemDoModelo } from "@/lib/agent-config/prompt"
  * guarda nem treina com o dado (`data_collection: "deny"`) e endpoint de
  * retenção zero (`zdr: true`). É política, não escolha de modelo, e por
  * isso fica fixa aqui (lgpd-security: revisar o que sai da infraestrutura).
+ *
+ * Com `formato`, o pedido exige saída estruturada (JSON schema estrito) e
+ * `require_parameters`: sem ele, um provedor que ignora o `response_format`
+ * continuaria elegível e devolveria texto solto. O `strict` varia por
+ * provedor, e quem chama valida o JSON.
  */
 
 const URL_DO_OPENROUTER = "https://openrouter.ai/api/v1/chat/completions"
@@ -40,21 +45,25 @@ export type RespostaDaIa = {
   tokensDeSaida: number | null
 }
 
+/** Saída estruturada: o provedor devolve JSON neste schema. */
+export type FormatoDaSaida = { nome: string; schema: Record<string, unknown> }
+
 type CorpoDaResposta = {
   model?: string
-  choices?: Array<{ message?: { content?: unknown } }>
+  choices?: Array<{ message?: { content?: unknown }; finish_reason?: unknown }>
   usage?: { prompt_tokens?: number; completion_tokens?: number }
 }
 
 export async function gerarResposta(
   mensagens: MensagemDoModelo[],
-  opcoes: { fetch?: typeof fetch } = {},
+  opcoes: { fetch?: typeof fetch; formato?: FormatoDaSaida } = {},
 ): Promise<RespostaDaIa> {
   const chave = process.env.OPENROUTER_API_KEY
   const modelo = process.env.OPENROUTER_MODEL
   if (!chave || !modelo) throw new IaError("configuracao", false)
 
   const buscar = opcoes.fetch ?? fetch
+  const { formato } = opcoes
   let resposta: Response
   try {
     resposta = await buscar(URL_DO_OPENROUTER, {
@@ -68,7 +77,13 @@ export async function gerarResposta(
         model: modelo,
         messages: mensagens,
         max_tokens: MAXIMO_DE_TOKENS,
-        provider: { data_collection: "deny", zdr: true },
+        ...(formato && {
+          response_format: {
+            type: "json_schema",
+            json_schema: { name: formato.nome, strict: true, schema: formato.schema },
+          },
+        }),
+        provider: { data_collection: "deny", zdr: true, ...(formato && { require_parameters: true }) },
       }),
       signal: AbortSignal.timeout(TEMPO_MAXIMO_MS),
     })
@@ -84,6 +99,10 @@ export async function gerarResposta(
   }
 
   const corpo = (await resposta.json().catch(() => null)) as CorpoDaResposta | null
+  // Cortada pelo limite: o texto pela metade nunca vai ao paciente. Vem
+  // antes da conferência de vazio, porque o raciocínio que esgota o limite
+  // devolve conteúdo vazio.
+  if (corpo?.choices?.[0]?.finish_reason === "length") throw new IaError("resposta-truncada", true)
   const conteudo = corpo?.choices?.[0]?.message?.content
   const texto = typeof conteudo === "string" ? conteudo.trim() : ""
   if (!texto) throw new IaError("resposta-vazia", true)

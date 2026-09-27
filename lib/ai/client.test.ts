@@ -51,6 +51,37 @@ describe("gerarResposta (OpenRouter)", () => {
     expect(corpo.model).toBe("provedor/modelo-de-teste")
     expect(corpo.messages).toEqual(MENSAGENS)
     expect(corpo.provider).toEqual({ data_collection: "deny", zdr: true })
+    expect(corpo.response_format).toBeUndefined()
+  })
+
+  it("com formato: pede o JSON schema estrito, e só a provedor que aceita todos os parâmetros, sem afrouxar a política", async () => {
+    const conteudo = '{"resposta":"Oi","intencao_de_agendar":false}'
+    const fetch = vi.fn(async (..._args: unknown[]) =>
+      json(200, { choices: [{ message: { content: conteudo }, finish_reason: "stop" }] }),
+    )
+    const formato = { nome: "saida_de_teste", schema: { type: "object" } }
+    await expect(gerarResposta(MENSAGENS, { fetch, formato })).resolves.toMatchObject({ texto: conteudo })
+    const [, init] = fetch.mock.calls[0] as unknown as Chamada
+    const corpo = JSON.parse(init.body as string)
+    expect(corpo.response_format).toEqual({
+      type: "json_schema",
+      json_schema: { name: "saida_de_teste", strict: true, schema: { type: "object" } },
+    })
+    expect(corpo.provider).toEqual({ data_collection: "deny", zdr: true, require_parameters: true })
+  })
+
+  it("resposta cortada pelo limite de tokens: resposta-truncada, que repete, e o texto cortado não sai", async () => {
+    const fetch = vi.fn(async () =>
+      json(200, { choices: [{ message: { content: "Temos horário amanhã às" }, finish_reason: "length" }] }),
+    )
+    await expect(gerarResposta(MENSAGENS, { fetch })).rejects.toMatchObject({
+      name: "IaError",
+      code: "resposta-truncada",
+      repetivel: true,
+    })
+    // O raciocínio que esgota o limite devolve conteúdo vazio: o código diz o porquê.
+    const vazia = vi.fn(async () => json(200, { choices: [{ message: { content: "" }, finish_reason: "length" }] }))
+    await expect(gerarResposta(MENSAGENS, { fetch: vazia })).rejects.toMatchObject({ code: "resposta-truncada" })
   })
 
   it("sem chave ou sem modelo na env: erro de configuração, sem chamar a rede", async () => {
