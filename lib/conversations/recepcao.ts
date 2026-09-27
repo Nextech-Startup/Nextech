@@ -9,6 +9,7 @@ import { cifrarConteudo } from "./conteudo"
  * gravada e já foi tratada da primeira vez.
  */
 export type ResultadoDaRecepcao = {
+  clinicId: string
   conversationId: string
   messageId: string
   nova: boolean
@@ -84,6 +85,7 @@ export async function receberMensagem(
   if (m.autor === "patient") await touchLastContact(clinicId, paciente.id)
 
   return {
+    clinicId,
     conversationId: registrada.conversation_id,
     messageId: registrada.message_id,
     nova: registrada.inserted,
