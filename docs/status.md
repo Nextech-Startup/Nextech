@@ -11,10 +11,10 @@
 | **3a — Fundação multi-tenant** | ✅ concluída |
 | **3b — Motor de conversa** | ⬜ spec pronta, nada implementado |
 | **3c — Shell de navegação** | ✅ concluída |
-| Redesign do painel | ✅ partes 1 a 3: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica. Falta o painel interno (parte 4); telas reais chegam com cada fase — ver roadmap |
+| Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**686 testes passando** · 8 migrations aplicadas · em produção em `app.nextech.ia.br`
+**753 testes passando** · 8 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 ---
 
@@ -184,8 +184,9 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 - [x] **Redesign do painel, terceira parte**: concluída em 2026-09-26 na `staging`
   (acesso por papel com regra única, estados nas rotas reais, protótipos de Visão geral,
   Agentes com operação, Integrações e Minha conta)
-- [ ] **Redesign do painel, parte 4**: painel interno (Consumo, Conexões, Saúde,
-  Conversas de suporte e Auditoria)
+- [x] **Redesign do painel, quarta parte**: concluída em 2026-09-26 na `staging`
+  (protótipos de Consumo, Conexões, Saúde, Conversas de suporte e Auditoria; acesso de
+  suporte com justificativa por clínica, 30 min, motivo e número do chamado)
 - [ ] **Minha conta e Integrações reais**: os protótipos existem, e os itens seguem
   "em breve" no menu. Minha conta espera o Resend; Integrações, as fases 3b, 5 e 6
 - [ ] **Clínicas "Completa Ltda" no banco**: duas, sem responsável, parecem resíduo

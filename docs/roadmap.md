@@ -157,6 +157,26 @@ Plano: `docs/superpowers/plans/2026-09-26-redesign-do-painel-parte-3.md`, execut
 
 Fica para a parte 4 (itens 5 a 9 do "Próximo plano" da parte 2): o painel interno, com Consumo, Conexões, Saúde, Conversas de suporte e Auditoria.
 
+### Redesign do painel — quarta parte ✅ (2026-09-26)
+Plano: `docs/superpowers/plans/2026-09-26-redesign-do-painel-parte-4.md`, executado na `staging`.
+
+**Protótipos do painel interno**, no padrão das partes 2 e 3. Os cinco itens seguem "em breve" no menu do admin.
+- **Consumo:** atendimentos do ciclo contra o limite de cada clínica, com a projeção; quem estoura primeiro sobe. Só números agregados.
+- **Conexões:** números do WhatsApp e templates de cada clínica com a Meta, na ordem de gravidade.
+- **Saúde:** webhooks da Meta, erros da IA e tarefas agendadas, o que para todas as clínicas de uma vez.
+- **Conversas de suporte:** só números antes da justificativa; a lista, que tem nome de paciente, só com acesso vigente.
+- **Auditoria:** a trilha por dia, com os acessos a dado de paciente marcados e justificados.
+
+**Acesso de suporte (decisões do Jhones):**
+- a justificativa é por clínica e libera a lista por 30 min;
+- ver a lista (`conversation.list`) e abrir cada conversa (`conversation.view`) viram registros separados, com a mesma justificativa;
+- a justificativa é um motivo de lista fechada mais o número do chamado, só com dígitos. Sem texto livre, a trilha nunca guarda nome de paciente;
+- na fase 3b, `AcaoDeSuporte` se junta ao `AdminAction` de `lib/admin/audit.ts`, e o item "Conversas" (`/admin/conversations`) vira a escolha da clínica, com a clínica em `/admin/clinics/[id]/conversations`.
+
+**Regras puras** em `lib/admin/`, ao lado do `audit.ts` real, todas com teste: `consumo.ts`, `conexoes.ts`, `saude.ts`, `acesso-de-suporte.ts` e `auditoria.ts`.
+
+Com isto, o redesign cobre todas as telas do produto como protótipo. As telas reais chegam com cada fase.
+
 ## Fase 4 — Templates e sequências
 - `whatsapp-templates-v1.md`, `message-sequences-v1.md`
 - Depende da fase 3b (precisa do agente e do paciente conversando)

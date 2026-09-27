@@ -2,7 +2,29 @@
 
 > **Para quem executa:** SUB-SKILL OBRIGATÓRIA: `superpowers:executing-plans`, tarefa por tarefa, numa sessão nova e sem subagentes. Carregue `frontend-design` antes de desenhar cada tela, e `dataviz` antes de Consumo. Os passos usam checkbox (`- [ ]`).
 
-## Status da execução: não iniciado
+## Status da execução: ✅ concluído em 2026-09-26
+
+- **Feito:** tarefas 1 a 11, na `staging` local, sem push. Commits `545ad07` até o `docs:` que fecha a parte 4. A execução foi na mesma sessão do plano, a pedido do Jhones.
+- **Testes:** 753 passando (eram 686 no fim da parte 3). `tsc` limpo e `npm run build` passando.
+- **Visual:** as seis rotas novas nos dois temas, em 1440px e 390px, sem rolagem horizontal. A rota dinâmica `telas/suporte/[clinica]` foi conferida num `next start -p 3100`, porque o `next dev` devolveu o 500 "Jest worker" de novo. O `--accent` da landing continua `lab(72.8575% -47.9172 13.5998)`.
+
+Ajustes feitos durante a execução, além do que o plano descrevia:
+
+| Tarefa | Ajuste | Por quê |
+|---|---|---|
+| 2 | `ConsumoDaClinica.ciclo` é `Omit<CicloDeConsumo, "plano">` | O plano vem da clínica; uma cópia dentro do ciclo poderia divergir |
+| 2 | A projeção é o trecho mais claro da própria barra; o limite vira linha só quando alguém passa dele; entrou uma legenda | O traço da projeção e a linha do limite eram duas marcas cinza iguais, sem legenda |
+| 4 | `ConexoesDoPainel` tem uma lista só de agentes (nome, status, conexão, número e desde), no lugar de `conexoes` e `numeros` | O objeto vai direto para `diagnosticarConexoes`, sem duplicar os agentes |
+| 4 | `desdeQuando` saiu da tela de Integrações para `components/integrations/estado.ts` | Conexões usa a mesma frase ("há 2 h", "desde 9 set") |
+| 4 | Agente sem número deixa a coluna do número vazia | O selo ao lado já diz "Sem número" |
+| 4 | Limite conhecido: a linha de template rejeitado usa a cor do estado da clínica, vermelha quando a clínica também tem erro | `problemas` não diz a gravidade de cada item; separar pediria mudar a regra da tarefa 3 |
+| 6 | Cada bloco mostra o número com o contexto ("de 1.840 eventos na última hora"); a frase do diagnóstico fica no `title` e para o leitor de tela | O número repetia a frase logo abaixo |
+| 8 | `TelaDeAcessoDeSuporte` recebe `hrefDaLista` | O link de voltar, como em Agentes |
+| 8 | Contagens da Sorriso Recife derivadas das conversas (7 abertas, 1 aguardando, 1 com falha), e "aguardando" vem antes de "com a equipe" | Coerência com Conversas e com os 2 que esperam na Visão geral; paciente esperando pesa mais que quem atende |
+| 8 | `Contagens` em `span` | Também entra na descrição do `PageHeader`, que já é um parágrafo |
+| 8 | No celular, "Abrir conversa" fica na linha do selo | Um botão numa linha própria em cada conversa pesava |
+| 10 | O alvo da conversa na trilha é um uuid | Os ids da fixture de Conversas ("c-urgente") viravam "c-urgent" ao encurtar |
+| 10 | Registro sem clínica deixa a célula vazia | "Sem clínica" em toda listagem de clínicas era ruído |
 
 ## Decisões do Jhones (2026-09-26)
 
@@ -88,7 +110,7 @@ Confira também que não há rolagem horizontal em 390px (`ROLAGEM-H`). Antes de
 - Consome: `projetarConsumo` (`lib/billing/consumo.ts`), `LIMITE_DE_ATENDIMENTOS` (`lib/billing/plan-limits.ts`) e `ClinicPlan`.
 - Produz: `CicloDeConsumo`, `NivelDeConsumo`, `AvaliacaoDeConsumo`, `LIMIAR_DE_PERTO`, `avaliarConsumo()` e `ordenarPorRisco()`.
 
-- [ ] **Passo 1: teste que falha**
+- [x] **Passo 1: teste que falha**
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -161,9 +183,9 @@ describe("ordenarPorRisco", () => {
 })
 ```
 
-- [ ] **Passo 2:** `npx vitest run lib/admin/consumo.test.ts`. Esperado: FALHA (módulo inexistente).
+- [x] **Passo 2:** `npx vitest run lib/admin/consumo.test.ts`. Esperado: FALHA (módulo inexistente).
 
-- [ ] **Passo 3: implementação** (`lib/admin/consumo.ts`)
+- [x] **Passo 3: implementação** (`lib/admin/consumo.ts`)
 
 ```ts
 import type { ClinicPlan } from "@/lib/agent-config/schema"
@@ -216,9 +238,9 @@ export function ordenarPorRisco<T extends { consumo: AvaliacaoDeConsumo }>(lista
 }
 ```
 
-- [ ] **Passo 4:** `npx vitest run lib/admin/consumo.test.ts`. Esperado: PASSA.
+- [x] **Passo 4:** `npx vitest run lib/admin/consumo.test.ts`. Esperado: PASSA.
 
-- [ ] **Passo 5: commit.** `feat(admin): nível de consumo e ordem por risco como regra pura`
+- [x] **Passo 5: commit.** `feat(admin): nível de consumo e ordem por risco como regra pura`
 
 ---
 
@@ -238,7 +260,7 @@ export function ordenarPorRisco<T extends { consumo: AvaliacaoDeConsumo }>(lista
 - **Estado** (`components/admin/estado.ts`): `TOM_DO_CONSUMO: Record<NivelDeConsumo, StatusTone>` (`estourou` → `danger`, `vai-estourar` → `warning`, `perto` → `warning`, `folga` → `neutral`) e `ROTULO_DO_CONSUMO` ("Estourou", "Vai estourar", "Perto do limite", "Com folga").
 - **Tela:** `TelaDeConsumo({ clinicas: ConsumoDaClinica[], agora })`.
 
-- [ ] **Passo 1: fixture** (`_fixtures/painel-interno.ts`). Seis clínicas, todas no ciclo de 1º de setembro a 1º de outubro:
+- [x] **Passo 1: fixture** (`_fixtures/painel-interno.ts`). Seis clínicas, todas no ciclo de 1º de setembro a 1º de outubro:
 
   | Clínica | Plano | Usados | Nível |
   |---|---|---|---|
@@ -251,14 +273,14 @@ export function ordenarPorRisco<T extends { consumo: AvaliacaoDeConsumo }>(lista
 
   As tarefas 4, 6, 8 e 10 acrescentam exportações a este arquivo, sem mudar `CLINICAS`.
 
-- [ ] **Passo 2: teste de componente que falha** (`components/admin/consumo.test.tsx`):
+- [x] **Passo 2: teste de componente que falha** (`components/admin/consumo.test.tsx`):
   - a ordem na tela é estourou, vai estourar, perto e folga;
   - cada linha mostra "{usados} de {limite}" em `tabular-nums`, a projeção ("152 no fim do ciclo") e o selo;
   - sem projeção (primeiro dia), a linha diz "Projeção a partir do 2º dia";
   - o resumo do topo diz "1 estourou, 2 perto do limite" (conta `vai-estourar` e `perto` juntos), ou "Todas com folga";
   - o HTML não tem nome de paciente nem telefone (a fixture do teste não tem, e a tela não pede).
 
-- [ ] **Passo 3: tela** (`TelaDeConsumo`).
+- [x] **Passo 3: tela** (`TelaDeConsumo`).
   - **`PageHeader`:** "Consumo", com a descrição "Atendimentos do ciclo contra o limite do plano. Só números agregados."
   - **Resumo:** uma frase no topo, com a contagem por nível.
   - **Lista:** uma linha por clínica, na ordem de `ordenarPorRisco`:
@@ -269,13 +291,13 @@ export function ordenarPorRisco<T extends { consumo: AvaliacaoDeConsumo }>(lista
   - **Desktop:** colunas alinhadas (clínica | barra | números | selo). **Celular:** nome e selo na primeira linha, barra na segunda, números na terceira.
   - **Critério visual:** a barra é o único gráfico; sem legenda separada, porque os números estão escritos ao lado.
 
-- [ ] **Passo 4: rota.** `telas/consumo/page.tsx`, com o aviso "contagem de atendimentos (fase 3b) e cobrança (fase 7)".
+- [x] **Passo 4: rota.** `telas/consumo/page.tsx`, com o aviso "contagem de atendimentos (fase 3b) e cobrança (fase 7)".
 
-- [ ] **Passo 5:** `npx vitest run components/admin lib/admin && npx tsc --noEmit`. Esperado: PASSA.
+- [x] **Passo 5:** `npx vitest run components/admin lib/admin && npx tsc --noEmit`. Esperado: PASSA.
 
-- [ ] **Passo 6: visual.** Capture nos 3 tamanhos. Critique e ajuste.
+- [x] **Passo 6: visual.** Capture nos 3 tamanhos. Critique e ajuste.
 
-- [ ] **Passo 7: commit.** `feat(admin): protótipo de consumo por clínica contra o limite do plano`
+- [x] **Passo 7: commit.** `feat(admin): protótipo de consumo por clínica contra o limite do plano`
 
 ---
 
@@ -288,7 +310,7 @@ export function ordenarPorRisco<T extends { consumo: AvaliacaoDeConsumo }>(lista
 - Consome: `EstadoDaIntegracao` (`lib/integrations/estado.ts`), `ConexaoDoWhatsapp`, `AgentStatus` e `plural`.
 - Produz: `ConexoesDaClinica`, `DiagnosticoDeConexoes`, `diagnosticarConexoes()` e `ordenarPorGravidade()`.
 
-- [ ] **Passo 1: teste que falha**
+- [x] **Passo 1: teste que falha**
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -365,9 +387,9 @@ describe("ordenarPorGravidade", () => {
 })
 ```
 
-- [ ] **Passo 2:** `npx vitest run lib/admin/conexoes.test.ts`. Esperado: FALHA.
+- [x] **Passo 2:** `npx vitest run lib/admin/conexoes.test.ts`. Esperado: FALHA.
 
-- [ ] **Passo 3: implementação** (`lib/admin/conexoes.ts`)
+- [x] **Passo 3: implementação** (`lib/admin/conexoes.ts`)
 
 ```ts
 import type { AgentStatus } from "@/lib/agent-config/schema"
@@ -416,9 +438,9 @@ export function ordenarPorGravidade<T extends { diagnostico: DiagnosticoDeConexo
 }
 ```
 
-- [ ] **Passo 4:** `npx vitest run lib/admin/conexoes.test.ts`. Esperado: PASSA.
+- [x] **Passo 4:** `npx vitest run lib/admin/conexoes.test.ts`. Esperado: PASSA.
 
-- [ ] **Passo 5: commit.** `feat(admin): diagnóstico de conexões por clínica como regra pura`
+- [x] **Passo 5: commit.** `feat(admin): diagnóstico de conexões por clínica como regra pura`
 
 ---
 
@@ -436,14 +458,14 @@ export function ordenarPorGravidade<T extends { diagnostico: DiagnosticoDeConexo
 - **Tipo:** `ConexoesDoPainel`: `ClinicaDoPainel & { conexoes: ConexoesDaClinica; numeros: { agente: string; numero: string | null; conexao: ConexaoDoWhatsapp; desde: string | null }[] }`.
 - **Tela:** `TelaDeConexoes({ clinicas: ConexoesDoPainel[], agora })`.
 
-- [ ] **Passo 1: fixture.** `CONEXOES` em `_fixtures/painel-interno.ts`:
+- [x] **Passo 1: fixture.** `CONEXOES` em `_fixtures/painel-interno.ts`:
   - **Clínica Sorriso Recife:** os agentes vêm de `AGENTES` (`_fixtures/agentes.ts`), com Implantes desconectado pela Meta há 2 h. Os templates rejeitados são contados de `_fixtures/templates.ts` (`status === "rejected"`);
   - **Instituto Pele Viva:** um agente ativo sem número (erro);
   - **Movimento Fisioterapia:** tudo conectado e 2 templates rejeitados (atenção);
   - **Nutri Equilíbrio:** um rascunho sem número (não conectada);
   - as outras duas, conectadas.
 
-- [ ] **Passo 2: teste de componente que falha** (`components/admin/conexoes.test.tsx`):
+- [x] **Passo 2: teste de componente que falha** (`components/admin/conexoes.test.tsx`):
   - a ordem é erro, atenção, não conectada e conectada;
   - a clínica com erro mostra "Com erro" e "Implantes: a Meta desconectou o número.";
   - cada número aparece formatado, com o estado (`ROTULO_DA_CONEXAO`) e "há 2 h" ou "desde 9 set";
@@ -451,7 +473,7 @@ export function ordenarPorGravidade<T extends { diagnostico: DiagnosticoDeConexo
   - a não conectada diz "Nenhum número conectado ainda.";
   - nenhuma credencial aparece (o HTML não tem `<input`).
 
-- [ ] **Passo 3: tela** (`TelaDeConexoes`).
+- [x] **Passo 3: tela** (`TelaDeConexoes`).
   - **`PageHeader`:** "Conexões", com a descrição "Números do WhatsApp e templates de cada clínica com a Meta."
   - **Resumo:** "{n} com erro, {m} pedem atenção" ou "Todas conectadas".
   - **Lista:** uma linha por clínica, na ordem de `ordenarPorGravidade`:
@@ -460,13 +482,13 @@ export function ordenarPorGravidade<T extends { diagnostico: DiagnosticoDeConexo
     - os números de cada agente, compactos (agente, número e estado), em `<details>` fechado quando a clínica está conectada e aberto quando tem problema.
   - **Critério visual:** a mesma regra de Integrações. O erro chama atenção só pelo selo e pela linha do motivo, nunca pelo fundo inteiro.
 
-- [ ] **Passo 4: rota.** `telas/conexoes/page.tsx`, com o aviso "eventos da Meta (fase 3b) e templates (fase 4)".
+- [x] **Passo 4: rota.** `telas/conexoes/page.tsx`, com o aviso "eventos da Meta (fase 3b) e templates (fase 4)".
 
-- [ ] **Passo 5:** `npx vitest run components/admin lib/admin && npx tsc --noEmit`. Esperado: PASSA.
+- [x] **Passo 5:** `npx vitest run components/admin lib/admin && npx tsc --noEmit`. Esperado: PASSA.
 
-- [ ] **Passo 6: visual.** Capture nos 3 tamanhos. Critique e ajuste.
+- [x] **Passo 6: visual.** Capture nos 3 tamanhos. Critique e ajuste.
 
-- [ ] **Passo 7: commit.** `feat(admin): protótipo de conexões com a Meta por clínica`
+- [x] **Passo 7: commit.** `feat(admin): protótipo de conexões com a Meta por clínica`
 
 ---
 
@@ -479,7 +501,7 @@ export function ordenarPorGravidade<T extends { diagnostico: DiagnosticoDeConexo
 - Consome: `formatarDuracao`, `formatarNumero`, `formatarPercentual` e `plural`.
 - Produz: `NivelOperacional`, `Leitura`, `JanelaDeEventos`, `ExecucaoDeCron`, `TAXA_CRITICA`, `MINIMO_PARA_TAXA`, `lerTaxa()` e `lerCron()`.
 
-- [ ] **Passo 1: teste que falha**
+- [x] **Passo 1: teste que falha**
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -557,9 +579,9 @@ describe("lerCron", () => {
 })
 ```
 
-- [ ] **Passo 2:** `npx vitest run lib/admin/saude.test.ts`. Esperado: FALHA.
+- [x] **Passo 2:** `npx vitest run lib/admin/saude.test.ts`. Esperado: FALHA.
 
-- [ ] **Passo 3: implementação** (`lib/admin/saude.ts`)
+- [x] **Passo 3: implementação** (`lib/admin/saude.ts`)
 
 ```ts
 import { formatarDuracao } from "@/lib/formatters/data"
@@ -636,9 +658,9 @@ export function lerCron(c: ExecucaoDeCron, agora: string): Leitura {
 }
 ```
 
-- [ ] **Passo 4:** `npx vitest run lib/admin/saude.test.ts`. Esperado: PASSA.
+- [x] **Passo 4:** `npx vitest run lib/admin/saude.test.ts`. Esperado: PASSA.
 
-- [ ] **Passo 5: commit.** `feat(admin): leitura de taxa de falha e de cron como regra pura`
+- [x] **Passo 5: commit.** `feat(admin): leitura de taxa de falha e de cron como regra pura`
 
 ---
 
@@ -657,31 +679,31 @@ export function lerCron(c: ExecucaoDeCron, agora: string): Leitura {
 - **Estado:** `TOM_OPERACIONAL: Record<NivelOperacional, StatusTone>` (`ok` → `success`, `atencao` → `warning`, `falha` → `danger`) e `ROTULO_OPERACIONAL` ("Normal", "Atenção", "Com falha").
 - **Tela:** `TelaDeSaude({ saude: SaudeDaOperacao, agora })`.
 
-- [ ] **Passo 1: fixture.** `SAUDE` em `_fixtures/painel-interno.ts`:
+- [x] **Passo 1: fixture.** `SAUDE` em `_fixtures/painel-interno.ts`:
   - **webhooks da Meta:** 1.840 eventos, 3 falhas (atenção);
   - **IA (OpenRouter):** 912 chamadas, 61 falhas (falha);
   - **crons** (nomes de `message-sequences-v1`): "Inscrição em sequências" a cada 15 min, rodou às 14:30 (ok); "Envio de sequências" a cada 5 min, rodou às 14:31 com erro (atenção); "Lembretes de consulta" a cada 1 h, rodou às 11:00 (falha).
 
-- [ ] **Passo 2: teste de componente que falha** (`components/admin/saude.test.tsx`):
+- [x] **Passo 2: teste de componente que falha** (`components/admin/saude.test.tsx`):
   - a tela mostra as três áreas (WhatsApp, IA e tarefas agendadas), cada uma com selo e motivo;
   - o resumo conta webhooks, IA e cada cron, com a falha antes da atenção: "2 com falha, 2 pedem atenção";
   - cada cron mostra o nome, "a cada 15 min" e o motivo de `lerCron`;
   - com tudo ok, o resumo diz "Tudo funcionando".
 
-- [ ] **Passo 3: tela** (`TelaDeSaude`).
+- [x] **Passo 3: tela** (`TelaDeSaude`).
   - **`PageHeader`:** "Saúde", com a descrição "O que pode parar o atendimento de todas as clínicas de uma vez."
   - **Resumo:** frase com a contagem por nível, falha primeiro.
   - **Faixa de três blocos** (`lg:grid-cols-3`, dividida por `divide-x`, como o "Agora" da Visão geral): WhatsApp (webhooks da Meta), IA (OpenRouter) e tarefas agendadas. Cada bloco traz o selo, um número em Cal Sans (falhas na última hora, ou tarefas com problema) e o motivo. O selo das tarefas é o do pior cron.
   - **Lista de crons:** nome, intervalo, "rodou há X" e selo. O cron com falha sobe.
   - **Critério visual:** sem gráfico de série temporal; o dado do protótipo é uma janela só, e uma linha inventada sugeriria histórico que não existe.
 
-- [ ] **Passo 4: rota.** `telas/saude/page.tsx`, com o aviso "motor de conversa (fase 3b) e sequências (fase 4)".
+- [x] **Passo 4: rota.** `telas/saude/page.tsx`, com o aviso "motor de conversa (fase 3b) e sequências (fase 4)".
 
-- [ ] **Passo 5:** `npx vitest run components/admin lib/admin && npx tsc --noEmit`. Esperado: PASSA.
+- [x] **Passo 5:** `npx vitest run components/admin lib/admin && npx tsc --noEmit`. Esperado: PASSA.
 
-- [ ] **Passo 6: visual.** Capture nos 3 tamanhos. Critique e ajuste.
+- [x] **Passo 6: visual.** Capture nos 3 tamanhos. Critique e ajuste.
 
-- [ ] **Passo 7: commit.** `feat(admin): protótipo de saúde da operação com webhooks, IA e crons`
+- [x] **Passo 7: commit.** `feat(admin): protótipo de saúde da operação com webhooks, IA e crons`
 
 ---
 
@@ -693,7 +715,7 @@ export function lerCron(c: ExecucaoDeCron, agora: string): Leitura {
 **Interfaces:**
 - Produz: `MOTIVOS_DE_SUPORTE`, `MotivoDeSuporte`, `ROTULO_DO_MOTIVO`, `Justificativa`, `AcaoDeSuporte`, `DURACAO_DO_ACESSO_MS`, `AcessoDeSuporte`, `RegistroDeSuporte`, `validarJustificativa()`, `acessoVigente()` e `registroDeSuporte()`.
 
-- [ ] **Passo 1: teste que falha**
+- [x] **Passo 1: teste que falha**
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -792,9 +814,9 @@ describe("registroDeSuporte", () => {
 })
 ```
 
-- [ ] **Passo 2:** `npx vitest run lib/admin/acesso-de-suporte.test.ts`. Esperado: FALHA.
+- [x] **Passo 2:** `npx vitest run lib/admin/acesso-de-suporte.test.ts`. Esperado: FALHA.
 
-- [ ] **Passo 3: implementação** (`lib/admin/acesso-de-suporte.ts`)
+- [x] **Passo 3: implementação** (`lib/admin/acesso-de-suporte.ts`)
 
 ```ts
 /**
@@ -897,9 +919,9 @@ export function registroDeSuporte(p: {
 }
 ```
 
-- [ ] **Passo 4:** `npx vitest run lib/admin/acesso-de-suporte.test.ts`. Esperado: PASSA.
+- [x] **Passo 4:** `npx vitest run lib/admin/acesso-de-suporte.test.ts`. Esperado: PASSA.
 
-- [ ] **Passo 5: commit.** `feat(admin): justificativa e acesso de suporte com prazo como regra pura`
+- [x] **Passo 5: commit.** `feat(admin): justificativa e acesso de suporte com prazo como regra pura`
 
 ---
 
@@ -921,12 +943,12 @@ export function registroDeSuporte(p: {
   - `ClinicasParaSuporte({ clinicas: ResumoDeSuporte[], hrefDaClinica })`: a escolha da clínica;
   - `TelaDeAcessoDeSuporte({ clinica: ResumoDeSuporte, acesso: (AcessoDeSuporte & { expiraEm }) | null, conversas: ConversaDeSuporte[], agora, acaoDesabilitada })`: sem acesso, o formulário; com acesso, a lista.
 
-- [ ] **Passo 1: fixture.** Em `_fixtures/painel-interno.ts`:
+- [x] **Passo 1: fixture.** Em `_fixtures/painel-interno.ts`:
   - `RESUMOS_DE_SUPORTE`, para as seis clínicas (a Sorriso Recife com 12 abertas, 2 aguardando e 1 com falha);
   - `CONVERSAS_DE_SUPORTE` da Sorriso Recife: as mesmas pessoas de `_fixtures/conversas.ts`, com agente, estado e última atividade;
   - `ACESSO_DE_EXEMPLO`: concedido às 14:20 por "Marina Costa" (equipe Nextech), chamado 4821, "A IA não respondeu". Vale até 14:50.
 
-- [ ] **Passo 2: teste de componente que falha** (`components/admin/suporte.test.tsx`):
+- [x] **Passo 2: teste de componente que falha** (`components/admin/suporte.test.tsx`):
   - **escolha da clínica:** mostra as contagens e nenhum nome de paciente;
   - **sem acesso:**
     - o formulário tem o motivo (as cinco opções de `ROTULO_DO_MOTIVO`) e o número do chamado, sem campo de texto livre (`<textarea` ausente);
@@ -939,7 +961,7 @@ export function registroDeSuporte(p: {
     - "Abrir conversa" fica desabilitado, e o `title` diz que a abertura vira um registro na auditoria;
     - "Encerrar acesso" fica desabilitado.
 
-- [ ] **Passo 3: telas.**
+- [x] **Passo 3: telas.**
   - **`ClinicasParaSuporte`:**
     - `PageHeader` "Conversas de suporte", com a descrição "Para abrir conversas de pacientes, escolha a clínica e informe o motivo. Cada acesso fica na auditoria.";
     - uma linha por clínica, como link: nome e, em `tabular-nums`, abertas, aguardando e com falha. A que tem falha sobe.
@@ -953,7 +975,7 @@ export function registroDeSuporte(p: {
     - a lista: paciente, agente, estado (selo) e última atividade, uma linha por conversa. A com falha e a aguardando sobem.
   - **Critério visual:** o formulário é o centro da tela sem acesso. Nada ali sugere que dá para ver as conversas sem justificar.
 
-- [ ] **Passo 4: rotas.**
+- [x] **Passo 4: rotas.**
   - `telas/suporte/page.tsx`: `ClinicasParaSuporte`, com o aviso "motor de conversa (fase 3b) e a trilha de acesso de suporte".
   - `telas/suporte/[clinica]/page.tsx`:
     - `params` e `searchParams` são Promise;
@@ -961,11 +983,11 @@ export function registroDeSuporte(p: {
     - `?acesso=liberado` passa `ACESSO_DE_EXEMPLO` (só para a Sorriso Recife) por `acessoVigente` com `AGORA`; sem o parâmetro, `acesso` é `null`;
     - abaixo do aviso, um link do próprio protótipo, "Ver com o acesso liberado" ou "Ver sem acesso", que alterna o parâmetro. Ele fica na rota, não no componente.
 
-- [ ] **Passo 5:** `npx vitest run components/admin lib/admin && npx tsc --noEmit`. Esperado: PASSA.
+- [x] **Passo 5:** `npx vitest run components/admin lib/admin && npx tsc --noEmit`. Esperado: PASSA.
 
-- [ ] **Passo 6: visual.** Capture a escolha da clínica e a Sorriso Recife sem e com acesso, nos 3 tamanhos. Critique e ajuste.
+- [x] **Passo 6: visual.** Capture a escolha da clínica e a Sorriso Recife sem e com acesso, nos 3 tamanhos. Critique e ajuste.
 
-- [ ] **Passo 7: commit.** `feat(admin): protótipo de conversas de suporte com justificativa e prazo`
+- [x] **Passo 7: commit.** `feat(admin): protótipo de conversas de suporte com justificativa e prazo`
 
 ---
 
@@ -978,7 +1000,7 @@ export function registroDeSuporte(p: {
 - Consome: `AdminAction` (`lib/admin/audit.ts`, só o tipo), `AcaoDeSuporte`, `MotivoDeSuporte` e `ROTULO_DO_MOTIVO`.
 - Produz: `AcaoDaTrilha`, `RegistroDaTrilha`, `DescricaoDoRegistro`, `TipoDeRegistro`, `descreverRegistro()` e `filtrarTrilha()`.
 
-- [ ] **Passo 1: teste que falha**
+- [x] **Passo 1: teste que falha**
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -1059,9 +1081,9 @@ describe("filtrarTrilha", () => {
 })
 ```
 
-- [ ] **Passo 2:** `npx vitest run lib/admin/auditoria.test.ts`. Esperado: FALHA.
+- [x] **Passo 2:** `npx vitest run lib/admin/auditoria.test.ts`. Esperado: FALHA.
 
-- [ ] **Passo 3: implementação** (`lib/admin/auditoria.ts`)
+- [x] **Passo 3: implementação** (`lib/admin/auditoria.ts`)
 
 ```ts
 import type { AdminAction } from "./audit"
@@ -1139,9 +1161,9 @@ export function filtrarTrilha(
 }
 ```
 
-- [ ] **Passo 4:** `npx vitest run lib/admin/auditoria.test.ts`. Esperado: PASSA.
+- [x] **Passo 4:** `npx vitest run lib/admin/auditoria.test.ts`. Esperado: PASSA.
 
-- [ ] **Passo 5: commit.** `feat(admin): frase e filtro da trilha de auditoria como regra pura`
+- [x] **Passo 5: commit.** `feat(admin): frase e filtro da trilha de auditoria como regra pura`
 
 ---
 
@@ -1158,31 +1180,31 @@ export function filtrarTrilha(
 - Consome: `descreverRegistro`, `filtrarTrilha`, `FiltroSegmentado`, `formatarHora`, `formatarDataCurta` e `tempoRelativo`.
 - **Tela:** `TelaDeAuditoria({ registros: RegistroDaTrilha[], tipo: TipoDeRegistro, hrefDoTipo: Record<TipoDeRegistro, string>, agora })`.
 
-- [ ] **Passo 1: fixture.** `TRILHA` em `_fixtures/painel-interno.ts`, de 10 a 12 registros de 26 a 28/09 por "Marina Costa" e "Rafael Nunes":
+- [x] **Passo 1: fixture.** `TRILHA` em `_fixtures/painel-interno.ts`, de 10 a 12 registros de 26 a 28/09 por "Marina Costa" e "Rafael Nunes":
   - o acesso de `ACESSO_DE_EXEMPLO` (`conversation.list` às 14:20) e duas conversas abertas em seguida (`conversation.view` às 14:23 e 14:27);
   - um acesso de suporte de ontem a outra clínica;
   - o resto: listar, criar, ativar clínica e convidar responsável.
 
-- [ ] **Passo 2: teste de componente que falha** (`components/admin/auditoria.test.tsx`):
+- [x] **Passo 2: teste de componente que falha** (`components/admin/auditoria.test.tsx`):
   - cada registro mostra a hora, o autor, a ação (`descreverRegistro`) e a clínica;
   - o acesso de suporte traz o motivo e o chamado, e tem uma marca própria, com texto, não só cor ("Acesso a dado de paciente");
   - o filtro "Acessos de suporte" mostra só `conversation.*`;
   - o HTML não tem nome de paciente, e a conversa aberta aparece pelo id curto (os 8 primeiros caracteres), não pelo paciente;
   - sem registros no recorte: "Nenhum registro neste recorte."
 
-- [ ] **Passo 3: tela** (`TelaDeAuditoria`).
+- [x] **Passo 3: tela** (`TelaDeAuditoria`).
   - **`PageHeader`:** "Auditoria", com a descrição "Tudo o que a equipe Nextech fez no painel. Os registros não podem ser apagados." Ação: `FiltroSegmentado` com Todos, Acessos de suporte e Clínicas.
   - **Lista agrupada por dia** ("Hoje", "Ontem", "26 set"), cada registro numa linha: hora (`tabular-nums`), autor, ação, clínica e detalhe.
   - **Acesso de suporte:** ícone de escudo e selo `info` "Acesso a dado de paciente", com o detalhe (motivo e chamado) sempre visível.
   - **Critério visual:** a trilha lê como lista, não como `LinhaDoTempo`; com dezenas de registros por dia, os pontos e a linha vertical virariam ruído.
 
-- [ ] **Passo 4: rota.** `telas/auditoria/page.tsx`, com o aviso "acesso de suporte (fase 3b); a trilha de clínicas já existe", e `?tipo=` lido de `searchParams` (Promise).
+- [x] **Passo 4: rota.** `telas/auditoria/page.tsx`, com o aviso "acesso de suporte (fase 3b); a trilha de clínicas já existe", e `?tipo=` lido de `searchParams` (Promise).
 
-- [ ] **Passo 5:** `npx vitest run components/admin lib/admin && npx tsc --noEmit`. Esperado: PASSA.
+- [x] **Passo 5:** `npx vitest run components/admin lib/admin && npx tsc --noEmit`. Esperado: PASSA.
 
-- [ ] **Passo 6: visual.** Capture Todos e Acessos de suporte nos 3 tamanhos. Critique e ajuste.
+- [x] **Passo 6: visual.** Capture Todos e Acessos de suporte nos 3 tamanhos. Critique e ajuste.
 
-- [ ] **Passo 7: commit.** `feat(admin): protótipo da trilha de auditoria com acessos de suporte`
+- [x] **Passo 7: commit.** `feat(admin): protótipo da trilha de auditoria com acessos de suporte`
 
 ---
 
@@ -1193,13 +1215,13 @@ export function filtrarTrilha(
 - Modificar: `tests/architecture/prototipos.test.ts`. O mínimo de telas sobe de 13 para 19 (é só aperto).
 - Modificar: este plano, `docs/roadmap.md`, `docs/status.md` e a memória `nextech-sistema-de-design.md`.
 
-- [ ] **Passo 1: suíte inteira.** `npx vitest run`, `npx tsc --noEmit` e `npm run build`. Esperado: tudo passa.
-- [ ] **Passo 2: passada visual.**
+- [x] **Passo 1: suíte inteira.** `npx vitest run`, `npx tsc --noEmit` e `npm run build`. Esperado: tudo passa.
+- [x] **Passo 2: passada visual.**
   - as seis rotas de protótipo novas e a galeria;
   - `--cores /`, que precisa mostrar `--accent no escopo -> lab(72.8575% -47.9172 13.5998)`.
-- [ ] **Passo 3: docs.**
+- [x] **Passo 3: docs.**
   - **Plano:** status "✅ concluído", com o número de testes e a tabela de ajustes.
   - **Roadmap:** seção "Redesign do painel — quarta parte", com o que entrou e as três decisões de suporte (justificativa por clínica, 30 min, motivo e chamado sem texto livre).
   - **Status:** número de testes e linha do redesign ("partes 1 a 4").
   - **Memória:** a parte 4 e a regra de que a justificativa de suporte não tem texto livre.
-- [ ] **Passo 4: commit.** `docs: fecha a parte 4 do redesign no plano, roadmap e status`
+- [x] **Passo 4: commit.** `docs: fecha a parte 4 do redesign no plano, roadmap e status`
