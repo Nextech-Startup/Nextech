@@ -54,3 +54,57 @@ describe("TelaDeAuditoria", () => {
     expect(tela("suporte", [TRILHA[2]])).toContain("Nenhum registro neste recorte.")
   })
 })
+
+describe("TelaDeAuditoria na rota real (sem filtro, com páginas)", () => {
+  const lista = (id: string, hhmm: string): RegistroDaTrilha => ({
+    id,
+    instante: `2026-09-28T${hhmm}:00-03:00`,
+    autor: "Marina Costa",
+    autorId: "u-marina",
+    acao: "clinic.list",
+    clinica: null,
+    alvo: null,
+    metadata: { total: 6 },
+  })
+
+  const real = (registros: RegistroDaTrilha[], p: { hrefAnteriores?: string | null; hrefMaisRecentes?: string } = {}) =>
+    renderToStaticMarkup(<TelaDeAuditoria registros={registros} agora={AGORA} {...p} />)
+
+  it("sem filtro: nem o recorte aparece", () => {
+    expect(real(TRILHA)).not.toContain("Recorte da trilha")
+  })
+
+  it("trilha vazia diz que ainda não há registro", () => {
+    expect(real([])).toContain("Nenhum registro ainda.")
+  })
+
+  it("aberturas seguidas viram uma linha com a contagem e o intervalo", () => {
+    const html = real([lista("c", "11:40"), lista("b", "10:15"), lista("a", "09:02")])
+    expect(html).toContain("Abriu a lista de clínicas, 3 vezes entre 09:02 e 11:40")
+    expect(html.match(/Abriu a lista de clínicas/g)).toHaveLength(1)
+  })
+
+  it("clínica apagada e ação desconhecida aparecem, sem sumir", () => {
+    const html = real([
+      { ...TRILHA[2], id: "r", clinica: null },
+      { ...TRILHA[2], id: "d", acao: "clinic.delete", clinica: null },
+    ])
+    expect(html).toContain("Clínica removida")
+    expect(html).toContain("Ação não reconhecida")
+    expect(html).toContain("Código: clinic.delete")
+  })
+
+  it("nenhum valor do metadado aparece fora da frase", () => {
+    const html = real([{ ...TRILHA[2], metadata: { segredo: "valor-que-nao-pode-aparecer" } }])
+    expect(html).not.toContain("valor-que-nao-pode-aparecer")
+  })
+
+  it("com mais registros, leva aos anteriores; na última página, não", () => {
+    expect(real(TRILHA, { hrefAnteriores: "/admin/audit?antes=x" })).toContain('href="/admin/audit?antes=x"')
+    expect(real(TRILHA, { hrefAnteriores: null })).not.toContain("Ver registros anteriores")
+  })
+
+  it("numa página anterior, oferece voltar aos mais recentes", () => {
+    expect(real(TRILHA, { hrefMaisRecentes: "/admin/audit" })).toContain("Ver os mais recentes")
+  })
+})

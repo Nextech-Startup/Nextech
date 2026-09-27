@@ -17,7 +17,7 @@ export const ADMIN_NAV: readonly NavGroup[] = [
       { label: "Conexões", href: "/admin/connections", status: "em-breve" },
       { label: "Saúde", href: "/admin/health", status: "em-breve" },
       { label: "Conversas", href: "/admin/conversations", status: "em-breve" },
-      { label: "Auditoria", href: "/admin/audit", status: "em-breve" },
+      { label: "Auditoria", href: "/admin/audit", status: "pronto" },
     ],
   },
 ] as const
