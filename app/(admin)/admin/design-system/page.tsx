@@ -77,6 +77,68 @@ const TELAS = [
   },
 ] as const
 
+const TELAS_INTERNAS = [
+  {
+    slug: "consumo",
+    nome: "Consumo",
+    mostra: "Atendimentos do ciclo contra o limite de cada clínica, com projeção; quem estoura primeiro sobe",
+    entrega: "contagem de atendimentos (fase 3b) e cobrança (fase 7)",
+  },
+  {
+    slug: "conexoes",
+    nome: "Conexões",
+    mostra: "Números do WhatsApp e templates de cada clínica com a Meta, na ordem de gravidade",
+    entrega: "eventos da Meta (fase 3b) e templates (fase 4)",
+  },
+  {
+    slug: "saude",
+    nome: "Saúde",
+    mostra: "Webhooks da Meta, erros da IA e tarefas agendadas: o que para todas as clínicas de uma vez",
+    entrega: "motor de conversa (fase 3b) e sequências (fase 4)",
+  },
+  {
+    slug: "suporte",
+    nome: "Conversas de suporte",
+    mostra: "Só números antes da justificativa; motivo e chamado liberam a lista por 30 min, e cada acesso vira registro",
+    entrega: "motor de conversa (fase 3b) e a trilha de acesso de suporte",
+  },
+  {
+    slug: "auditoria",
+    nome: "Auditoria",
+    mostra: "A trilha por dia, com os acessos a dado de paciente marcados e justificados",
+    entrega: "acesso de suporte (fase 3b); a trilha de clínicas já existe",
+  },
+] as const
+
+type Tela = { slug: string; nome: string; mostra: string; entrega: string }
+
+function ListaDeTelas({ id, titulo, telas }: { id: string; titulo: string; telas: readonly Tela[] }) {
+  return (
+    <section aria-labelledby={id} className="grid gap-3">
+      <h2 id={id} className="text-[0.9375rem] font-semibold text-ink-1">
+        {titulo}
+      </h2>
+      <ul className="divide-y divide-hairline overflow-hidden rounded-card border border-hairline">
+        {telas.map((t) => (
+          <li key={t.slug}>
+            <Link
+              href={`/admin/design-system/telas/${t.slug}`}
+              className="flex items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-accent"
+            >
+              <div className="grid gap-0.5">
+                <p className="text-sm font-medium text-ink-1">{t.nome}</p>
+                <p className="text-sm text-ink-2">{t.mostra}</p>
+                <p className="text-xs text-ink-3">Entra no ar com: {t.entrega}</p>
+              </div>
+              <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-ink-3" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 /**
  * Telas desenhadas que ainda não existem para as clínicas. Vivem aqui, e
  * não em app/(dashboard), para que dado fictício nunca apareça numa rota
@@ -89,23 +151,8 @@ export default function PrototiposPage() {
         title="Protótipos"
         description="Telas desenhadas que ainda não existem para as clínicas. Todas usam dados fictícios e só a equipe Nextech as vê."
       />
-      <ul className="divide-y divide-hairline overflow-hidden rounded-card border border-hairline">
-        {TELAS.map((t) => (
-          <li key={t.slug}>
-            <Link
-              href={`/admin/design-system/telas/${t.slug}`}
-              className="flex items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-accent"
-            >
-              <div className="grid gap-0.5">
-                <p className="text-sm font-medium text-ink-1">{t.nome}</p>
-                <p className="text-sm text-ink-2">{t.mostra}</p>
-                <p className="text-xs text-ink-3">Entra no ar com: {t.entrega}</p>
-              </div>
-              <ChevronRight aria-hidden="true" className="size-4 text-ink-3" />
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <ListaDeTelas id="telas-clinica" titulo="Painel da clínica" telas={TELAS} />
+      <ListaDeTelas id="telas-internas" titulo="Painel interno" telas={TELAS_INTERNAS} />
       <Link
         href="/admin/design-system/estados"
         className="flex items-center justify-between gap-3 rounded-card border border-hairline px-5 py-4 transition-colors hover:bg-accent"
