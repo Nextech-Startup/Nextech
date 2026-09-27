@@ -31,7 +31,7 @@ export const INTEGRACOES: PainelDeIntegracoes = {
     desde: desdeQuando(a.id),
   })),
   agenda: {
-    conta: "agenda@clinicasorriso.com.br",
+    conta: "agenda@clinicasorriso.example",
     sinais: {
       conectadaEm: d("10:00", "01"),
       ultimaSincronizacao: d("14:20"),

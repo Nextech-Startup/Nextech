@@ -56,6 +56,21 @@ describe("fixtures da conta de demonstração", () => {
     expect(JSON.stringify(fixture).match(DIA_E_MES) ?? []).toEqual([])
   })
 
+  // A demonstração é mostrada a terceiros, em produção. Nada nela pode ser
+  // de alguém: e-mail só em domínio reservado, celular só na faixa que as
+  // fixtures usam como fictícia, e nenhum número de conselho profissional.
+  it.each(Object.entries(FIXTURES))("%s: nenhum identificador que possa ser real", (_nome, fixture) => {
+    const json = JSON.stringify(fixture)
+    const emails = json.match(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g) ?? []
+    expect(emails.filter((e) => !/\.(example|test)$/.test(e))).toEqual([])
+    const celulares = [
+      ...(json.match(/\+55\d{10,11}/g) ?? []),
+      ...(json.match(/\(\d{2}\) 9\d{4}-\d{4}/g) ?? []),
+    ]
+    expect(celulares.filter((c) => !/90000-?\d{4}$/.test(c))).toEqual([])
+    expect(json.match(/\b(CRM|CRO|CREFITO|CRP|CRN|COREN)[- ][A-Z]{2}\s?\d+/g) ?? []).toEqual([])
+  })
+
   it("as fixtures têm datas para deslocar", () => {
     expect(Object.values(FIXTURES).flatMap(dias).length).toBeGreaterThan(100)
   })

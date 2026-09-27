@@ -64,7 +64,7 @@ export const CONVERSAS: ConversaAberta[] = [
       msg(
         "ai",
         d("14:18"),
-        "Camila, pressione uma gaze limpa no local por 30 minutos, sem cuspir nem bochechar. Se o sangramento não diminuir, venha ao pronto atendimento da clínica ou ligue (81) 3333-4444. Nossa equipe já foi avisada e vai falar com você.",
+        "Camila, pressione uma gaze limpa no local por 30 minutos, sem cuspir nem bochechar. Se o sangramento não diminuir, venha ao pronto atendimento da clínica ou ligue para a recepção. Nossa equipe já foi avisada e vai falar com você.",
         "Protocolo da clínica",
       ),
       msg("patient", d("14:20"), "Ainda está sangrando bastante"),

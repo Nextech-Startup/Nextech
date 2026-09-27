@@ -15,7 +15,7 @@ export const AGENTES: AgenteEmOperacao[] = [
     id: "ag-odonto",
     nome: "Recepção Odonto",
     especialidade: "odontologia",
-    numero: "+5581991230001",
+    numero: "+5581900001001",
     publicadoEm: d("09:12", "02"),
     sinais: {
       status: "active",
@@ -30,7 +30,7 @@ export const AGENTES: AgenteEmOperacao[] = [
     id: "ag-estetica",
     nome: "Estética",
     especialidade: "estetica_dermato",
-    numero: "+5581991230002",
+    numero: "+5581900001002",
     publicadoEm: d("16:40", "09"),
     sinais: {
       status: "active",
@@ -45,7 +45,7 @@ export const AGENTES: AgenteEmOperacao[] = [
     id: "ag-implantes",
     nome: "Implantes",
     especialidade: "odontologia",
-    numero: "+5581991230003",
+    numero: "+5581900001003",
     publicadoEm: d("10:05", "15"),
     sinais: {
       status: "paused",
@@ -156,7 +156,7 @@ export const DETALHES_DOS_AGENTES: DetalheDoAgente[] = [
       registro("h1", d("09:12", "02"), "publicou", "Sábado de manhã passou a ter atendimento."),
       registro("h2", d("09:05", "02"), "editou", "Horário de sábado."),
       registro("h3", d("17:20", "01"), "publicou"),
-      registro("h4", d("17:02", "01"), "conectou", "(81) 99123-0001"),
+      registro("h4", d("17:02", "01"), "conectou", "(81) 90000-1001"),
       registro("h5", d("16:30", "01"), "criou"),
     ],
     teste: teste([
@@ -175,7 +175,7 @@ export const DETALHES_DOS_AGENTES: DetalheDoAgente[] = [
     historico: [
       registro("h1", d("11:48"), "editou", "Saudação e horário de sábado."),
       registro("h2", d("16:40", "09"), "publicou"),
-      registro("h3", d("16:31", "09"), "conectou", "(81) 99123-0002"),
+      registro("h3", d("16:31", "09"), "conectou", "(81) 90000-1002"),
       registro("h4", d("15:10", "09"), "editou", "Persona e mensagem de transferência."),
       registro("h5", d("14:52", "09"), "criou"),
     ],
@@ -197,7 +197,7 @@ export const DETALHES_DOS_AGENTES: DetalheDoAgente[] = [
         "Sistema",
       ),
       registro("h2", d("10:05", "15"), "publicou"),
-      registro("h3", d("09:58", "15"), "conectou", "(81) 99123-0003"),
+      registro("h3", d("09:58", "15"), "conectou", "(81) 90000-1003"),
       registro("h4", d("09:40", "15"), "editou", "Persona."),
       registro("h5", d("18:15", "14"), "pausou", "Revisão do texto de preço."),
       registro("h6", d("11:00", "10"), "publicou"),

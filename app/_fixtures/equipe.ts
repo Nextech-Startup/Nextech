@@ -2,16 +2,16 @@ import type { AlteracaoDeAcesso, Convite, MembroDaEquipe } from "@/components/te
 
 /** Equipe fictícia: a responsável, duas pessoas da recepção e dois profissionais. */
 export const MEMBROS: MembroDaEquipe[] = [
-  { id: "m-ana", nome: "Ana Paula Souza", email: "ana.paula@clinicasorriso.com.br", papel: "owner", profissional: null, ultimoAcesso: "2026-09-28T14:30:00-03:00", voce: true },
-  { id: "m-carla", nome: "Carla Mendes", email: "carla@clinicasorriso.com.br", papel: "staff", profissional: null, ultimoAcesso: "2026-09-28T11:10:00-03:00", voce: false },
-  { id: "m-diego", nome: "Diego Santos", email: "diego@clinicasorriso.com.br", papel: "staff", profissional: null, ultimoAcesso: "2026-09-27T18:02:00-03:00", voce: false },
-  { id: "m-lima", nome: "Ana Lima", email: "dra.analima@clinicasorriso.com.br", papel: "professional", profissional: "Dra. Ana Lima, CRO-PE 12345", ultimoAcesso: "2026-09-25T08:40:00-03:00", voce: false },
-  { id: "m-bruno", nome: "Bruno Reis", email: "dr.bruno@clinicasorriso.com.br", papel: "professional", profissional: "Dr. Bruno Reis, CRO-PE 23456", ultimoAcesso: null, voce: false },
+  { id: "m-ana", nome: "Ana Paula Souza", email: "ana.paula@clinicasorriso.example", papel: "owner", profissional: null, ultimoAcesso: "2026-09-28T14:30:00-03:00", voce: true },
+  { id: "m-carla", nome: "Carla Mendes", email: "carla@clinicasorriso.example", papel: "staff", profissional: null, ultimoAcesso: "2026-09-28T11:10:00-03:00", voce: false },
+  { id: "m-diego", nome: "Diego Santos", email: "diego@clinicasorriso.example", papel: "staff", profissional: null, ultimoAcesso: "2026-09-27T18:02:00-03:00", voce: false },
+  { id: "m-lima", nome: "Ana Lima", email: "dra.analima@clinicasorriso.example", papel: "professional", profissional: "Dra. Ana Lima", ultimoAcesso: "2026-09-25T08:40:00-03:00", voce: false },
+  { id: "m-bruno", nome: "Bruno Reis", email: "dr.bruno@clinicasorriso.example", papel: "professional", profissional: "Dr. Bruno Reis", ultimoAcesso: null, voce: false },
 ]
 
 export const CONVITES: Convite[] = [
-  { id: "cv-1", email: "carla.mota@clinicasorriso.com.br", papel: "professional", enviadoEm: "2026-09-26T10:00:00-03:00", expiraEm: "2026-10-03T10:00:00-03:00" },
-  { id: "cv-2", email: "recepcao2@clinicasorriso.com.br", papel: "staff", enviadoEm: "2026-09-18T15:00:00-03:00", expiraEm: "2026-09-25T15:00:00-03:00" },
+  { id: "cv-1", email: "carla.mota@clinicasorriso.example", papel: "professional", enviadoEm: "2026-09-26T10:00:00-03:00", expiraEm: "2026-10-03T10:00:00-03:00" },
+  { id: "cv-2", email: "recepcao2@clinicasorriso.example", papel: "staff", enviadoEm: "2026-09-18T15:00:00-03:00", expiraEm: "2026-09-25T15:00:00-03:00" },
 ]
 
 export const ALTERACOES: AlteracaoDeAcesso[] = [
