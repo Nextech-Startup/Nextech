@@ -442,27 +442,40 @@ export const URGENCY_RULE_COLUMNS =
   "id, clinic_id, label, keywords, protocol_message, active, confirmed_by, confirmed_at, created_at"
 
 /**
+ * Forma de comparação da triagem: normalizada (sem acento, minúscula) e
+ * com pontuação e emoji virando espaço, entre espaços nas pontas.
+ */
+function paraTriagem(valor: string): string {
+  const limpo = normalizarTermo(valor)
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+  return limpo ? ` ${limpo}` : ""
+}
+
+/**
  * A mensagem do paciente dispara alguma destas regras?
  *
  * Só olha regra ATIVA: regra não confirmada pela clínica não escala nada.
  * Devolve a primeira que casar — escalar é escalar, não há grau.
  *
- * Compara sobre a forma normalizada dos dois lados, e por substring: o
- * paciente escreve "estou com uma dor no peito forte", não a palavra-chave
- * isolada.
+ * O termo precisa começar uma palavra da mensagem (decisão do Jhones,
+ * 2026-09-27): "dor" casa "dor", "dores" e "dorzinha", mas não "adorei".
+ * Por substring, um "adorei o atendimento" mandaria o protocolo e calaria
+ * a IA. Frases valem igual: o paciente escreve "estou com uma dor no peito
+ * forte", não a palavra-chave isolada.
  */
 export function detectarUrgencia(
   mensagem: string,
   regras: readonly UrgencyRule[],
 ): UrgencyRule | null {
-  const texto = normalizarTermo(mensagem)
+  const texto = paraTriagem(mensagem)
   if (!texto) return null
 
   for (const regra of regras) {
     if (!regra.active) continue
 
     for (const keyword of regra.keywords) {
-      const termo = normalizarTermo(keyword)
+      const termo = paraTriagem(keyword)
       if (termo && texto.includes(termo)) return regra
     }
   }

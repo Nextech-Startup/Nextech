@@ -504,6 +504,24 @@ describe("detectarUrgencia", () => {
   it("não dispara para mensagem vazia", () => {
     expect(detectarUrgencia("   ", [ativa])).toBeNull()
   })
+
+  describe("o termo precisa começar uma palavra", () => {
+    const curta = { ...ativa, keywords: ["dor"] }
+
+    it.each(["estou com dor", "Dores fortes desde ontem", "uma dorzinha aqui", "dor!", "(dor) no braço", "tô com DOR 😣"])(
+      "%j dispara",
+      (mensagem) => expect(detectarUrgencia(mensagem, [curta])).toBe(curta),
+    )
+
+    it.each(["adorei o atendimento", "o doutor pode me atender?", "indolor?", "condor"])(
+      "%j não dispara",
+      (mensagem) => expect(detectarUrgencia(mensagem, [curta])).toBeNull(),
+    )
+
+    it("frase com pontuação no meio também casa", () => {
+      expect(detectarUrgencia("tenho dor, no peito", [ativa])).toBe(ativa)
+    })
+  })
 })
 
 describe("hashDoConteudo", () => {
