@@ -1,3 +1,4 @@
+import { chaveDoDia } from "@/lib/formatters/data"
 import type { AdminAction } from "./audit"
 import { MOTIVOS_DE_SUPORTE, ROTULO_DO_MOTIVO, type AcaoDeSuporte, type MotivoDeSuporte } from "./acesso-de-suporte"
 
@@ -8,7 +9,13 @@ export type RegistroDaTrilha = {
   id: string
   instante: string
   autor: string
-  acao: AcaoDaTrilha
+  /** `actor_user_id`: distingue duas pessoas sem nome cadastrado. */
+  autorId?: string
+  /**
+   * A coluna é texto: uma versão futura (ou um engano) pode gravar uma ação
+   * que esta tela não conhece. Ela aparece como não reconhecida, sem sumir.
+   */
+  acao: AcaoDaTrilha | (string & {})
   /** `null` quando a ação não tem clínica (listar clínicas) ou a clínica foi removida. */
   clinica: string | null
   /** O id do alvo, quando há (a conversa aberta). */
@@ -53,12 +60,81 @@ export function descreverRegistro(r: RegistroDaTrilha): DescricaoDoRegistro {
       return { acao: "Abriu as conversas", detalhe: justificativa(r), suporte: true }
     case "conversation.view":
       return { acao: "Abriu uma conversa", detalhe: justificativa(r), suporte: true }
+    default:
+      return { acao: "Ação não reconhecida", detalhe: `Código: ${r.acao}`, suporte: false }
   }
+}
+
+/** Ações que sempre têm clínica: sem ela, a clínica foi apagada (`on delete set null`). */
+const ACOES_DE_CLINICA: readonly string[] = [
+  "clinic.create",
+  "clinic.update_status",
+  "member.invite",
+  "conversation.list",
+  "conversation.view",
+]
+
+/** A coluna da clínica: o nome, "Clínica removida" ou vazia (`null`) quando a ação não tem clínica. */
+export function clinicaDoRegistro(r: RegistroDaTrilha): string | null {
+  if (r.clinica) return r.clinica
+  return ACOES_DE_CLINICA.includes(r.acao) ? "Clínica removida" : null
+}
+
+/** Um item da tela: um registro, ou uma sequência de consultas iguais da mesma pessoa. */
+export type ItemDaTrilha = {
+  /** O mais recente da sequência: é a hora que a linha mostra. */
+  registro: RegistroDaTrilha
+  vezes: number
+  /** O instante do mais antigo da sequência. */
+  desde: string
+}
+
+/** Só consulta se agrupa: ação que muda algo aparece sempre sozinha. */
+const AGRUPAVEIS: readonly string[] = ["clinic.list"]
+
+/**
+ * Cada abertura de `/admin` grava um `clinic.list`; sem agrupar, a trilha
+ * vira uma parede de "Abriu a lista de clínicas". Junta as seguidas (sem
+ * outro registro no meio) da mesma pessoa, no mesmo dia. Recebe a trilha
+ * do mais recente para o mais antigo.
+ */
+export function agruparRepeticoes(registros: readonly RegistroDaTrilha[]): ItemDaTrilha[] {
+  const itens: ItemDaTrilha[] = []
+  for (const r of registros) {
+    const ultimo = itens[itens.length - 1]
+    const junta =
+      ultimo !== undefined &&
+      AGRUPAVEIS.includes(r.acao) &&
+      ultimo.registro.acao === r.acao &&
+      (ultimo.registro.autorId ?? ultimo.registro.autor) === (r.autorId ?? r.autor) &&
+      chaveDoDia(ultimo.registro.instante) === chaveDoDia(r.instante)
+    if (junta) {
+      ultimo.vezes += 1
+      ultimo.desde = r.instante
+    } else {
+      itens.push({ registro: r, vezes: 1, desde: r.instante })
+    }
+  }
+  return itens
+}
+
+/** O `created_at` como o Postgres devolve, com fração de até microssegundo. */
+const INSTANTE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}:\d{2})$/
+
+/**
+ * O cursor de "Ver registros anteriores", vindo da URL. Volta como veio,
+ * sem passar por `Date`: o arredondamento para milissegundo pularia os
+ * registros do mesmo milissegundo na virada de página. O que não é um
+ * instante válido é descartado, e a página volta ao começo.
+ */
+export function lerCursor(bruto: string | string[] | undefined): string | undefined {
+  if (typeof bruto !== "string" || !INSTANTE.test(bruto)) return undefined
+  return Number.isNaN(Date.parse(bruto)) ? undefined : bruto
 }
 
 export type TipoDeRegistro = "todos" | "suporte" | "clinicas"
 
-const ehSuporte = (a: AcaoDaTrilha) => a === "conversation.list" || a === "conversation.view"
+const ehSuporte = (a: string) => a === "conversation.list" || a === "conversation.view"
 
 /** A trilha do mais recente para o mais antigo, com os recortes da tela. */
 export function filtrarTrilha(
