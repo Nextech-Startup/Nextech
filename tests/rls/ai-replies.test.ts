@@ -151,7 +151,7 @@ const falhar = (cliente: SupabaseClient, c: Pick<Clinica, "id" | "conversa">, me
 async function sessoes(conversa: string) {
   const { data } = await admin
     .from("attendance_sessions")
-    .select("status, ai_response_count, closed_at")
+    .select("status, ai_response_count, closed_at, last_message_at")
     .eq("conversation_id", conversa)
     .order("started_at")
     .order("created_at")
@@ -286,7 +286,7 @@ describe("reserva, confirmação e contagem (atendimento-billing-v1, regra 2)", 
     expect(lista[1]).toMatchObject({ status: "open", ai_response_count: 1 })
   })
 
-  it("sessão vencida que o cron ainda não fechou: a confirmação fecha por timeout e não conta nela", async () => {
+  it("sessão vencida que o cron ainda não fechou: a confirmação não conta nela nem a fecha", async () => {
     // A mensagem ocorreu às 15:00, e a resposta só sai às 15:50 (entrega atrasada).
     const c = await novaConversa(`${DIA}T15:00:00Z`)
     const r = await reserva({ ...A, conversa: c.conversa }, c.mensagem, `${DIA}T15:00:10Z`)
@@ -294,10 +294,18 @@ describe("reserva, confirmação e contagem (atendimento-billing-v1, regra 2)", 
     expect(data).toEqual([{ ai_response_count: null, session_closed: false }])
 
     const [s] = await sessoes(c.conversa)
-    expect(s).toMatchObject({ status: "closed_by_timeout", ai_response_count: 0 })
-    expect(instante(s.closed_at)).toBe(`${DIA}T15:20:00.000Z`)
+    expect(s).toMatchObject({ status: "open", ai_response_count: 0, closed_at: null })
+    expect(instante(s.last_message_at)).toBe(`${DIA}T15:00:00.000Z`)
     const { data: m } = await admin.from("messages").select("delivery_status").eq("id", r.message_id).single()
     expect(m!.delivery_status).toBe("sent")
+
+    // A Meta reenvia, depois da confirmação, uma mensagem que ocorreu às
+    // 15:10: ela cai na mesma sessão, e a clínica não paga um atendimento a mais.
+    await registrar(c.base, `${DIA}T15:10:00Z`)
+    const lista = await sessoes(c.conversa)
+    expect(lista).toHaveLength(1)
+    expect(lista[0]).toMatchObject({ status: "open", ai_response_count: 0 })
+    expect(instante(lista[0].last_message_at)).toBe(`${DIA}T15:10:00.000Z`)
   })
 
   it("sem sessão aberta, a confirmação grava o envio e não abre sessão", async () => {

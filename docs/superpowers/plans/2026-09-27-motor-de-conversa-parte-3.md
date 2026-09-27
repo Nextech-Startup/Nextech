@@ -18,7 +18,8 @@
   - `20260927190000_engine_maintenance.sql`: pg_cron e as duas funções;
   - `20260927200000_engine_maintenance_locks.sql`: conversa antes de mensagem e `skip locked` (O1), e só resposta a mensagem do paciente (O3);
   - `20260927210000_session_timeout_grace.sql`: folga de 1 h no fechamento (O9);
-  - `20260927220000_confirm_stale_session.sql`: a confirmação fecha por timeout a sessão vencida e não conta nela.
+  - `20260927220000_confirm_stale_session.sql`: a confirmação fecha por timeout a sessão vencida e não conta nela;
+  - `20260927230000_confirm_stale_session_no_close.sql`: a confirmação deixa de fechar a sessão vencida, só não conta nela (terceira conferência de segurança).
 - **pg_cron:** conferido pela API de gestão do Supabase (`POST /v1/projects/{ref}/database/query`).
   - Três jobs ativos em `cron.job`, com dono `postgres` e `rolbypassrls = true`.
   - Tiques `succeeded` a cada 5 min desde 10:30 UTC, inclusive depois das migrations de correção.
@@ -58,6 +59,10 @@ Ajustes feitos durante a execução, além do que o plano descrevia:
 - a `confirm_ai_reply` somava e estendia a sessão vencida que o cron ainda não tinha fechado. Com a folga, a resposta a uma mensagem atrasada reabria a sessão. Migration `20260927220000`, com teste;
 - palavra-chave só de emoji ou símbolo nunca casaria. O schema recusa com mensagem, e a deduplicação usa a forma da triagem. O banco não tinha nenhuma assim;
 - a falha de uma segunda execução pela mesma mensagem passava a conversa para a equipe mesmo com a primeira já respondida. Agora não passa, com teste.
+
+**Segurança, terceira conferência** (sobre `236a928`; tratada na sessão da qualificação):
+- média: fechar a sessão na confirmação trazia de volta o O9. A confirmação julga pelo relógio do envio, e a mensagem atrasada que chegava depois dela abria outro atendimento. Migration `20260927230000`: a confirmação só não conta, e quem fecha é a recepção ou o cron. Teste com a mensagem atrasada caindo na mesma sessão;
+- baixa: uma reserva gravada com a resposta perdida na rede passava por resposta de outra execução, e o alerta esperava a varredura. A marca `reservando` fica ligada desde o pedido da reserva, com teste.
 
 **QA** (revisão sobre `b11b456`):
 - As cinco correções da parte 2 (`813cb48`) falham quando desfeitas.

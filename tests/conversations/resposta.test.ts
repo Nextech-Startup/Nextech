@@ -29,6 +29,8 @@ import { logPermitido } from "@/tests/whatsapp/log"
  * confirmação depois do envio. Com `restantes = 0`, tudo vai ao banco real.
  */
 const falhasDaConfirmacao = vi.hoisted(() => ({ restantes: 0, codigo: "08006" }))
+/** A reserva vai ao banco real, e a resposta dela se perde na rede. */
+const reservaPerdida = vi.hoisted(() => ({ ativa: false }))
 
 vi.mock("@/lib/auth/service-context", async (importOriginal) => {
   const real = await importOriginal<typeof import("@/lib/auth/service-context")>()
@@ -41,6 +43,11 @@ vi.mock("@/lib/auth/service-context", async (importOriginal) => {
           falhasDaConfirmacao.restantes -= 1
           const erro = { code: falhasDaConfirmacao.codigo, message: "simulado", details: null, hint: null }
           return Promise.resolve({ data: null, error: erro })
+        }
+        if (fn === "reserve_ai_reply" && reservaPerdida.ativa) {
+          reservaPerdida.ativa = false
+          const erro = { code: "", message: "TypeError: fetch failed", details: null, hint: null }
+          return Promise.resolve(rpc(fn, ...resto)).then(() => ({ data: null, error: erro }))
         }
         return rpc(fn, ...resto)
       }) as unknown as typeof contexto.supabase.rpc
@@ -411,6 +418,25 @@ describe("falha (conversation-engine-v1, comportamento 7)", () => {
     const c = await conversa(r.conversationId)
     expect(c.handled_by).toBe("ai")
     expect(c.ai_failed_at).toBeNull()
+  })
+
+  it("a reserva gravou e a resposta se perdeu na rede: a conversa passa para a equipe sem esperar a varredura", async () => {
+    const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
+    const r = await receber(novoWaId(), T0, "oi")
+    const deps = dependencias({ agora: T0 + 15 })
+    reservaPerdida.ativa = true
+    try {
+      await expect(responderConversa(r, deps)).rejects.toMatchObject({ message: "TypeError: fetch failed" })
+    } finally {
+      espiao.mockRestore()
+      reservaPerdida.ativa = false
+    }
+    expect(deps.enviar).not.toHaveBeenCalled()
+    // A reserva existe, pendente: sem a marca, ela passaria por resposta de outra execução.
+    expect((await respostasDaIa(r.conversationId)).map((m) => m.delivery_status)).toEqual(["pending"])
+    const c = await conversa(r.conversationId)
+    expect(c.handled_by).toBe("human")
+    expect(c.ai_failed_at).not.toBeNull()
   })
 
   it("erro inesperado no meio também passa a conversa para a equipe", async () => {

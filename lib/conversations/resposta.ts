@@ -91,25 +91,28 @@ export async function responderConversa(
   r: ResultadoDaRecepcao,
   deps: Dependencias = DEPENDENCIAS_PADRAO,
 ): Promise<DesfechoDaResposta> {
-  const execucao: Execucao = { reservaId: null }
+  const execucao: Execucao = { reservando: false }
   try {
     return await responder(r, deps, execucao)
   } catch (erro) {
     // Erro inesperado (banco, confirmação depois do envio): a conversa não
     // pode ficar com a IA sem resposta e sem alerta. Melhor esforço: se o
     // banco estiver fora do ar, esta gravação também falha, e o erro
-    // original é o que sobe. Exceção: esta execução não reservou nada, e
-    // outra pela mesma mensagem (reenvio da Meta) já respondeu.
+    // original é o que sobe. Exceção: esta execução nem chegou a pedir a
+    // reserva, e outra pela mesma mensagem (reenvio da Meta) já respondeu.
+    // Se pediu, a reserva pode ter sido gravada com a resposta perdida na
+    // rede: a resposta pendente seria dela, e o alerta não pode esperar a
+    // varredura.
     const { supabase } = serviceContext()
     const deOutra =
-      !execucao.reservaId && (await outraJaRespondeu(supabase, r.clinicId, r.messageId).catch(() => false))
+      !execucao.reservando && (await outraJaRespondeu(supabase, r.clinicId, r.messageId).catch(() => false))
     if (!deOutra) await registrarFalha(supabase, r.clinicId, r.conversationId, null, erro).catch(() => {})
     throw erro
   }
 }
 
 /** O que a execução já fez, para quem trata o erro inesperado. */
-type Execucao = { reservaId: string | null }
+type Execucao = { reservando: boolean }
 
 /**
  * A mensagem já tem resposta enviada ou em envio. Com o reenvio da Meta,
@@ -210,6 +213,7 @@ async function responder(r: ResultadoDaRecepcao, deps: Dependencias, execucao: E
   // conferidas de novo contra o relógio de agora.
   const reservadaEm = deps.agora()
   const custo = custoDaResposta({ enviadaEm: reservadaEm, ultimaDoPaciente: conversa.last_inbound_at })
+  execucao.reservando = true
   const { data: linhas, error: erroReserva } = await supabase.rpc("reserve_ai_reply", {
     p_clinic_id: clinicId,
     p_conversation_id: conversationId,
@@ -227,7 +231,6 @@ async function responder(r: ResultadoDaRecepcao, deps: Dependencias, execucao: E
   // Algo mudou durante a geração (ou outra execução já respondeu): desiste
   // sem enviar, e a resposta gerada é descartada.
   if (reserva.motivo) return reserva.motivo
-  execucao.reservaId = reserva.message_id
 
   // Telefone e credencial lidos sob a trava da reserva, e não antes da geração.
   return enviarReservada(

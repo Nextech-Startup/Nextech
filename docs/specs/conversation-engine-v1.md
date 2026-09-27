@@ -173,7 +173,7 @@ Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3.md`. A quali
 - **Manutenção pelo pg_cron, a cada 5 min** (a Vercel Hobby só roda cron uma vez por dia; decisão do Jhones):
   - `close_stale_attendance_sessions` fecha a sessão parada há mais de 1h20 (20 min mais 1 h de folga para mensagem atrasada, decisão do Jhones), com `closed_at` = última mensagem + 20 min, a fórmula da recepção;
   - `sweep_stale_ai_replies` passa a `failed` (`sem-confirmacao`) a resposta `pending` há mais de 5 min e a conversa para a equipe, travando a conversa antes das mensagens e com `skip locked`.
-  - a confirmação da resposta (`confirm_ai_reply`) aplica a mesma regra da recepção: a sessão vencida que o cron ainda não fechou fecha no instante em que venceu, e a resposta não conta nela.
+  - a confirmação da resposta (`confirm_ai_reply`) não conta a resposta na sessão vencida que o cron ainda não fechou, e não a fecha: quem fecha é a recepção, pelo `occurred_at` da mensagem, ou o cron. Fechar pelo relógio do envio faria a mensagem atrasada abrir outro atendimento.
 - **Reenvio sem resposta:** se a recepção falha depois de gravar a mensagem, o reenvio da Meta agenda a resposta enquanto a mensagem não tiver resposta nem reserva (decisão do Jhones). No caso raro de o lote ter voltado 500 por outro evento, o modelo pode ser chamado duas vezes; a reserva garante um envio só.
 
 ## Planos afetados
