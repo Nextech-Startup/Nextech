@@ -126,11 +126,11 @@ A conversa é marcada com `qualified_at` quando o paciente demonstra intenção 
 ## Implementação
 
 A 3b foi dividida em cinco partes, por dependência (decisão do Jhones, 2026-09-27):
-1. dados e recepção;
-2. decisão e resposta da IA;
-3. urgência, opt-out e qualificação (a qualificação ficou para uma sessão própria, depois da urgência, do opt-out e da manutenção);
-4. tela real de Conversas;
-5. preview do agente e áudio.
+1. ✅ dados e recepção;
+2. ✅ decisão e resposta da IA;
+3. ✅ urgência, opt-out e qualificação (a qualificação teve sessão própria, depois da urgência, do opt-out e da manutenção);
+4. ⬜ tela real de Conversas;
+5. ⬜ preview do agente e áudio.
 
 ### Parte 1: dados e recepção (2026-09-27)
 

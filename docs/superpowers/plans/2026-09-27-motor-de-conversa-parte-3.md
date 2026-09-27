@@ -77,7 +77,7 @@ Ajustes feitos durante a execução, além do que o plano descrevia:
 
 ### O que a próxima sessão precisa saber
 
-- **Próxima etapa:** a qualificação (`qualified_at`), que fecha a parte 3. Ela muda o retorno do OpenRouter: saída estruturada na mesma chamada ou uma segunda chamada, em aberto na spec.
+- ~~**Próxima etapa:** a qualificação (`qualified_at`), que fecha a parte 3.~~ ✅ Feita em 2026-09-27, na mesma chamada, com saída estruturada: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3-qualificacao.md`.
 - **Go-live:** antes de assinar o webhook, falta também a parte 4. Sem a tela, desfazer uma urgência, inclusive por falso positivo, só é possível direto no banco.
 - **Teste de banco:**
   - a base de tempo fica no futuro (amanhã), calculada na execução, porque o pg_cron real fecha sessões paradas há mais de 1h20 e varre `pending` com mais de 5 min;

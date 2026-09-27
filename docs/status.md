@@ -9,8 +9,9 @@
 | 1 — Specs do MVP | ✅ concluída — 9 specs |
 | 2 — Repo, CLAUDE.md, skills | ✅ concluída |
 | **3a — Fundação multi-tenant** | ✅ concluída |
-| **3b — Motor de conversa** | 🟡 partes 1, 2 e 3 de 5 (dados e recepção; decisão e resposta da IA; urgência, opt-out, manutenção pelo pg_cron e qualificação); próxima: parte 4, tela de Conversas |
+| **3b — Motor de conversa** | 🟡 partes 1, 2 e 3 de 5 ✅ (dados e recepção; decisão e resposta da IA; urgência, opt-out, manutenção pelo pg_cron e qualificação); falta: parte 4 (tela de Conversas) e parte 5 (preview e áudio) |
 | **3c — Shell de navegação** | ✅ concluída |
+| **Conta de demonstração** | ⬜ spec escrita (`docs/specs/demo-account-v1.md`); **é a próxima sessão**. Depois dela, a parte 4 da 3b |
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
