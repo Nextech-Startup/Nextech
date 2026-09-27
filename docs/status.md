@@ -9,12 +9,12 @@
 | 1 — Specs do MVP | ✅ concluída — 9 specs |
 | 2 — Repo, CLAUDE.md, skills | ✅ concluída |
 | **3a — Fundação multi-tenant** | ✅ concluída |
-| **3b — Motor de conversa** | 🟡 partes 1 e 2 de 5 concluídas (dados e recepção; decisão e resposta da IA); próxima: urgência, opt-out e qualificação, pré-requisito do go-live |
+| **3b — Motor de conversa** | 🟡 partes 1, 2 e 3 de 5 (dados e recepção; decisão e resposta da IA; urgência, opt-out e manutenção pelo pg_cron); próxima: qualificação, que fecha a parte 3 |
 | **3c — Shell de navegação** | ✅ concluída |
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**1020 testes passando** · 15 migrations aplicadas · em produção em `app.nextech.ia.br`
+**1104 testes passando** · 20 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 ---
 
@@ -147,6 +147,21 @@ Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-2.md`.
 - **Prova de posse do número na conexão** (`connectWhatsapp`), que fecha o achado S1 da parte 1.
 - **Contra mock:** OpenRouter e Meta são simulados nos testes, sem chamar a rede.
 
+### Parte 3: urgência, opt-out e manutenção ✅ (2026-09-27)
+
+Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3.md`. A qualificação ficou para a próxima sessão.
+- **Na recepção, antes do 200:**
+  - o opt-out ("PARAR" e afins, como mensagem inteira) grava `patients.opted_out`, com o agente pausado e no reenvio;
+  - a triagem de urgência compara o texto com as regras ativas da clínica, por início de palavra.
+- **Escalada:** `escalate_urgent_conversation` marca `is_urgent`, passa a conversa para a equipe (também com a equipe atendendo) e reserva o protocolo da própria clínica, numa transação. O protocolo sai no `after()`, sem o agrupamento.
+- **Manutenção pelo pg_cron, a cada 5 min** (a Vercel Hobby só roda cron uma vez por dia):
+  - fecha a sessão parada há mais de 1h20, com `closed_at` = última + 20 min;
+  - varre a resposta `pending` há mais de 5 min, passando a conversa para a equipe;
+  - os jobs rodam como `postgres` (`BYPASSRLS`), e os tiques foram conferidos no banco.
+- **Reenvio:** a mensagem que ficou sem resposta (falha depois de gravar) volta a ser respondida no reenvio da Meta.
+- **Banco:** migrations `20260927180000_urgency_escalation.sql`, `20260927190000_engine_maintenance.sql`, `20260927200000_engine_maintenance_locks.sql`, `20260927210000_session_timeout_grace.sql` e `20260927220000_confirm_stale_session.sql`.
+- **Revisões:** `security-reviewer` e `qa-reviewer`, com conferência. Os achados e as decisões estão no status da execução do plano.
+
 **Herda de `agent-config-v1`:** o **preview de conversa** (comportamento 3 e
 critério de aceite 3 daquela spec) não foi entregue — depende deste motor. A
 tela do agente já mostra o cartão "Testar conversa" como inerte, em vez de
@@ -198,9 +213,11 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 - [ ] **Credenciais da Meta** — iniciar o processo, que leva tempo e não trava código
 - [x] ~~**Prova de posse do número na conexão**~~: entrou na parte 2 da 3b. `connectWhatsapp` confere na Graph API que o número pertence ao WABA
 - [ ] **Antes de assinar o webhook da Meta em produção (bloqueio de go-live):**
-  - a parte 3 da 3b, com triagem de urgência e opt-out. Até lá, a IA responde sem triagem;
-  - o limite de atendimentos do plano (fase 7). Até lá, a IA responde sem conferir o limite;
-  - a varredura das respostas que ficaram `pending` (confirmação falhou depois do envio), que entra com o cron da parte 3
+  - ~~a triagem de urgência, o opt-out e a varredura das respostas `pending`~~: entraram na parte 3 da 3b;
+  - a qualificação, que fecha a parte 3;
+  - a parte 4 (tela de Conversas): sem ela, desfazer a urgência e ver o alerta só é possível direto no banco. Uma conversa urgente, inclusive por falso positivo, fica com a IA calada até alguém desfazer;
+  - a triagem de áudio, que vem com a transcrição (parte 5). Até lá, áudio com relato de urgência não escala;
+  - o limite de atendimentos do plano (fase 7). Até lá, a IA responde sem conferir o limite
 - [ ] **Envs da IA e da Meta na Vercel**, nos três ambientes: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` e `WHATSAPP_API_VERSION`, e o ZDR do grupo Google na conta do OpenRouter. Passo a passo em `docs/infra-setup.md`
 - [ ] **`MESSAGE_CONTENT_ENCRYPTION_KEY` na Vercel**, nos três ambientes, uma chave por ambiente. Sem ela, o webhook responde 500 a toda mensagem. Passo a passo em `docs/infra-setup.md`, seção da Meta
 
@@ -253,7 +270,8 @@ Mobile ficou na faixa empilhada acima do conteúdo, não em gaveta — o desenho
 - [ ] **`patients.name` e `whatsapp_phone_number` em texto puro** — a regra 2 da `lgpd-security` pede PII cifrada em repouso, e agora o nome é preenchido sozinho com o do perfil do WhatsApp. Preexistente (patient-v1); cifrar exige resolver a busca por telefone, que hoje é por igualdade. Achado da revisão de segurança de 2026-09-27
 - [ ] **Conexões de WhatsApp anteriores à prova de posse** — `connectWhatsapp` confere o número na Graph API desde a parte 2 da 3b, mas o banco não registra que a conferência aconteceu, e uma conexão feita antes (ou pelo `service_role`) não passou por ela. Hoje não há conexão real. Se houver antes do go-live, a saída é `whatsapp_verified_at` exigido pelo trigger de publicação. Achado N1 da revisão de segurança da parte 2
 - [ ] **O modelo recebe a razão social da clínica** — `clinics.legal_name` entra no prompt e pode aparecer na resposta ao paciente. Em consultório individual (MEI), a razão social é o nome civil do profissional. Falta um nome de exibição no perfil da clínica. Achado N2 da revisão de segurança da parte 2
-- [ ] **A ordem de trava tem só teste estrutural** — `tests/conversations/ordem-de-trava.test.ts` lê a definição mais recente de cada função nas migrations e exige paciente, agente, conversa. Provar a ausência de deadlock (`40P01`) exige duas transações simultâneas, com conexão direta ao Postgres (`pg` e `DATABASE_URL` nos testes), que a suíte não tem. Achado 2 da conferência de QA da parte 2
+- [ ] **A ordem de trava tem só teste estrutural** — `tests/conversations/ordem-de-trava.test.ts` lê a definição mais recente de cada função nas migrations e exige paciente, agente, conversa; na manutenção do pg_cron, conversa antes de mensagem e `skip locked`. Provar a ausência de deadlock (`40P01`), o `skip locked` e a corrida entre o fechamento por timeout e a recepção exige duas transações simultâneas, com conexão direta ao Postgres (`pg` e `DATABASE_URL` nos testes), que a suíte não tem. Achado 2 da conferência de QA da parte 2 e observação da revisão de QA da parte 3
+- [ ] **Opt-out antes das sequências (fase 4)** — hoje só a mensagem inteira conta (`parar`, `pare`, `sair`, `stop`, `descadastrar`). Antes da primeira sequência: frases inteiras comuns ("não quero mais receber", "parem de mandar mensagem") e opt-out manual pela equipe na tela de Conversas. Observação O4 da revisão de segurança da parte 3, decisão do Jhones
 - [ ] **Tabela `projetoAtivo`** — existe no banco, nenhum código a referencia. Resíduo ou uso externo? Mantida na baseline com nota
 - [ ] **Convite mostra senha na tela** — o `(admin)` exibe a senha provisória porque o Resend não está configurado. Vira convite por e-mail quando estiver
 - [ ] **`admin_audit_log` precisa de justificativa** — a fase 3c decidiu que ver conversa de paciente exige motivo registrado. **Desenho pronto (redesign, parte 4):** não precisa de migration. A ação vai na coluna `action`, que é texto (`conversation.list` e `conversation.view`), e a justificativa no `metadata`, só com o motivo de uma lista fechada e o número do chamado, sem texto livre. A regra está em `lib/admin/acesso-de-suporte.ts`, com teste; a gravação entra com a fase 3b

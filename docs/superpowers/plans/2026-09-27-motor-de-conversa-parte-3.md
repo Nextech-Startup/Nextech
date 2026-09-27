@@ -2,7 +2,82 @@
 
 > **Para quem executa:** SUB-SKILL OBRIGATÓRIA: `superpowers:executing-plans`, tarefa por tarefa, sem subagentes. Carregue `supabase-postgres-best-practices` antes das tarefas 2 e 4. Os passos usam checkbox (`- [ ]`).
 
-## Status da execução: ⬜ não iniciado
+## Status da execução: ✅ concluído em 2026-09-27
+
+- **Feito:** tarefas 1 a 5, na `staging` local, sem push.
+  - `813cb48`: pendência da parte 2, as lacunas da conferência de QA;
+  - `f505a79`: este plano;
+  - `0942cd9`, `57e65f1`, `e108b29` e `b11b456`: tarefas 1 a 4;
+  - `6f23df8`: achados da revisão de segurança;
+  - `29464e4`: lacunas da revisão de QA;
+  - `6e2b683`, `bc5d85a` e `7c1cdb9`: as decisões do Jhones sobre as observações O7, O6 e O9;
+  - `236a928`: achados da conferência de segurança dessas decisões;
+  - o `docs:` que fecha a parte.
+- **Banco:** cinco migrations, aplicadas uma a uma depois do `--dry-run`. O banco tem 20.
+  - `20260927180000_urgency_escalation.sql`;
+  - `20260927190000_engine_maintenance.sql`: pg_cron e as duas funções;
+  - `20260927200000_engine_maintenance_locks.sql`: conversa antes de mensagem e `skip locked` (O1), e só resposta a mensagem do paciente (O3);
+  - `20260927210000_session_timeout_grace.sql`: folga de 1 h no fechamento (O9);
+  - `20260927220000_confirm_stale_session.sql`: a confirmação fecha por timeout a sessão vencida e não conta nela.
+- **pg_cron:** conferido pela API de gestão do Supabase (`POST /v1/projects/{ref}/database/query`).
+  - Três jobs ativos em `cron.job`, com dono `postgres` e `rolbypassrls = true`.
+  - Tiques `succeeded` a cada 5 min desde 10:30 UTC, inclusive depois das migrations de correção.
+  - Depois do primeiro tique, o banco ficou com 0 sessão vencida aberta e 0 resposta órfã. Antes havia várias, de rodadas de teste.
+- **Testes:** 1104 passando em 99 arquivos no `236a928`, com o commit e a saída 0 gravados no próprio arquivo da suíte. `tsc` limpo e `npm run build` passando.
+- **Revisões:** `security-reviewer` com revisão e duas conferências (a segunda sobre as decisões O6, O7 e O9); `qa-reviewer` com revisão e conferência. Os achados estão abaixo.
+
+Ajustes feitos durante a execução, além do que o plano descrevia:
+
+| Tarefa | Ajuste | Por quê |
+|---|---|---|
+| 1 | A recepção usa a `optOut` que já existia (`patient-v1`), e a `registrarOptOut` saiu | Era duplicata (observação O5 da segurança) |
+| 2 | O insert em lote das regras de teste diz `active: false` explicitamente | Em lote, o PostgREST preenche com `null` a coluna que falta num dos objetos |
+| 2 | `urgente` só quando a conversa ficou urgente (`ficouUrgente`) | Agente fora do ar e paciente anonimizado não marcam nada no banco (O2) |
+| 3 | `enviarProtocolo` recebe `{ clinicId, conversationId, protocolo }` | A rota passa o protocolo já sem o nulo |
+| 4 | A base de tempo dos testes de banco vai para o futuro | O cron real fecha sessões do passado no meio da rodada |
+| — | A triagem casa por início de palavra | "dor" casava "adorei" e calava a IA (O6, decisão do Jhones) |
+| — | O reenvio de mensagem ainda sem resposta agenda a resposta | A falha depois de gravar deixava a mensagem sem resposta e sem alerta (O7, decisão do Jhones) |
+
+**Segurança** (revisão sobre `b11b456`; nenhum bloqueante):
+
+| # | Achado | Decisão |
+|---|---|---|
+| I1 | A regra do `pg_net` não dizia onde fica o segredo | O segredo fica no Vault, e isso está no `CLAUDE.md` e na skill `architecture`. Dois testes de arquitetura: nenhum token literal em migration, e migration com `net.http_` precisa ler `vault.decrypted_secrets` |
+| I2 | Nada provava que os jobs mexem em linha (FORCE RLS) | Conferido no banco: `postgres` tem `BYPASSRLS`, e os tiques limparam o que havia |
+| O1 | Varredura e fechamento em ordem inversa à exclusão em cascata | Migration `20260927200000`, com teste estrutural |
+| O2 | `urgente: true` sem escalada | `ficouUrgente`, com teste |
+| O3 | Os 5 min dependem do `maxDuration` da rota | A varredura só pega resposta a mensagem do paciente, e um teste exige `maxDuration` abaixo dela |
+| O4 | O opt-out não reconhece frases | Pré-requisito da fase 4 em `docs/status.md` (decisão do Jhones) |
+| O5 | `optOut` duplicada | Removida |
+| O6 | Substring na triagem | Início de palavra (decisão do Jhones) |
+| O7 | Reenvio depois de falha sem resposta | O reenvio sem resposta agenda (decisão do Jhones) |
+| O8 | Documentação | Esta tarefa 5 |
+| O9 | Mensagem atrasada abria outra sessão | Folga de 1 h no cron (decisão do Jhones) |
+
+**Segurança, conferência das decisões** (sobre `6e2b683`, `bc5d85a` e `7c1cdb9`; tratada no `236a928`):
+- a `confirm_ai_reply` somava e estendia a sessão vencida que o cron ainda não tinha fechado. Com a folga, a resposta a uma mensagem atrasada reabria a sessão. Migration `20260927220000`, com teste;
+- palavra-chave só de emoji ou símbolo nunca casaria. O schema recusa com mensagem, e a deduplicação usa a forma da triagem. O banco não tinha nenhuma assim;
+- a falha de uma segunda execução pela mesma mensagem passava a conversa para a equipe mesmo com a primeira já respondida. Agora não passa, com teste.
+
+**QA** (revisão sobre `b11b456`):
+- As cinco correções da parte 2 (`813cb48`) falham quando desfeitas.
+- As lacunas da parte 3 estão no `29464e4`:
+  - o protocolo agendado no reenvio, com teste de rota e de ponta a ponta;
+  - o opt-out gravado no reenvio;
+  - escaladas simultâneas reservando um protocolo só;
+  - dois casos de `ai-replies` que ainda dividiam conversa;
+  - um intervalo instável na manutenção.
+- A concorrência do `skip locked` foi para a dívida da ordem de trava.
+- A conferência fechou as cinco. Ela apontou que o `urgente` depois de uma recusa da escalada não tinha teste de ponta a ponta. Entrou no `236a928`: o reenvio da mensagem urgente com a urgência desfeita dá `urgente: false`.
+
+### O que a próxima sessão precisa saber
+
+- **Próxima etapa:** a qualificação (`qualified_at`), que fecha a parte 3. Ela muda o retorno do OpenRouter: saída estruturada na mesma chamada ou uma segunda chamada, em aberto na spec.
+- **Go-live:** antes de assinar o webhook, falta também a parte 4. Sem a tela, desfazer uma urgência, inclusive por falso positivo, só é possível direto no banco.
+- **Teste de banco:**
+  - a base de tempo fica no futuro (amanhã), calculada na execução, porque o pg_cron real fecha sessões paradas há mais de 1h20 e varre `pending` com mais de 5 min;
+  - um login por usuário por arquivo, e arquivos de banco um de cada vez quando outra rodada estiver em curso.
+- **Consultar o cron:** a API de gestão do Supabase roda SQL com o `SUPABASE_ACCESS_TOKEN` do `.env` (`cron.job` e `cron.job_run_details`).
 
 **Objetivo:** fechar os pré-requisitos de go-live do motor de conversa que não mexem no contrato com o modelo.
 - A palavra-chave de urgência dispara o protocolo da própria clínica e escala a conversa.
@@ -191,9 +266,9 @@ describe("pedidoDeOptOut", () => {
 
 **Caso da rota** (`webhook-log.test.ts`): o `resultado()` ganha `optOut: false`, e o caso "só mensagem nova do paciente..." ganha uma quinta mensagem com `resultado({ optOut: true })`. `after` continua sendo chamado uma vez.
 
-- [ ] **Passo 1:** testes unitário e de banco. **Passo 2:** rodar (FALHA).
-- [ ] **Passo 3:** implementar. **Passo 4:** rodar (PASSA) `lib/conversations/opt-out.test.ts`, depois `tests/conversations/opt-out.test.ts`, `tests/whatsapp/webhook-log.test.ts` e `tests/whatsapp/webhook.test.ts`, um de cada vez.
-- [ ] **Passo 5:** commit `feat(conversations): opt-out do paciente na recepção`.
+- [x] **Passo 1:** testes unitário e de banco. **Passo 2:** rodar (FALHA).
+- [x] **Passo 3:** implementar. **Passo 4:** rodar (PASSA) `lib/conversations/opt-out.test.ts`, depois `tests/conversations/opt-out.test.ts`, `tests/whatsapp/webhook-log.test.ts` e `tests/whatsapp/webhook.test.ts`, um de cada vez.
+- [x] **Passo 5:** commit `feat(conversations): opt-out do paciente na recepção`.
 
 ---
 
@@ -286,9 +361,9 @@ describe("pedidoDeOptOut", () => {
 
 **Ordem de trava:** acrescentar `it("escalate_urgent_conversation", ...)` com `["patients", "agents", "conversations"]`.
 
-- [ ] **Passo 1:** carregar `supabase-postgres-best-practices`. **Passo 2:** testes. **Passo 3:** migration, com `supabase db push --dry-run` e depois `echo y | supabase db push`. **Passo 4:** `triarUrgencia` e a recepção.
-- [ ] **Passo 5:** rodar, um de cada vez: `tests/conversations/ordem-de-trava.test.ts`, `tests/rls/urgencia.test.ts`, `tests/conversations/urgencia.test.ts`, `tests/conversations/opt-out.test.ts` e `tests/whatsapp/webhook.test.ts`.
-- [ ] **Passo 6:** commit `feat(conversations): urgência escala a conversa e reserva o protocolo da clínica`, com a migration e o código juntos.
+- [x] **Passo 1:** carregar `supabase-postgres-best-practices`. **Passo 2:** testes. **Passo 3:** migration, com `supabase db push --dry-run` e depois `echo y | supabase db push`. **Passo 4:** `triarUrgencia` e a recepção.
+- [x] **Passo 5:** rodar, um de cada vez: `tests/conversations/ordem-de-trava.test.ts`, `tests/rls/urgencia.test.ts`, `tests/conversations/urgencia.test.ts`, `tests/conversations/opt-out.test.ts` e `tests/whatsapp/webhook.test.ts`.
+- [x] **Passo 6:** commit `feat(conversations): urgência escala a conversa e reserva o protocolo da clínica`, com a migration e o código juntos.
 
 ---
 
@@ -337,9 +412,9 @@ describe("pedidoDeOptOut", () => {
 2. `resultado({ urgente: true, protocolo: null })` não agenda nada.
 3. Erro dentro do protocolo em segundo plano: log `{ etapa: "protocolo", tipo, codigo }`, sem conteúdo.
 
-- [ ] **Passo 1:** testes. **Passo 2:** FALHA. **Passo 3:** implementar.
-- [ ] **Passo 4:** rodar (PASSA), um de cada vez: `tests/conversations/urgencia.test.ts`, `tests/conversations/resposta.test.ts` (a extração não muda nada), `tests/whatsapp/webhook-log.test.ts` e `tests/whatsapp/webhook.test.ts`.
-- [ ] **Passo 5:** commit `feat(conversations): envio do protocolo de urgência no after() da rota`.
+- [x] **Passo 1:** testes. **Passo 2:** FALHA. **Passo 3:** implementar.
+- [x] **Passo 4:** rodar (PASSA), um de cada vez: `tests/conversations/urgencia.test.ts`, `tests/conversations/resposta.test.ts` (a extração não muda nada), `tests/whatsapp/webhook-log.test.ts` e `tests/whatsapp/webhook.test.ts`.
+- [x] **Passo 5:** commit `feat(conversations): envio do protocolo de urgência no after() da rota`.
 
 ---
 
@@ -405,34 +480,34 @@ describe("pedidoDeOptOut", () => {
 - **Skill `architecture`:** a mesma regra, em "Onde cada coisa mora".
 - **Cuidado:** o `next dev` reescreve o `CLAUDE.md`, então a edição vai só no trecho da estrutura.
 
-- [ ] **Passo 1:** carregar `supabase-postgres-best-practices`. **Passo 2:** mudar a base de tempo e rodar os três arquivos, um de cada vez (PASSA, antes do cron existir).
-- [ ] **Passo 3:** teste novo (FALHA). **Passo 4:** migration com `--dry-run` e `push`. **Passo 5:** `tests/rls/manutencao.test.ts` (PASSA).
-- [ ] **Passo 6:** conferir os jobs no banco. **Passo 7:** `CLAUDE.md` e a skill.
-- [ ] **Passo 8:** commit `feat(conversations): pg_cron fecha sessões vencidas e varre respostas órfãs`, com a migration, os testes e as regras.
+- [x] **Passo 1:** carregar `supabase-postgres-best-practices`. **Passo 2:** mudar a base de tempo e rodar os três arquivos, um de cada vez (PASSA, antes do cron existir).
+- [x] **Passo 3:** teste novo (FALHA). **Passo 4:** migration com `--dry-run` e `push`. **Passo 5:** `tests/rls/manutencao.test.ts` (PASSA).
+- [x] **Passo 6:** conferir os jobs no banco. **Passo 7:** `CLAUDE.md` e a skill.
+- [x] **Passo 8:** commit `feat(conversations): pg_cron fecha sessões vencidas e varre respostas órfãs`, com a migration, os testes e as regras.
 
 ---
 
 ### Tarefa 5: Documentação
 
-- [ ] **Passo 1:** `docs/specs/conversation-engine-v1.md`:
+- [x] **Passo 1:** `docs/specs/conversation-engine-v1.md`:
   - na seção "Implementação", a parte 3 com as decisões 1 a 10;
   - nos critérios de aceite:
     - urgência que dispara o protocolo e escala: marcar;
     - urgência nunca retomada: marcar;
     - opt-out: parcial, porque a marca existe e parar a matrícula é da fase 4;
     - teste de escalonamento: marcar.
-- [ ] **Passo 2:** `docs/specs/atendimento-billing-v1.md`: o timeout pelo pg_cron. `docs/specs/message-sequences-v1.md`: a recepção grava `opted_out`, e a matrícula precisa respeitá-lo.
-- [ ] **Passo 3:** `docs/status.md` e `docs/roadmap.md`:
+- [x] **Passo 2:** `docs/specs/atendimento-billing-v1.md`: o timeout pelo pg_cron. `docs/specs/message-sequences-v1.md`: a recepção grava `opted_out`, e a matrícula precisa respeitá-lo.
+- [x] **Passo 3:** `docs/status.md` e `docs/roadmap.md`:
   - a parte 3 da 3b, com a qualificação como próxima;
   - nos bloqueios de go-live: riscar urgência, opt-out e varredura; ficam o limite do plano e a triagem de áudio.
   - Neste plano, o status da execução.
-- [ ] **Passo 4:** memória `nextech-arquitetura-decisoes`, com as decisões 3, 5 e 7, e a do ambiente Supabase, com o pg_cron e a base de tempo no futuro.
-- [ ] **Passo 5:** commit `docs: fecha a parte 3 do motor de conversa no plano, specs, roadmap e status`.
+- [x] **Passo 4:** memória `nextech-arquitetura-decisoes`, com as decisões 3, 5 e 7, e a do ambiente Supabase, com o pg_cron e a base de tempo no futuro.
+- [x] **Passo 5:** commit `docs: fecha a parte 3 do motor de conversa no plano, specs, roadmap e status`.
 
 ---
 
 ## Verificação final (antes da tarefa 5)
 
-- [ ] `npx vitest run` inteiro. A saída vai para um arquivo, com o commit no topo e `echo exit=$?` no fim. Depois, `npx tsc --noEmit` e `npm run build`.
-- [ ] Revisão pelos subagentes `qa-reviewer` (inclui a conferência do `813cb48`, a pendência da parte 2) e `security-reviewer`. Tratar os achados e pedir a conferência das correções.
-- [ ] Sem tela nesta parte. Antes de trocar de branch, `git checkout -- CLAUDE.md`.
+- [x] `npx vitest run` inteiro. A saída vai para um arquivo, com o commit no topo e `echo exit=$?` no fim. Depois, `npx tsc --noEmit` e `npm run build`.
+- [x] Revisão pelos subagentes `qa-reviewer` (inclui a conferência do `813cb48`, a pendência da parte 2) e `security-reviewer`. Tratar os achados e pedir a conferência das correções.
+- [x] Sem tela nesta parte. Antes de trocar de branch, `git checkout -- CLAUDE.md`.

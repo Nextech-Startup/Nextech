@@ -27,11 +27,11 @@ Uma mensagem só tem taxa de resposta muito menor que uma sequência de 2-3 toqu
 - `enrolled_at`, `last_step_sent_at`
 
 ## Comportamento
-1. Um job agendado (Vercel Cron — nunca n8n, ver regra 5 do `CLAUDE.md`) roda diariamente, verifica quais pacientes batem com o `trigger_config` de cada sequência `active`, e cria um `SequenceEnrollment` novo pra cada um. Um paciente nunca entra duas vezes na mesma sequência.
+1. Um job agendado (`app/api/cron/*`, disparado pelo pg_cron com `pg_net` enquanto não houver Vercel Pro — nunca n8n, ver regra 5 do `CLAUDE.md`) roda diariamente, verifica quais pacientes batem com o `trigger_config` de cada sequência `active`, e cria um `SequenceEnrollment` novo pra cada um. Um paciente nunca entra duas vezes na mesma sequência.
 2. Um job de envio verifica `SequenceEnrollment`s `active` cujo próximo passo já venceu (`last_step_sent_at + delay_days` do próximo `SequenceStep`) e envia o template correspondente.
 3. Paciente responde (mensagem chega no Cloud API) com enrollment `active` → `status` vira `stopped_replied`.
 4. Paciente agenda uma consulta (qualquer canal) com enrollment `active` → `status` vira `stopped_booked`.
-5. Paciente pede opt-out (ex: "PARAR") → `status` vira `stopped_opted_out` **em todas as sequências**, e o paciente é marcado como opted-out pra nunca mais ser matriculado automaticamente.
+5. Paciente pede opt-out (ex: "PARAR") → `status` vira `stopped_opted_out` **em todas as sequências**, e o paciente é marcado como opted-out pra nunca mais ser matriculado automaticamente. *(Motor de conversa, parte 3: a recepção já grava `patients.opted_out` ao receber o pedido, como mensagem inteira: `parar`, `pare`, `sair`, `stop` ou `descadastrar`. A matrícula e o envio precisam conferir essa marca.)*
 6. Chegou no último `SequenceStep` sem nenhuma parada acima → `status = completed`.
 
 ## Regra de exclusividade
