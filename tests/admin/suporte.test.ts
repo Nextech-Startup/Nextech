@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import type { AdminContext } from "@/lib/admin/context"
 import {
   abrirConversaParaSuporte,
@@ -21,24 +21,39 @@ import {
 
 /**
  * O acesso de suporte às conversas (parte 4 do motor de conversa), contra o
- * banco real: a justificativa vira o registro que libera, cada conversa
- * aberta vira outro, e nada de paciente sai sem eles.
+ * banco real: a justificativa vira o registro que libera, cada leitura vira
+ * outro, e nada de paciente sai sem acesso vigente nem sem a trilha.
  */
+
+// A trilha de verdade, com um interruptor para simular o banco recusando a gravação.
+const trilha = vi.hoisted(() => ({ falhar: false }))
+vi.mock("@/lib/admin/audit", async (original) => {
+  const real = await original<typeof import("@/lib/admin/audit")>()
+  return {
+    ...real,
+    registrarAcao: (...args: Parameters<typeof real.registrarAcao>) =>
+      trilha.falhar ? Promise.resolve(false) : real.registrarAcao(...args),
+  }
+})
 
 let A: ClinicaDeTeste
 let B: ClinicaDeTeste
 let conversaA: string
 let conversaB: string
 let equipe: Usuario
+let colega: Usuario
 let ctx: AdminContext
+let ctxColega: AdminContext
 const NOME_A = "Paciente Suporte Teste"
 const TELEFONE_A = `+5581966${String(Date.now()).slice(-6)}`
+const J = { motivo: "ia-nao-respondeu", chamado: "4821" } as const
+const agora = () => new Date().toISOString()
 
-async function registros(acao: string) {
+async function registros(acao: string, quem: Usuario = equipe) {
   const { data, error } = await admin
     .from("admin_audit_log")
     .select("clinic_id, target_table, target_id, metadata, created_at")
-    .eq("actor_user_id", equipe.id)
+    .eq("actor_user_id", quem.id)
     .eq("action", acao)
     .order("created_at")
   if (error) throw error
@@ -46,12 +61,15 @@ async function registros(acao: string) {
 }
 
 beforeAll(async () => {
-  ;[A, B, equipe] = await Promise.all([
+  ;[A, B, equipe, colega] = await Promise.all([
     montarClinica("suporte-a", ["owner"]),
     montarClinica("suporte-b", ["owner"]),
     criarUsuario("suporte-equipe"),
+    criarUsuario("suporte-colega"),
   ])
-  ctx = { userId: equipe.id, name: null, supabase: admin as unknown as AdminContext["supabase"] }
+  const supabase = admin as unknown as AdminContext["supabase"]
+  ctx = { userId: equipe.id, name: null, supabase }
+  ctxColega = { userId: colega.id, name: null, supabase }
 
   const [pacienteA, pacienteB] = await Promise.all([
     novoPaciente(A, { nome: NOME_A, telefone: TELEFONE_A }),
@@ -62,11 +80,23 @@ beforeAll(async () => {
 }, 60_000)
 
 afterAll(async () => {
-  // A trilha tem on delete restrict no autor: sai antes do usuário.
-  if (equipe) await admin.from("admin_audit_log").delete().eq("actor_user_id", equipe.id)
+  // A trilha tem on delete restrict no autor: sai antes dos usuários.
+  for (const u of [equipe, colega]) if (u) await admin.from("admin_audit_log").delete().eq("actor_user_id", u.id)
   await Promise.all([limparClinica(A), limparClinica(B)])
-  if (equipe) await admin.auth.admin.deleteUser(equipe.id)
+  for (const u of [equipe, colega]) if (u) await admin.auth.admin.deleteUser(u.id)
 }, 60_000)
+
+describe("sem acesso vigente", () => {
+  it("a lista não é lida nem registrada", async () => {
+    expect(await listarConversasParaSuporte(ctx, A.id, agora())).toEqual({ acesso: null, conversas: [] })
+    expect(await registros("conversation.list_view")).toEqual([])
+  })
+
+  it("a conversa não abre nem é registrada", async () => {
+    expect(await abrirConversaParaSuporte(ctx, A.id, conversaA, agora())).toEqual({ estado: "sem-acesso" })
+    expect(await registros("conversation.view")).toEqual([])
+  })
+})
 
 describe("liberar o acesso", () => {
   it.each([
@@ -78,24 +108,31 @@ describe("liberar o acesso", () => {
     expect(await registros("conversation.list")).toEqual([])
   })
 
-  it("sem acesso, nada de conversa sai, e a abertura não é registrada", async () => {
-    expect(await acessoDeSuporteVigente(ctx, A.id, new Date().toISOString())).toBeNull()
+  it("com a trilha recusando a gravação, nada é liberado", async () => {
+    trilha.falhar = true
+    try {
+      expect(await liberarAcessoDeSuporte(ctx, A.id, J)).toMatchObject({ ok: false, erro: "trilha" })
+    } finally {
+      trilha.falhar = false
+    }
+    expect(await acessoDeSuporteVigente(ctx, A.id, agora())).toBeNull()
   })
 
   it("justificativa válida grava a lista com motivo e chamado, e vale só para a clínica", async () => {
-    const r = await liberarAcessoDeSuporte(ctx, A.id, { motivo: "ia-nao-respondeu", chamado: "#4821" })
-    expect(r).toEqual({ ok: true })
+    expect(await liberarAcessoDeSuporte(ctx, A.id, { motivo: "ia-nao-respondeu", chamado: "#4821" })).toEqual({ ok: true })
 
     const lista = await registros("conversation.list")
     expect(lista).toHaveLength(1)
-    expect(lista[0]).toMatchObject({ clinic_id: A.id, metadata: { motivo: "ia-nao-respondeu", chamado: "4821" } })
+    expect(lista[0]).toMatchObject({ clinic_id: A.id, metadata: J })
 
-    const agora = new Date().toISOString()
-    expect(await acessoDeSuporteVigente(ctx, A.id, agora)).toMatchObject({
-      clinicaId: A.id,
-      justificativa: { motivo: "ia-nao-respondeu", chamado: "4821" },
-    })
-    expect(await acessoDeSuporteVigente(ctx, B.id, agora)).toBeNull()
+    expect(await acessoDeSuporteVigente(ctx, A.id, agora())).toMatchObject({ clinicaId: A.id, justificativa: J })
+    expect(await acessoDeSuporteVigente(ctx, B.id, agora())).toBeNull()
+  })
+
+  it("o acesso é de quem justificou: o colega da equipe segue sem acesso", async () => {
+    expect(await acessoDeSuporteVigente(ctxColega, A.id, agora())).toBeNull()
+    expect(await abrirConversaParaSuporte(ctxColega, A.id, conversaA, agora())).toEqual({ estado: "sem-acesso" })
+    expect(await registros("conversation.view", colega)).toEqual([])
   })
 
   it("o acesso de 31 min atrás não vale mais", async () => {
@@ -107,52 +144,58 @@ describe("liberar o acesso", () => {
       created_at: new Date(Date.now() - 31 * 60_000).toISOString(),
     })
     expect(error).toBeNull()
-    expect(await acessoDeSuporteVigente(ctx, B.id, new Date().toISOString())).toBeNull()
+    expect(await acessoDeSuporteVigente(ctx, B.id, agora())).toBeNull()
   })
 })
 
 describe("abrir uma conversa", () => {
-  it("com acesso, devolve o texto decifrado e grava a abertura com o id da conversa", async () => {
-    const aberta = await abrirConversaParaSuporte(ctx, A.id, conversaA, { motivo: "ia-nao-respondeu", chamado: "4821" })
-    expect(aberta?.itens.some((i) => i.tipo === "mensagem" && i.texto === "A IA não me respondeu")).toBe(true)
+  it("com acesso, devolve o texto decifrado, com o telefone mascarado, e grava a abertura", async () => {
+    const abertura = await abrirConversaParaSuporte(ctx, A.id, conversaA, agora())
+    expect(abertura.estado).toBe("aberta")
+    if (abertura.estado !== "aberta") return
+    const { conversa } = abertura
+    expect(conversa.itens.some((i) => i.tipo === "mensagem" && i.texto === "A IA não me respondeu")).toBe(true)
     // O telefone sai mascarado: o número inteiro nem chega ao navegador.
-    expect(aberta?.paciente.telefone).toBe(`(81) •••••-${TELEFONE_A.slice(-4)}`)
-    expect(JSON.stringify(aberta)).not.toContain(TELEFONE_A.slice(1))
+    expect(conversa.paciente.telefone).toBe(`(81) •••••-${TELEFONE_A.slice(-4)}`)
+    expect(JSON.stringify(conversa)).not.toContain(TELEFONE_A.slice(1))
 
     const vistas = await registros("conversation.view")
     expect(vistas).toHaveLength(1)
-    expect(vistas[0]).toMatchObject({
-      clinic_id: A.id,
-      target_table: "conversations",
-      target_id: conversaA,
-      metadata: { motivo: "ia-nao-respondeu", chamado: "4821" },
-    })
+    expect(vistas[0]).toMatchObject({ clinic_id: A.id, target_table: "conversations", target_id: conversaA, metadata: J })
   })
 
-  it("a conversa de outra clínica pela clínica A dá null, sem registro", async () => {
-    const aberta = await abrirConversaParaSuporte(ctx, A.id, conversaB, { motivo: "ia-nao-respondeu", chamado: "4821" })
-    expect(aberta).toBeNull()
+  it("a conversa de outra clínica pela clínica A não é encontrada, sem registro", async () => {
+    expect(await abrirConversaParaSuporte(ctx, A.id, conversaB, agora())).toEqual({ estado: "nao-encontrada" })
     expect(await registros("conversation.view")).toHaveLength(1)
+  })
+
+  it("com a trilha recusando a gravação, lança e não devolve o conteúdo", async () => {
+    trilha.falhar = true
+    try {
+      await expect(abrirConversaParaSuporte(ctx, A.id, conversaA, agora())).rejects.toThrow("Auditoria indisponível")
+      await expect(listarConversasParaSuporte(ctx, A.id, agora())).rejects.toThrow("Auditoria indisponível")
+    } finally {
+      trilha.falhar = false
+    }
   })
 })
 
 describe("listas", () => {
   it("as clínicas vêm só com números: nenhum nome nem telefone de paciente", async () => {
     const clinicas = await listarClinicasParaSuporte(ctx)
-    const a = clinicas.find((c) => c.id === A.id)
-    expect(a).toMatchObject({ abertas: 1, aguardando: 0, comFalha: 0, urgentes: 0 })
+    expect(clinicas.find((c) => c.id === A.id)).toMatchObject({ abertas: 1, aguardando: 0, comFalha: 0, urgentes: 0 })
     const json = JSON.stringify(clinicas)
     expect(json).not.toContain(NOME_A)
     expect(json).not.toContain(TELEFONE_A)
   })
 
   it("as conversas de A só trazem A, com o estado de suporte, e cada leitura fica na trilha", async () => {
-    const J = { motivo: "ia-nao-respondeu", chamado: "4821" } as const
-    const conversas = await listarConversasParaSuporte(ctx, A.id, J)
+    const { acesso, conversas } = await listarConversasParaSuporte(ctx, A.id, agora())
+    expect(acesso?.justificativa).toEqual(J)
     expect(conversas.map((c) => c.id)).toEqual([conversaA])
     expect(conversas[0]).toMatchObject({ paciente: NOME_A, estado: "ia" })
 
-    await listarConversasParaSuporte(ctx, A.id, J)
+    await listarConversasParaSuporte(ctx, A.id, agora())
     const leituras = await registros("conversation.list_view")
     expect(leituras).toHaveLength(2)
     expect(leituras[0]).toMatchObject({ clinic_id: A.id, metadata: J })
@@ -166,6 +209,6 @@ describe("listas", () => {
       clinic_id: B.id,
       metadata: { motivo: "outro", chamado: "1" },
     })
-    expect(await acessoDeSuporteVigente(ctx, B.id, new Date().toISOString())).toBeNull()
+    expect(await acessoDeSuporteVigente(ctx, B.id, agora())).toBeNull()
   })
 })

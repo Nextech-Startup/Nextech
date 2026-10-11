@@ -3,12 +3,7 @@ import { notFound } from "next/navigation"
 import { z } from "zod"
 import { TelaDeAcessoDeSuporte } from "@/components/admin/tela-de-suporte"
 import { requireAdminContext } from "@/lib/admin/context"
-import {
-  acessoDeSuporteVigente,
-  listarConversasParaSuporte,
-  resumoParaSuporte,
-  type ResultadoDaLiberacao,
-} from "@/lib/admin/suporte"
+import { listarConversasParaSuporte, resumoParaSuporte, type ResultadoDaLiberacao } from "@/lib/admin/suporte"
 import { liberarAcesso } from "../acoes"
 
 export const metadata: Metadata = {
@@ -42,10 +37,10 @@ export default async function AcessoDeSuportePage({
 
   const ctx = await requireAdminContext()
   const agora = new Date().toISOString()
-  const [clinica, acesso] = await Promise.all([resumoParaSuporte(ctx, id), acessoDeSuporteVigente(ctx, id, agora)])
+  const clinica = await resumoParaSuporte(ctx, id)
   if (!clinica) notFound()
-
-  const conversas = acesso ? await listarConversasParaSuporte(ctx, id, acesso.justificativa) : []
+  // Sem acesso vigente, a lib não lê nem registra nada: só o formulário aparece.
+  const { acesso, conversas } = await listarConversasParaSuporte(ctx, id, agora)
   const codigo = typeof erro === "string" && Object.hasOwn(ERROS, erro) ? (erro as CodigoDeErro) : null
 
   return (

@@ -10,6 +10,14 @@ import { createBrowserSupabase } from "@/lib/supabase/browser"
 
 export type EstadoDoAoVivo = "conectando" | "ao-vivo" | "reconectando"
 
+/** O evento que o trigger do banco manda (`private.broadcast_conversation_change`). */
+export const EVENTO_DO_AVISO = "conversa"
+
+/** O canal privado da clínica; quem entra é decidido pela policy do banco. */
+export function topicoDaClinica(clinicId: string): string {
+  return `conversas:${clinicId}`
+}
+
 /** Espera para juntar mudanças seguidas (três mensagens, a resposta da IA) num refresh só. */
 export const ESPERA_DO_REFRESH_MS = 400
 
@@ -48,13 +56,20 @@ export function assinarConversas(
   const supabase = createBrowserSupabase()
   const aoMudar = agruparChamadas(ouvintes.aoMudar, ESPERA_DO_REFRESH_MS)
   const canal = supabase
-    .channel(`conversas:${clinicId}`, { config: { private: true } })
-    .on("broadcast", { event: "conversa" }, () => aoMudar())
+    .channel(topicoDaClinica(clinicId), { config: { private: true } })
+    .on("broadcast", { event: EVENTO_DO_AVISO }, () => aoMudar())
   let encerrada = false
 
   // O canal privado exige o token da sessão no Realtime antes da entrada.
   void supabase.realtime.setAuth().then(() => {
-    if (!encerrada) canal.subscribe((status) => ouvintes.aoEstado(estadoDoAoVivo(status)))
+    if (encerrada) return
+    canal.subscribe((status) => {
+      const estado = estadoDoAoVivo(status)
+      ouvintes.aoEstado(estado)
+      // Ao entrar, e ao voltar depois de cair: o aviso de uma mudança feita
+      // enquanto o canal estava fora não chega mais, então a tela relê.
+      if (estado === "ao-vivo") aoMudar()
+    })
   })
 
   return () => {

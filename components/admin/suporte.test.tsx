@@ -1,8 +1,15 @@
 import { renderToStaticMarkup } from "react-dom/server"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { acessoVigente } from "@/lib/admin/acesso-de-suporte"
 import { ClinicasParaSuporte, TelaDeAcessoDeSuporte } from "./tela-de-suporte"
 import type { ConversaDeSuporte, ResumoDeSuporte } from "./tipos"
+
+// O HTML estático não mostra o prefetch: o Link de mentira o escreve num atributo.
+vi.mock("next/link", () => ({
+  default: ({ prefetch, href, ...resto }: { prefetch?: boolean; href: string } & Record<string, unknown>) => (
+    <a href={href} data-prefetch={String(prefetch)} {...resto} />
+  ),
+}))
 
 const AGORA = "2026-09-28T14:32:00-03:00"
 const PROTOTIPO = "Protótipo: a ação ainda não existe"
@@ -127,7 +134,7 @@ describe("TelaDeAcessoDeSuporte real", () => {
 
   it("abrir é link para a conversa, sem encerrar acesso", () => {
     const html = real(true)
-    expect(html).toContain('href="/admin/conversations/cl-1/conv-1"')
+    expect(html).toMatch(/href="\/admin\/conversations\/cl-1\/conv-1"[^>]*data-prefetch="false"/)
     expect(html).not.toContain("Encerrar acesso")
   })
 

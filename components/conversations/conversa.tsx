@@ -91,6 +91,15 @@ export type ModoDaConversa =
 
 const MODO_PROTOTIPO: ModoDaConversa = { tipo: "prototipo" }
 
+/**
+ * Pede a ação ao servidor e devolve o erro para a tela, ou `null`. Só a
+ * tela real pede: o suporte é só leitura, e o protótipo simula.
+ */
+export async function pedirAcao(modo: ModoDaConversa, acao: AcaoDoPainel, conversaId: string): Promise<string | null> {
+  if (modo.tipo !== "clinica") return null
+  return (await modo.agir(acao, conversaId)).erro
+}
+
 function emDoItem(i: ItemDaConversa): string {
   return i.em
 }
@@ -186,8 +195,7 @@ export function Conversa({
     if (modo.tipo !== "clinica") return
     setErro(null)
     iniciar(async () => {
-      const r = await modo.agir(acao, conversa.id)
-      setErro(r.erro)
+      setErro(await pedirAcao(modo, acao, conversa.id))
       router.refresh()
     })
   }
@@ -273,7 +281,7 @@ export function Conversa({
             tom="danger"
             acao={
               !leitura && (
-                <Botao variante="secundario" onClick={resolverUrgencia} disabled={pendente}>
+                <Botao variante="secundario" onClick={resolverUrgencia} disabled={pendente} data-acao="resolver-urgencia">
                   Marcar como resolvida
                 </Botao>
               )
@@ -287,7 +295,7 @@ export function Conversa({
             tom="info"
             acao={
               !leitura && (
-                <Botao variante="secundario" onClick={devolver} disabled={pendente}>
+                <Botao variante="secundario" onClick={devolver} disabled={pendente} data-acao="devolver">
                   Devolver para a IA
                 </Botao>
               )
@@ -576,7 +584,7 @@ function RodapeReal({
             <Bot aria-hidden="true" className="size-4 text-ink-3" />
             A IA está respondendo esta conversa.
           </p>
-          <Botao onClick={aoAssumir} disabled={pendente}>
+          <Botao onClick={aoAssumir} disabled={pendente} data-acao="assumir">
             Assumir conversa
           </Botao>
         </div>

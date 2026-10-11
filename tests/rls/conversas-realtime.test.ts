@@ -1,5 +1,6 @@
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { EVENTO_DO_AVISO, topicoDaClinica } from "@/lib/conversations/ao-vivo"
 import {
   admin,
   anonClient,
@@ -33,7 +34,8 @@ let conversaB: string
 const assinaturas: Assinatura[] = []
 let minuto = 100
 
-const topico = (c: ClinicaDeTeste) => `conversas:${c.id}`
+// O tópico e o evento da tela: se um lado mudar, o teste para de receber.
+const topico = (c: ClinicaDeTeste) => topicoDaClinica(c.id)
 
 async function entrar(client: SupabaseClient, nome: string, privado = true): Promise<Assinatura> {
   const { data } = await client.auth.getSession()
@@ -41,7 +43,7 @@ async function entrar(client: SupabaseClient, nome: string, privado = true): Pro
 
   const canal = client.channel(nome, { config: { private: privado } })
   const a: Assinatura = { client, canal, status: [], avisos: [], mudancas: [] }
-  canal.on("broadcast", { event: "conversa" }, (m) => a.avisos.push((m.payload ?? {}) as Record<string, unknown>))
+  canal.on("broadcast", { event: EVENTO_DO_AVISO }, (m) => a.avisos.push((m.payload ?? {}) as Record<string, unknown>))
   assinaturas.push(a)
 
   await new Promise<void>((resolve) => {
@@ -145,6 +147,43 @@ describe("canal privado conversas:<clinic_id>", () => {
     expect(publico.status).toContain("SUBSCRIBED")
     await controleEmA(membroA)
     expect(publico.avisos).toEqual([])
+  }, 60_000)
+
+  it("conversa nova (insert pelo caminho do webhook) também avisa", async () => {
+    const antes = membroA.avisos.length
+    const paciente = await novoPaciente(A)
+    await registrar(A, paciente, { autor: "patient", texto: "Primeira mensagem", em: emMinutos(++minuto) })
+    expect(await esperar(() => membroA.avisos.length > antes)).toBe(true)
+  }, 60_000)
+
+  it("a ação do painel avisa os colegas", async () => {
+    const antes = membroA.avisos.length
+    const { data } = await membroA.client.rpc("assume_conversation", { p_conversation_id: conversaA })
+    expect(data).toBe("ok")
+    expect(await esperar(() => membroA.avisos.length > antes)).toBe(true)
+  }, 60_000)
+
+  it("a desconexão da Meta avisa, para a faixa aparecer sem recarregar", async () => {
+    const antes = membroA.avisos.length
+    const { error } = await admin.from("whatsapp_account_events").insert({
+      clinic_id: A.id,
+      agent_id: A.agente,
+      event: "ACCOUNT_OFFBOARDED",
+      agent_status_before: "draft",
+      occurred_at: emMinutos(++minuto),
+    })
+    expect(error).toBeNull()
+    expect(await esperar(() => membroA.avisos.length > antes)).toBe(true)
+  }, 60_000)
+
+  it("um aviso forjado no canal público homônimo não chega ao canal privado", async () => {
+    const forjador = await entrar(anonClient(), topico(A), false)
+    expect(forjador.status).toContain("SUBSCRIBED")
+    const antes = membroA.avisos.length
+    await forjador.canal.send({ type: "broadcast", event: EVENTO_DO_AVISO, payload: {} })
+    // O controle prova que o canal de A estava ouvindo: chega só ele.
+    await controleEmA(membroA)
+    expect(membroA.avisos.length).toBe(antes + 1)
   }, 60_000)
 
   it("a tabela saiu da publicação: o postgres_changes não manda nem envelope", async () => {

@@ -117,6 +117,15 @@ describe("carregarConversa", () => {
     })
   })
 
+  it("com exatamente o limite de mensagens, não há corte", async () => {
+    const owner = await comoUsuario(A.equipe.owner!)
+    const aberta = await carregarConversa(owner as never, A.id, conversa, { limite: 7 })
+    expect(aberta!.itens.filter((i) => i.tipo === "mensagem")).toHaveLength(7)
+    expect(aberta!.historicoCortado).toBeUndefined()
+    const cortada = await carregarConversa(owner as never, A.id, conversa, { limite: 6 })
+    expect(cortada!.historicoCortado).toBe(true)
+  })
+
   it("com limite, traz as mais recentes e avisa que cortou", async () => {
     const owner = await comoUsuario(A.equipe.owner!)
     const aberta = await carregarConversa(owner as never, A.id, conversa, { limite: 2 })

@@ -4,6 +4,7 @@ import type { ClinicRole } from "@/lib/auth/context"
 import { podeAcessar } from "@/lib/navigation/acesso"
 import { contarSegmentos, filtrarPacientes, lerSegmento } from "@/components/patients/segmentos"
 import { PermissaoNegada } from "@/components/patterns/permissao-negada"
+import { AvisoDeDesconexao } from "@/components/conversations/aviso-de-desconexao"
 import { CaixaDeConversas } from "@/components/conversations/caixa-de-conversas"
 import { TelaDeVisaoGeral } from "@/components/overview/tela-de-visao-geral"
 import { ListaDeAgentesEmOperacao } from "@/components/agents/lista-em-operacao"
@@ -88,13 +89,17 @@ const conversasReais = vi.hoisted(() => {
     ultima: { autor: "patient" as const, previa: "Oi", em: "2026-10-07T08:00:00-03:00" },
     naoLidas: 0,
   }
-  return { fila: [resumo], aberta: { ...resumo, humanoAssumiuEm: null, itens: [] } }
+  return {
+    fila: [resumo],
+    aberta: { ...resumo, humanoAssumiuEm: null, itens: [] },
+    avisos: [] as { agenteId: string; agente: string; desde: string }[],
+  }
 })
 
 vi.mock("@/lib/conversations/queries", () => ({
   listarConversas: async () => conversasReais.fila,
   abrirConversa: async (id: string) => (id === conversasReais.aberta.id ? conversasReais.aberta : null),
-  avisosDeDesconexao: async () => [],
+  avisosDeDesconexao: async () => conversasReais.avisos,
 }))
 
 vi.mock("next/navigation", async (original) => ({
@@ -282,6 +287,38 @@ describe("numa clínica comum", () => {
     expect((props.modo as { tipo: string }).tipo).toBe("clinica")
     expect(props.conversas).toEqual(conversasReais.fila)
     expect(props.aberta).toEqual(conversasReais.aberta)
+  })
+
+  describe("aviso de desconexão do WhatsApp", () => {
+    const aviso = { agenteId: "agente-real", agente: "Recepção real", desde: "2026-10-07T07:00:00-03:00" }
+    afterEach(() => {
+      conversasReais.avisos = []
+    })
+
+    it.each([
+      ["owner", true],
+      ["staff", false],
+    ] as const)("aparece para %s, com o caminho de reconectar só para o owner", async (role, podeReconectar) => {
+      contexto.role = role
+      conversasReais.avisos = [aviso]
+      const tela = await abrir({ ...rota("/dashboard/conversations"), busca: {} })
+      const elemento = (tela.props as { aviso: ReactElement }).aviso
+      expect(elemento.type).toBe(AvisoDeDesconexao)
+      expect(elemento.props).toMatchObject({ avisos: [aviso], podeReconectar, agentesHref: "/dashboard/agents" })
+    })
+
+    it("sem desconexão, não há faixa", async () => {
+      const tela = await abrir({ ...rota("/dashboard/conversations"), busca: {} })
+      expect((tela.props as { aviso: unknown }).aviso).toBeFalsy()
+    })
+  })
+
+  it.each([
+    ["um id que não é uuid", "abc"],
+    ["um uuid de outra clínica", "00000000-0000-4000-8000-000000000099"],
+  ])("com %s na URL, nenhuma conversa abre", async (_caso, c) => {
+    const tela = await abrir({ ...rota("/dashboard/conversations"), busca: { c } })
+    expect((tela.props as { aberta: unknown }).aberta).toBeNull()
   })
 
   it("o profissional vê a permissão negada de Conversas, sem o caminho da demonstração", async () => {

@@ -9,7 +9,6 @@ import {
   registroDeSuporte,
   validarJustificativa,
   type AcessoDeSuporte,
-  type Justificativa,
 } from "./acesso-de-suporte"
 import { registrarAcao } from "./audit"
 import type { AdminContext } from "./context"
@@ -81,7 +80,7 @@ export async function acessoDeSuporteVigente(
   ctx: AdminContext,
   clinicaId: string,
   agora: string,
-): Promise<(AcessoDeSuporte & { expiraEm: string }) | null> {
+): Promise<AcessoVigente | null> {
   const desde = new Date(Date.parse(agora) - DURACAO_DO_ACESSO_MS).toISOString()
   const { data, error } = await ctx.supabase
     .from("admin_audit_log")
@@ -119,17 +118,24 @@ export async function liberarAcessoDeSuporte(
   return { ok: true }
 }
 
+export type AcessoVigente = AcessoDeSuporte & { expiraEm: string }
+
 /**
- * As conversas da clínica: as 200 mais recentes e todas as urgentes. Só com
- * acesso vigente. Cada leitura da lista mostra nomes de pacientes, então
- * vira um `conversation.list_view` na trilha antes de sair daqui; se a
- * gravação falhar, a lista não aparece.
+ * As conversas da clínica: as 200 mais recentes e todas as urgentes.
+ *
+ * A trava é daqui, e não da página: sem acesso vigente desta pessoa a esta
+ * clínica, nada é lido nem registrado. Com acesso, cada leitura da lista
+ * mostra nomes de pacientes e vira um `conversation.list_view` na trilha
+ * antes de sair daqui; se a gravação falhar, a lista não aparece.
  */
 export async function listarConversasParaSuporte(
   ctx: AdminContext,
   clinicaId: string,
-  justificativa: Justificativa,
-): Promise<ConversaParaSuporte[]> {
+  agora: string,
+): Promise<{ acesso: AcessoVigente | null; conversas: ConversaParaSuporte[] }> {
+  const acesso = await acessoDeSuporteVigente(ctx, clinicaId, agora)
+  if (!acesso) return { acesso: null, conversas: [] }
+
   const colunas = `id, ${COLUNAS_DE_ESTADO}, agente:agents(name), paciente:patients(name)`
   const base = () => ctx.supabase.from("conversations").select(colunas).eq("clinic_id", clinicaId)
   const [recentes, urgentes] = await Promise.all([
@@ -142,22 +148,31 @@ export async function listarConversasParaSuporte(
   const porId = new Map<string, Linha>()
   for (const l of [...recentes.data!, ...urgentes.data!] as unknown as Linha[]) porId.set(l.id, l)
 
-  const gravou = await registrarAcao(ctx, registroDeSuporte({ clinicaId, justificativa, releituraDaLista: true }))
-  if (!gravou) throw new Error("Auditoria indisponível: a lista não foi aberta.")
+  const registro = registroDeSuporte({ clinicaId, justificativa: acesso.justificativa, releituraDaLista: true })
+  if (!(await registrarAcao(ctx, registro))) throw new Error("Auditoria indisponível: a lista não foi aberta.")
 
-  return [...porId.values()].map((l) => ({
-    id: l.id,
-    paciente: l.paciente?.name ?? "Sem nome no WhatsApp",
-    agente: l.agente?.name ?? "Agente removido",
-    estado: estadoDeSuporte(l),
-    ultimaAtividade: l.last_message_at,
-  }))
+  return {
+    acesso,
+    conversas: [...porId.values()].map((l) => ({
+      id: l.id,
+      paciente: l.paciente?.name ?? "Sem nome no WhatsApp",
+      agente: l.agente?.name ?? "Agente removido",
+      estado: estadoDeSuporte(l),
+      ultimaAtividade: l.last_message_at,
+    })),
+  }
 }
 
+export type AberturaDeSuporte =
+  | { estado: "sem-acesso" }
+  | { estado: "nao-encontrada" }
+  | { estado: "aberta"; acesso: AcessoVigente; conversa: ConversaAberta }
+
 /**
- * Uma conversa, para quem tem acesso vigente. A abertura é gravada na
- * trilha ANTES de o conteúdo sair daqui: se a gravação falhar, lança, e a
- * conversa não aparece. Conversa de outra clínica dá `null`, sem registro.
+ * Uma conversa, para quem tem acesso vigente a esta clínica; a trava é
+ * daqui. A abertura é gravada na trilha ANTES de o conteúdo sair: se a
+ * gravação falhar, lança, e a conversa não aparece. Sem acesso, ou com a
+ * conversa de outra clínica, nada é registrado.
  *
  * O telefone sai mascarado: nenhum motivo de suporte precisa dele inteiro
  * (LGPD, art. 6º, III), e assim ele nem chega ao navegador.
@@ -166,12 +181,20 @@ export async function abrirConversaParaSuporte(
   ctx: AdminContext,
   clinicaId: string,
   conversaId: string,
-  justificativa: Justificativa,
-): Promise<ConversaAberta | null> {
-  const conversa = await carregarConversa(ctx.supabase, clinicaId, conversaId)
-  if (!conversa) return null
+  agora: string,
+): Promise<AberturaDeSuporte> {
+  const acesso = await acessoDeSuporteVigente(ctx, clinicaId, agora)
+  if (!acesso) return { estado: "sem-acesso" }
 
-  const gravou = await registrarAcao(ctx, registroDeSuporte({ clinicaId, justificativa, conversaId }))
-  if (!gravou) throw new Error("Auditoria indisponível: a conversa não foi aberta.")
-  return { ...conversa, paciente: { ...conversa.paciente, telefone: mascararTelefone(conversa.paciente.telefone) } }
+  const conversa = await carregarConversa(ctx.supabase, clinicaId, conversaId)
+  if (!conversa) return { estado: "nao-encontrada" }
+
+  const registro = registroDeSuporte({ clinicaId, justificativa: acesso.justificativa, conversaId })
+  if (!(await registrarAcao(ctx, registro))) throw new Error("Auditoria indisponível: a conversa não foi aberta.")
+
+  return {
+    estado: "aberta",
+    acesso,
+    conversa: { ...conversa, paciente: { ...conversa.paciente, telefone: mascararTelefone(conversa.paciente.telefone) } },
+  }
 }

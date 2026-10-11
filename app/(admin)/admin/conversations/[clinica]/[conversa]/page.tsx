@@ -6,7 +6,7 @@ import { z } from "zod"
 import { Conversa } from "@/components/conversations/conversa"
 import { ROTULO_DO_MOTIVO } from "@/lib/admin/acesso-de-suporte"
 import { requireAdminContext } from "@/lib/admin/context"
-import { abrirConversaParaSuporte, acessoDeSuporteVigente } from "@/lib/admin/suporte"
+import { abrirConversaParaSuporte } from "@/lib/admin/suporte"
 import { formatarHora } from "@/lib/formatters/data"
 
 export const metadata: Metadata = {
@@ -33,11 +33,10 @@ export default async function ConversaDeSuportePage({
   const ctx = await requireAdminContext()
   const agora = new Date().toISOString()
   const rotaDaClinica = `/admin/conversations/${clinica}`
-  const acesso = await acessoDeSuporteVigente(ctx, clinica, agora)
-  if (!acesso) redirect(rotaDaClinica)
-
-  const conversa = await abrirConversaParaSuporte(ctx, clinica, conversaId, acesso.justificativa)
-  if (!conversa) notFound()
+  const abertura = await abrirConversaParaSuporte(ctx, clinica, conversaId, agora)
+  if (abertura.estado === "sem-acesso") redirect(rotaDaClinica)
+  if (abertura.estado === "nao-encontrada") notFound()
+  const { acesso, conversa } = abertura
 
   return (
     <div className="grid gap-4">

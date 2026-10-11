@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { RPC_DA_ACAO } from "@/lib/conversations/acoes-do-painel"
 import {
   admin,
   anonClient,
@@ -25,6 +26,7 @@ let conversaA: string
 let urgenteA: string
 let conversaB: string
 let respostaFalhaA: string
+let concorridaA: string
 
 async function estado(conversa: string) {
   const { data, error } = await admin
@@ -68,6 +70,9 @@ beforeAll(async () => {
     .eq("id", urgenteA)
   if (error) throw error
 
+  const pacienteConcorrido = await novoPaciente(A)
+  concorridaA = (await registrar(A, pacienteConcorrido, { autor: "patient", texto: "Oi", em: emMinutos(0) })).conversa
+
   const pacienteB = await novoPaciente(B)
   conversaB = (await registrar(B, pacienteB, { autor: "patient", texto: "Oi", em: emMinutos(0) })).conversa
 }, 60_000)
@@ -80,7 +85,8 @@ describe("assumir e devolver", () => {
   it("o owner assume a conversa da IA, e o evento diz quem foi", async () => {
     const owner = await comoUsuario(A.equipe.owner!)
     const antes = Date.now()
-    const { data, error } = await owner.rpc("assume_conversation", { p_conversation_id: conversaA })
+    // Pelo mapa que a tela usa: um nome trocado nele quebraria este caso.
+    const { data, error } = await owner.rpc(RPC_DA_ACAO.assumir, { p_conversation_id: conversaA })
     expect(error).toBeNull()
     expect(data).toBe("ok")
 
@@ -101,13 +107,25 @@ describe("assumir e devolver", () => {
 
   it("o staff devolve para a IA", async () => {
     const staff = await comoUsuario(A.equipe.staff!)
-    const { data } = await staff.rpc("return_conversation_to_ai", { p_conversation_id: conversaA })
+    const { data } = await staff.rpc(RPC_DA_ACAO.devolver, { p_conversation_id: conversaA })
     expect(data).toBe("ok")
     expect((await estado(conversaA)).handled_by).toBe("ai")
     expect((await eventos(conversaA)).map((e) => [e.event, e.actor_user_id])).toEqual([
       ["assumed", A.equipe.owner!.id],
       ["returned_to_ai", A.equipe.staff!.id],
     ])
+  })
+})
+
+describe("duas pessoas ao mesmo tempo", () => {
+  it("assumir junto dá uma mudança só, e um evento só", async () => {
+    const [owner, staff] = await Promise.all([comoUsuario(A.equipe.owner!), comoUsuario(A.equipe.staff!)])
+    const resultados = await Promise.all([
+      owner.rpc("assume_conversation", { p_conversation_id: concorridaA }),
+      staff.rpc("assume_conversation", { p_conversation_id: concorridaA }),
+    ])
+    expect(resultados.map((r) => r.data).sort()).toEqual(["ok", "sem-mudanca"])
+    expect(await eventos(concorridaA)).toHaveLength(1)
   })
 })
 
@@ -148,6 +166,9 @@ describe("quem não opera a conversa recebe 'nao-encontrada' e nada muda", () =>
 })
 
 describe("urgência", () => {
+  // A constraint conversations_urgente_e_humana proíbe urgente com a IA:
+  // "assumir" a urgente cai na condição handled_by = 'ai'; "devolver" é o
+  // caso que prova o not is_urgent.
   it("conversa urgente não se assume nem se devolve", async () => {
     const owner = await comoUsuario(A.equipe.owner!)
     for (const rpc of ["assume_conversation", "return_conversation_to_ai"] as const) {
@@ -160,7 +181,7 @@ describe("urgência", () => {
   it("o staff resolve: a conversa fica com a equipe e a retomada conta daqui", async () => {
     const staff = await comoUsuario(A.equipe.staff!)
     const antes = Date.now()
-    const { data } = await staff.rpc("resolve_conversation_urgency", { p_conversation_id: urgenteA })
+    const { data } = await staff.rpc(RPC_DA_ACAO["resolver-urgencia"], { p_conversation_id: urgenteA })
     expect(data).toBe("ok")
     const c = await estado(urgenteA)
     expect(c.is_urgent).toBe(false)

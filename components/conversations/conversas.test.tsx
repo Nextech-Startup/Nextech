@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
 import { AvisoDeDesconexao } from "./aviso-de-desconexao"
-import { Conversa, type ModoDaConversa } from "./conversa"
+import { Conversa, pedirAcao, type ModoDaConversa } from "./conversa"
 import { ListaDeConversas } from "./lista-de-conversas"
 import { ordenarConversas } from "./estado"
 import type { ConversaAberta, ItemDaConversa } from "./tipos"
@@ -212,5 +212,29 @@ describe("aviso de desconexão", () => {
     )
     expect(html).toContain("Avise o responsável pela conta da clínica.")
     expect(html).not.toContain("href=")
+  })
+})
+
+describe("ligação das ações da tela real", () => {
+  const botao = (html: string, rotulo: string) =>
+    html.match(new RegExp(`<button[^>]*>(?:(?!</button>).)*${rotulo}(?:(?!</button>).)*</button>`))?.[0] ?? ""
+
+  it.each([
+    ["Assumir conversa", "assumir", aberta({ id: "1" })],
+    ["Devolver para a IA", "devolver", aberta({ id: "1", atendidaPor: "human", humanoAssumiuEm: d("14:10") })],
+    ["Marcar como resolvida", "resolver-urgencia", aberta({ id: "1", urgente: true, atendidaPor: "human" })],
+  ] as const)("o botão %s pede a ação %s", (rotulo, acao, conversa) => {
+    expect(botao(render(conversa, CLINICA), rotulo)).toContain(`data-acao="${acao}"`)
+  })
+
+  it("pedirAcao manda a ação e a conversa ao servidor, e devolve o erro para a tela", async () => {
+    const agir = vi.fn(async () => ({ erro: "A conversa já tinha mudado. A tela foi atualizada." }))
+    expect(await pedirAcao({ tipo: "clinica", agir }, "devolver", "conv-1")).toBe("A conversa já tinha mudado. A tela foi atualizada.")
+    expect(agir).toHaveBeenCalledWith("devolver", "conv-1")
+  })
+
+  it("no suporte e no protótipo, nada vai ao servidor", async () => {
+    expect(await pedirAcao({ tipo: "suporte" }, "assumir", "conv-1")).toBeNull()
+    expect(await pedirAcao({ tipo: "prototipo" }, "assumir", "conv-1")).toBeNull()
   })
 })
