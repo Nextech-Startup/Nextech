@@ -93,11 +93,17 @@ const MODO_PROTOTIPO: ModoDaConversa = { tipo: "prototipo" }
 
 /**
  * Pede a ação ao servidor e devolve o erro para a tela, ou `null`. Só a
- * tela real pede: o suporte é só leitura, e o protótipo simula.
+ * tela real pede: o suporte é só leitura, e o protótipo simula. A falha de
+ * rede vira a mesma mensagem da falha do servidor: rejeitar dentro do
+ * `startTransition` levaria a tela inteira para o `error.tsx`.
  */
 export async function pedirAcao(modo: ModoDaConversa, acao: AcaoDoPainel, conversaId: string): Promise<string | null> {
   if (modo.tipo !== "clinica") return null
-  return (await modo.agir(acao, conversaId)).erro
+  try {
+    return (await modo.agir(acao, conversaId)).erro
+  } catch {
+    return "Não foi possível concluir. Tente de novo."
+  }
 }
 
 function emDoItem(i: ItemDaConversa): string {

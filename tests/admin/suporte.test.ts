@@ -135,6 +135,20 @@ describe("liberar o acesso", () => {
     expect(await registros("conversation.view", colega)).toEqual([])
   })
 
+  it("o colega também não lê a lista de A, e a leitura recusada não vai para a trilha", async () => {
+    expect(await listarConversasParaSuporte(ctxColega, A.id, agora())).toEqual({ acesso: null, conversas: [] })
+    expect(await registros("conversation.list_view", colega)).toEqual([])
+  })
+
+  it("o acesso a A não abre B: nem a lista nem a conversa, sem registro em B", async () => {
+    expect(await listarConversasParaSuporte(ctx, B.id, agora())).toEqual({ acesso: null, conversas: [] })
+    expect(await abrirConversaParaSuporte(ctx, B.id, conversaB, agora())).toEqual({ estado: "sem-acesso" })
+    const deB = [...(await registros("conversation.list_view")), ...(await registros("conversation.view"))].filter(
+      (r) => r.clinic_id === B.id,
+    )
+    expect(deB).toEqual([])
+  })
+
   it("o acesso de 31 min atrás não vale mais", async () => {
     const { error } = await admin.from("admin_audit_log").insert({
       actor_user_id: equipe.id,

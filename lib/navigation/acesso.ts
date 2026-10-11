@@ -39,7 +39,12 @@ export function papeisDaRota(
 /**
  * A guarda de página. Rota fora do mapa é recusada (falha fechada): uma
  * tela nova sem item no menu não pode nascer aberta a todos por omissão.
- * Como no menu, é usabilidade e não a barreira: a RLS continua sendo ela.
+ *
+ * Na maioria das telas é usabilidade, e a barreira é a RLS. Onde a lib
+ * entrega o que a RLS não protege, é ela a barreira: na tela de Conversas,
+ * a RLS libera as linhas cifradas a todo membro, e `podeAcessar` é o que
+ * impede o profissional de receber o conteúdo decifrado
+ * (`lib/conversations/queries.ts`). Afrouxar esta regra abre esse dado.
  */
 export function podeAcessar(
   role: ClinicRole,

@@ -176,6 +176,33 @@ describe("canal privado conversas:<clinic_id>", () => {
     expect(await esperar(() => membroA.avisos.length > antes)).toBe(true)
   }, 60_000)
 
+  it("a reconexão da Meta também avisa, para a faixa sumir sem recarregar", async () => {
+    const antes = membroA.avisos.length
+    const { error } = await admin.from("whatsapp_account_events").insert({
+      clinic_id: A.id,
+      agent_id: A.agente,
+      event: "ACCOUNT_RECONNECTED",
+      occurred_at: emMinutos(++minuto),
+    })
+    expect(error).toBeNull()
+    expect(await esperar(() => membroA.avisos.length > antes)).toBe(true)
+  }, 60_000)
+
+  it("o evento de conta da Meta em B não chega ao canal de A", async () => {
+    const antes = membroA.avisos.length
+    const { error } = await admin.from("whatsapp_account_events").insert({
+      clinic_id: B.id,
+      agent_id: B.agente,
+      event: "ACCOUNT_OFFBOARDED",
+      agent_status_before: "draft",
+      occurred_at: emMinutos(++minuto),
+    })
+    expect(error).toBeNull()
+    // O controle prova que o canal de A estava ouvindo: chega só ele.
+    await controleEmA(membroA)
+    expect(membroA.avisos.length).toBe(antes + 1)
+  }, 60_000)
+
   it("um aviso forjado no canal público homônimo não chega ao canal privado", async () => {
     const forjador = await entrar(anonClient(), topico(A), false)
     expect(forjador.status).toContain("SUBSCRIBED")

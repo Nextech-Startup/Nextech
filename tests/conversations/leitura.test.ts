@@ -161,7 +161,8 @@ describe("buscarNaFila (por POST)", () => {
   })
 
   it.each([
-    ["curinga de LIKE escapado", "100%"],
+    // Sem o escape, "%Jo%na%" casaria "Joana Buscável".
+    ["curinga de LIKE escapado", "Jo%na"],
     ["sublinhado escapado", "Joana_"],
     ["termo sem busca possível", "81"],
   ])("%s não casa tudo", async (_caso, busca) => {

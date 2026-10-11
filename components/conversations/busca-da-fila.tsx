@@ -41,6 +41,41 @@ export function reduzirBusca(e: EstadoDaBusca, ev: EventoDaBusca): EstadoDaBusca
   }
 }
 
+/** O termo que vai ao servidor, sem os espaços das pontas; vazio não vira busca. */
+export function termoParaBuscar(termo: string): string | null {
+  return termo.trim() || null
+}
+
+/**
+ * Pede a busca ao servidor. A falha de rede vira o aviso da própria busca,
+ * sem rejeitar: a tela continua de pé.
+ */
+export function pedirBusca(termo: string, buscar: (termo: string) => Promise<ResultadoDaBusca>): Promise<ResultadoDaBusca> {
+  return buscar(termo).catch(() => ({ conversas: [], erro: "Não foi possível buscar. Tente de novo." }))
+}
+
+export type VistaDaBusca =
+  | { tipo: "fila" }
+  | { tipo: "buscando" }
+  | { tipo: "erro"; mensagem: string }
+  | { tipo: "vazio" }
+  | { tipo: "achadas"; conversas: ConversaResumo[]; hrefDa: Record<string, string> }
+
+/**
+ * O que a lista mostra: a fila do servidor, a espera, o aviso, o vazio do
+ * recorte ou as achadas que caem no recorte escolhido. O link de cada
+ * achada guarda o recorte e a conversa, nunca o termo.
+ */
+export function vistaDaBusca(busca: EstadoDaBusca, estado: FiltroDeEstado, caminho: string): VistaDaBusca {
+  if (busca.esperando !== null) return { tipo: "buscando" }
+  if (busca.resultado === null) return { tipo: "fila" }
+  if (busca.resultado.erro) return { tipo: "erro", mensagem: busca.resultado.erro }
+  const conversas = filtrarConversas(busca.resultado.conversas, { estado, busca: "" })
+  if (conversas.length === 0) return { tipo: "vazio" }
+  const status = estado === "todas" ? undefined : estado
+  return { tipo: "achadas", conversas, hrefDa: Object.fromEntries(conversas.map((c) => [c.id, hrefDaFila(caminho, { status, c: c.id })])) }
+}
+
 /**
  * A busca da fila na tela real. O termo é nome ou telefone de paciente:
  * fica só no estado desta tela e vai ao servidor no corpo de um POST
@@ -70,18 +105,16 @@ export function BuscaDaFila({
   lista: ReactNode
 }) {
   const [termo, setTermo] = useState("")
-  const [{ esperando, resultado }, despachar] = useReducer(reduzirBusca, BUSCA_VAZIA)
+  const [busca, despachar] = useReducer(reduzirBusca, BUSCA_VAZIA)
   const ultimoPedido = useRef(0)
 
   async function procurar(e: FormEvent) {
     e.preventDefault()
-    const t = termo.trim()
+    const t = termoParaBuscar(termo)
     if (!t) return despachar({ tipo: "limpar" })
     const pedido = ++ultimoPedido.current
     despachar({ tipo: "buscar", pedido })
-    // Falha de rede vira o aviso da própria busca, sem derrubar a tela.
-    const r = await buscar(t).catch(() => ({ conversas: [], erro: "Não foi possível buscar. Tente de novo." }))
-    despachar({ tipo: "resposta", pedido, resultado: r })
+    despachar({ tipo: "resposta", pedido, resultado: await pedirBusca(t, buscar) })
   }
 
   function digitar(valor: string) {
@@ -94,9 +127,7 @@ export function BuscaDaFila({
     despachar({ tipo: "limpar" })
   }
 
-  const status = estado === "todas" ? undefined : estado
-  const achadas = resultado ? filtrarConversas(resultado.conversas, { estado, busca: "" }) : []
-  const hrefDa = Object.fromEntries(achadas.map((c) => [c.id, hrefDaFila(caminho, { status, c: c.id })]))
+  const vista = vistaDaBusca(busca, estado, caminho)
 
   return (
     <>
@@ -118,7 +149,7 @@ export function BuscaDaFila({
               className="h-9 w-full rounded-control border border-hairline bg-surface-0/60 pr-3 pl-9 text-sm text-ink-1 outline-none transition-[border-color,box-shadow] placeholder:text-ink-3 focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/20"
             />
           </label>
-          {resultado && (
+          {busca.resultado && (
             <Botao type="button" variante="secundario" onClick={limpar} className="h-9">
               Limpar
             </Botao>
@@ -127,18 +158,18 @@ export function BuscaDaFila({
         {segmentos}
       </div>
 
-      {esperando !== null ? (
+      {vista.tipo === "buscando" ? (
         <p role="status" className="p-4 text-sm text-ink-3">
           Buscando…
         </p>
-      ) : resultado === null ? (
+      ) : vista.tipo === "fila" ? (
         lista
-      ) : resultado.erro ? (
+      ) : vista.tipo === "erro" ? (
         <p role="alert" className="m-4 rounded-xl border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger-fg">
-          {resultado.erro}
+          {vista.mensagem}
         </p>
-      ) : achadas.length > 0 ? (
-        <ListaDeConversas conversas={achadas} selecionada={selecionada} agora={agora} hrefDa={hrefDa} />
+      ) : vista.tipo === "achadas" ? (
+        <ListaDeConversas conversas={vista.conversas} selecionada={selecionada} agora={agora} hrefDa={vista.hrefDa} />
       ) : (
         <div className="p-4">
           <Vazio>Nenhuma conversa com esse nome ou telefone neste recorte.</Vazio>

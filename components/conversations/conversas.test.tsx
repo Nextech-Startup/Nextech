@@ -1,7 +1,16 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
 import { AvisoDeDesconexao } from "./aviso-de-desconexao"
-import { BUSCA_VAZIA, BuscaDaFila, reduzirBusca, type EventoDaBusca, type ResultadoDaBusca } from "./busca-da-fila"
+import {
+  BUSCA_VAZIA,
+  BuscaDaFila,
+  pedirBusca,
+  reduzirBusca,
+  termoParaBuscar,
+  vistaDaBusca,
+  type EventoDaBusca,
+  type ResultadoDaBusca,
+} from "./busca-da-fila"
 import { Conversa, pedirAcao, type ModoDaConversa } from "./conversa"
 import { ListaDeConversas } from "./lista-de-conversas"
 import { ordenarConversas } from "./estado"
@@ -238,6 +247,16 @@ describe("ligação das ações da tela real", () => {
     expect(await pedirAcao({ tipo: "suporte" }, "assumir", "conv-1")).toBeNull()
     expect(await pedirAcao({ tipo: "prototipo" }, "assumir", "conv-1")).toBeNull()
   })
+
+  // Rejeição dentro do startTransition iria para o error.tsx e derrubaria a tela.
+  it("a falha de rede vira a mensagem da tela, sem rejeitar", async () => {
+    const agir = vi.fn(async () => {
+      throw new TypeError("Failed to fetch")
+    })
+    await expect(pedirAcao({ tipo: "clinica", agir }, "devolver", "conv-1")).resolves.toBe(
+      "Não foi possível concluir. Tente de novo.",
+    )
+  })
 })
 
 describe("busca da fila na tela real", () => {
@@ -317,5 +336,76 @@ describe("estado da busca da fila", () => {
   it("digitar durante a espera não a cancela", () => {
     const antes = passar({ tipo: "buscar", pedido: 1 })
     expect(reduzirBusca(antes, { tipo: "digitar", valor: "Ana M" })).toBe(antes)
+  })
+})
+
+describe("pedido da busca ao servidor", () => {
+  it.each(["", "   ", "\t"])("termo vazio (%j) não vira busca: volta à fila", (termo) => {
+    expect(termoParaBuscar(termo)).toBeNull()
+  })
+
+  it("o termo vai sem os espaços das pontas", () => {
+    expect(termoParaBuscar("  Maria Souza ")).toBe("Maria Souza")
+  })
+
+  it("devolve o que o servidor achou", async () => {
+    const buscar = vi.fn(async () => ({ conversas: [{ id: "a" } as ConversaResumo], erro: null }))
+    expect(await pedirBusca("0104", buscar)).toEqual({ conversas: [{ id: "a" }], erro: null })
+    expect(buscar).toHaveBeenCalledWith("0104")
+  })
+
+  it("a falha de rede vira o aviso da busca, sem rejeitar", async () => {
+    const buscar = vi.fn(async () => {
+      throw new TypeError("Failed to fetch")
+    })
+    await expect(pedirBusca("Maria", buscar)).resolves.toEqual({
+      conversas: [],
+      erro: "Não foi possível buscar. Tente de novo.",
+    })
+  })
+})
+
+describe("o que a lista mostra com a busca", () => {
+  const CAMINHO = "/dashboard/conversations"
+  const urgente = {
+    id: "u1",
+    paciente: { nome: "Paciente Urgente", telefone: "+5581900000101" },
+    urgente: true,
+    atendidaPor: "human",
+    ultima: { autor: "patient", previa: "dor", em: d("14:00") },
+  } as ConversaResumo
+  const busca = (resultado: ResultadoDaBusca | null, esperando: number | null = null) => ({ esperando, resultado })
+
+  it("sem busca, a fila do servidor", () => {
+    expect(vistaDaBusca(BUSCA_VAZIA, "todas", CAMINHO)).toEqual({ tipo: "fila" })
+  })
+
+  it("com uma busca em andamento, a espera", () => {
+    expect(vistaDaBusca(busca(null, 1), "todas", CAMINHO)).toEqual({ tipo: "buscando" })
+  })
+
+  it("a falha, como aviso", () => {
+    expect(vistaDaBusca(busca({ conversas: [], erro: "Não foi possível buscar." }), "todas", CAMINHO)).toEqual({
+      tipo: "erro",
+      mensagem: "Não foi possível buscar.",
+    })
+  })
+
+  it("a achada fora do recorte escolhido dá o vazio do recorte", () => {
+    expect(vistaDaBusca(busca({ conversas: [urgente], erro: null }), "aguardando", CAMINHO)).toEqual({ tipo: "vazio" })
+  })
+
+  it("a achada no recorte aparece, com o link que guarda o recorte e a conversa, e nunca o termo", () => {
+    const v = vistaDaBusca(busca({ conversas: [urgente], erro: null }), "urgente", CAMINHO)
+    expect(v).toEqual({
+      tipo: "achadas",
+      conversas: [urgente],
+      hrefDa: { u1: `${CAMINHO}?status=urgente&c=u1` },
+    })
+  })
+
+  it("no recorte Todas, o link não leva status", () => {
+    const v = vistaDaBusca(busca({ conversas: [urgente], erro: null }), "todas", CAMINHO)
+    expect(v).toMatchObject({ tipo: "achadas", hrefDa: { u1: `${CAMINHO}?c=u1` } })
   })
 })
