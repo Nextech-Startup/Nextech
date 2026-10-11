@@ -333,9 +333,9 @@ export async function limparCanalDeDemonstracao(
 
 **Arquivos:** criar `scripts/canal-demo/docker-compose.yml`; mudar `.env.example`, `docs/infra-setup.md`, `.claude/skills/integrations/SKILL.md`, `.claude/skills/architecture/SKILL.md` e `docs/specs/demo-account-v1.md`.
 
-- [ ] `docker-compose.yml` com a Evolution (imagem e tag da tarefa 1), Postgres e Redis. A porta só em `127.0.0.1:8080`, e `AUTHENTICATION_API_KEY` vinda de um `.env` ao lado, fora do git.
-- [ ] `.env.example`: as variáveis `EVOLUTION_*`, sem valor, com um comentário de que nunca vão para a Vercel.
-- [ ] `docs/infra-setup.md`, seção "Canal de demonstração (Evolution)", com o roteiro inteiro:
+- [x] `docker-compose.yml` com a Evolution (imagem e tag da tarefa 1), Postgres e Redis. A porta só em `127.0.0.1:8080`, e `AUTHENTICATION_API_KEY` vinda de um `.env` ao lado, fora do git.
+- [x] `.env.example`: as variáveis `EVOLUTION_*`, sem valor, com um comentário de que nunca vão para a Vercel.
+- [x] `docs/infra-setup.md`, seção "Canal de demonstração (Evolution)", com o roteiro inteiro:
   1. subir o Docker Desktop e o compose;
   2. criar a instância e guardar o token;
   3. escanear o QR com o celular do chip;
@@ -345,10 +345,10 @@ export async function limparCanalDeDemonstracao(
   7. `npm run build` e `npx next start -p 3000`;
   8. o ensaio;
   9. **no fim, `npx tsx scripts/canal-demo.ts limpar`**.
-- [ ] Skills `integrations` e `architecture`: a Evolution continua fora do produto e existe só como canal de demonstração, com a spec citada.
-- [ ] `demo-account-v1.md`: a seção da mudança (a conversa real do canal, NX004 restrito ao `authenticated`, busca por POST).
-- [ ] Pedir ao Jhones os números da lista de permitidos e do ensaio.
-- [ ] Commit: `docs: infra local e roteiro do canal de demonstração`.
+- [x] Skills `integrations` e `architecture`: a Evolution continua fora do produto e existe só como canal de demonstração, com a spec citada.
+- [x] `demo-account-v1.md`: a seção da mudança (a conversa real do canal, NX004 restrito ao `authenticated`, busca por POST).
+- [ ] Pedir ao Jhones os números da lista de permitidos e do ensaio (na hora do ensaio, tarefa 11).
+- [x] Commit: `docs: infra local e roteiro do canal de demonstração`.
 
 ### Tarefa 11: Revisão visual e ensaio real
 
@@ -437,3 +437,7 @@ Fica só a sessão do chip (chaves de cifra por contato, como em qualquer aparel
   - O `limpar` desliga **todo** agente conectado ou no ar da clínica antes de apagar os pacientes: nenhuma mensagem entra no meio da limpeza. A regra de urgência fica (é fictícia, e o `conectar` a garante de novo). O fim da limpeza lembra de apagar as conversas no celular do chip.
   - O agente e a regra são achados pelo nome ("Canal de demonstração" e "Dor forte"); conectar de novo atualiza os dois.
   - Ambiente: na primeira rodada, o `afterAll` do `tests/rls/conta-demo.test.ts` estourou os 10 s (banco remoto lento, 65 s no arquivo) e deixou 6 usuários `teste-conta-demo-*`. Apaguei, e a rodada seguinte passou em 50 s. Fica a fragilidade daquele arquivo (muitas idas sequenciais), que não é desta spec.
+- **Tarefa 10.**
+  - O compose fixa `evoapicloud/evolution-api:v2.3.7`, `postgres:15` e `redis:7`. Só a API publica porta (`127.0.0.1:8080`); Postgres e Redis ficam na rede interna. Os dois segredos (`AUTHENTICATION_API_KEY`, `POSTGRES_PASSWORD`) vêm do `scripts/canal-demo/.env` (modelo em `.env.example` ao lado), e o compose recusa subir sem eles. O resto da configuração, inclusive a parte de LGPD, fica versionado no compose.
+  - O QR é escaneado pelo painel da própria API (`http://localhost:8080/manager`), sem o frontend separado do compose oficial (que ocupa a porta 3000).
+  - O roteiro em `docs/infra-setup.md` usa PowerShell (`Invoke-RestMethod`) e inclui apagar as conversas no celular do chip no fim.

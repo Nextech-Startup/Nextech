@@ -82,6 +82,55 @@ O webhook está em `app/api/whatsapp/webhook` desde a parte 1 do motor de conver
 - [ ] **Conectar um número agora exige credencial real:** desde a parte 2, `connectWhatsapp` confere na Graph API, com o token informado, que o número pertence ao WABA (prova de posse, achado S1). IDs inventados deixam de conectar, também em staging.
 - [ ] Mandar uma mensagem real para o número de teste e conferir, no Supabase, a linha em `messages` com `content_encrypted` preenchido e, uns 10 s depois, a resposta da IA com `delivery_status = sent`.
 
+## Canal de demonstração (Evolution)
+Só para a apresentação a investidor (`docs/specs/evolution-demo-v1.md`). A Evolution API **não é produto**: roda no computador da apresentação, com um chip dedicado da Nextech (nunca o de uma clínica), e conversa com o app local, sem túnel. As variáveis `EVOLUTION_*` ficam **só no `.env` local, nunca na Vercel**: sem elas, `/api/whatsapp/evolution` responde 404 em produção e na staging.
+
+A conversa real cai na conta de demonstração (`clinica@nextech.ia.br`), na tela de Conversas, junto das de exemplo. Só os números da lista recebem resposta, e a IA para no teto diário.
+
+**Antes da primeira vez** (uma vez por computador):
+- [ ] Docker Desktop instalado e aberto.
+- [ ] `scripts/canal-demo/.env` criado a partir de `scripts/canal-demo/.env.example`, com `AUTHENTICATION_API_KEY` e `POSTGRES_PASSWORD` gerados.
+- [ ] No `.env` da raiz, além do de sempre (`NEXT_PUBLIC_SUPABASE_*`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `MESSAGE_CONTENT_ENCRYPTION_KEY`, `TENANT_SECRETS_ENCRYPTION_KEY`), as variáveis `EVOLUTION_*` do `.env.example`. `EVOLUTION_API_URL=http://localhost:8080`, e `EVOLUTION_API_KEY` igual à `AUTHENTICATION_API_KEY` do compose.
+
+**Roteiro de cada apresentação** (PowerShell, na raiz do repositório):
+1. Subir a Evolution:
+   ```powershell
+   docker compose -f scripts/canal-demo/docker-compose.yml up -d
+   ```
+2. Criar a instância (só na primeira vez; depois ela já existe, com a sessão do chip). Guardar o `hash` da resposta em `EVOLUTION_INSTANCE_TOKEN`, e o nome em `EVOLUTION_INSTANCE`:
+   ```powershell
+   $k = "<a AUTHENTICATION_API_KEY>"
+   Invoke-RestMethod -Method Post -Uri http://localhost:8080/instance/create -Headers @{ apikey = $k } -ContentType "application/json" -Body '{"instanceName":"nextech-demo","integration":"WHATSAPP-BAILEYS","qrcode":true}'
+   ```
+3. Escanear o QR com o celular do chip: abrir `http://localhost:8080/manager`, entrar com a chave, abrir a instância e pedir o QR code. No celular: WhatsApp, Aparelhos conectados, Conectar um aparelho. Conferir que conectou (`state: open`):
+   ```powershell
+   Invoke-RestMethod -Uri http://localhost:8080/instance/connectionState/nextech-demo -Headers @{ apikey = $k }
+   ```
+4. Apontar o webhook para o app local, com o segredo no cabeçalho (só na primeira vez, ou se o segredo mudar):
+   ```powershell
+   $corpo = @{ webhook = @{ enabled = $true; url = "http://host.docker.internal:3000/api/whatsapp/evolution"; headers = @{ "x-nextech-secret" = "<o EVOLUTION_WEBHOOK_SECRET>" }; byEvents = $false; base64 = $false; events = @("MESSAGES_UPSERT") } } | ConvertTo-Json -Depth 5
+   Invoke-RestMethod -Method Post -Uri http://localhost:8080/webhook/set/nextech-demo -Headers @{ apikey = $k } -ContentType "application/json" -Body $corpo
+   ```
+5. Conferir o `.env` da raiz: `EVOLUTION_ALLOWED_NUMBERS` com os números que vão conversar (o do investidor e o do ensaio), em E.164, separados por vírgula.
+6. Conectar o agente do canal na demonstração (publica o agente e garante a regra de urgência "Dor forte"):
+   ```powershell
+   npx tsx scripts/canal-demo.ts conectar
+   ```
+7. Subir o app: `npm run build` e depois `npx next start -p 3000`. Antes, conferir que não há outro `next start` na porta 3000 (`Get-NetTCPConnection -LocalPort 3000`). O `next dev` não serve: dá o 500 "Jest worker". Se o Windows perguntar, liberar o Node na rede privada: é por ela que a Evolution chega ao app.
+8. A apresentação: `http://localhost:3000`, login `clinica@nextech.ia.br`, tela de Conversas. Combinar mensagens de **texto**: áudio ainda não é transcrito, e a IA recebe só o aviso de que veio um áudio.
+9. **No fim, sempre:**
+   ```powershell
+   npx tsx scripts/canal-demo.ts limpar
+   docker compose -f scripts/canal-demo/docker-compose.yml stop
+   ```
+   O `limpar` desliga o agente, apaga os pacientes, as conversas e as mensagens da demonstração e confere no banco que não sobrou nada. Depois, **apagar as conversas no celular do chip**, que guarda o histórico como qualquer WhatsApp. O `stop` mantém a sessão do chip para a próxima vez; `down -v` apaga tudo, inclusive a sessão (QR de novo).
+
+**Se der errado:**
+- O `conectar` diz qual variável está faltando ou inválida, pelo nome.
+- Nenhuma resposta: conferir o estado da instância (passo 3) e se o número de quem escreve está na lista. Mensagem de número fora da lista é ignorada de propósito, e o log do app diz só `motivo: nao-permitido`.
+- O log do contêiner da Evolution está desligado de propósito (`logging: none`): ela loga o texto e o telefone de toda mensagem recebida. Não ligar com conversa real.
+- Esqueceram a limpeza: o preparo da demonstração (`scripts/conta-demo.ts`) passa a recusar, e o painel mostra a conversa real na demonstração. Rodar o `limpar`.
+
 ## Automação: tudo em código, sem ferramenta externa
 Não existe n8n no projeto. A conta foi encerrada em 2026-09-16 e a última referência em código (o webhook do chatbot da landing) foi removida na mesma data — junto com a dependência `axios`, que só existia para ele.
 

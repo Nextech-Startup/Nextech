@@ -125,10 +125,23 @@ Não há métrica de produto. O sucesso é o Jhones conseguir abrir todas as tel
 
 Achados da revisão de segurança, tratados na mesma entrega:
 
-- **A clínica de demonstração não conecta WhatsApp nem publica agente**, por trigger no banco (`agents_block_demo`, `NX004`), em qualquer caminho, inclusive `service_role`. Uma clínica com agente conectado ou ativo também não vira demonstração. Sem isso, o dono da demonstração, cuja senha é usada diante de terceiros, conectaria um número pelo PostgREST, e mensagem de paciente real ficaria atrás de um painel que só mostra dado de exemplo.
+- **A clínica de demonstração não conecta WhatsApp nem publica agente**, por trigger no banco (`agents_block_demo`, `NX004`), em qualquer caminho, inclusive `service_role`. Uma clínica com agente conectado ou ativo também não vira demonstração. Sem isso, o dono da demonstração, cuja senha é usada diante de terceiros, conectaria um número pelo PostgREST, e mensagem de paciente real ficaria atrás de um painel que só mostra dado de exemplo. **Mudou em 2026-10-11:** o `service_role` passou a conectar o canal de demonstração (`evolution:`), e só ele; ver "Mudança: a conversa real do canal de demonstração".
 - **O script recusa clínica de cliente**: ativa, com paciente, com agente no WhatsApp ou com alguma conta fora da equipe (`@nextech.ia.br`), inclusive a que ganharia o vínculo. Cada preparo fica na trilha de auditoria (`clinic.prepare_demo`).
 - **Nenhum identificador real nas fixtures**: e-mail só em domínio `.example`, celular na faixa `90000` e nenhum número de conselho.
 - **A senha do `clinica@nextech.ia.br` é de dono**, com escrita total na clínica de demonstração. Nunca é entregue a quem assiste.
+
+## Mudança: a conversa real do canal de demonstração (2026-10-11)
+
+Decisão do Jhones para a apresentação a investidor (`docs/specs/evolution-demo-v1.md`): a demonstração passa a receber conversa real, **só pelo canal de demonstração** (Evolution API, no computador da apresentação), para o tour pelo sidebar e a conversa ao vivo usarem o mesmo login.
+
+- **A trava do banco muda de forma, não some** (migration `20261012120000_demo_evolution_channel`):
+  - o `authenticated` segue recusado (`NX004`) ao gravar qualquer identificador e ao publicar agente na demonstração. O dono dela continua sem conectar nada;
+  - só o `service_role` (o script `scripts/canal-demo.ts conectar`) grava, na demonstração, identificador `evolution:<instância>` e publica esse agente. Identificador da Meta segue recusado lá, por qualquer papel;
+  - `evolution:` fora da demonstração é recusado por qualquer papel (`NX005`).
+- **Tela de Conversas:** a fila junta as conversas reais da clínica com as de exemplo, na ordem de sempre e com a contagem das duas. A real abre com as ações reais (assumir, devolver, resolver a urgência) e sem a ficha; a de exemplo, com o protótipo e a ficha. O tempo real assina o canal privado da clínica. Nesta tela, as de exemplo andam até o **minuto** real (`relogioDoMinuto`), e não só em dias: assim a conversa do investidor não fica abaixo de fixtures "do futuro".
+- **Busca por POST também na demonstração:** a página não lê mais `?q=` (o termo pode ser nome ou telefone real). A action `buscar` procura nas conversas reais e nas de exemplo e devolve as duas. A busca em URL ficou só no protótipo do painel interno, que é só fixture.
+- **Fora de Conversas, nada muda:** o investidor não aparece em Pacientes, e o agente do canal não aparece em Agentes.
+- **Limpeza ao fim de cada apresentação** (`scripts/canal-demo.ts limpar`): desliga o agente, apaga os pacientes (a cascata leva o resto) e confere no banco. Com o canal conectado ou com paciente, o preparo da demonstração recusa, o que avisa que a limpeza faltou.
 
 ## Implementação
 

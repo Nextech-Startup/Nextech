@@ -19,6 +19,7 @@ Este projeto nasceu como landing page (nextech.ia.br) e o SaaS é construído no
 - Assunção de v1: cada agente está vinculado a um único `phone_number_id` da API oficial da Meta (WhatsApp Business Platform) — não existe roteamento de intenção entre agentes dentro do mesmo número. Se surgir caso de múltiplos agentes num único número, essa assunção precisa ser revisitada antes de codar (ver `docs/specs/agent-config-v1.md`).
 - Agente tem `status` (`draft` | `active` | `paused`). Só agente `active` com `phone_number_id` conectado responde tráfego real.
 - Mensagem enviada fora da janela de atendimento de 24h exige template aprovado pela Meta — não é texto livre como era com o Evolution API. Ver skill `integrations` e `docs/specs/whatsapp-templates-v1.md`.
+- A Evolution API continua fora do produto. Ela só existe como canal de demonstração da apresentação a investidor (`docs/specs/evolution-demo-v1.md`), isolado na clínica de demonstração e desligado em produção e na staging. Nenhuma feature do produto pode depender dela.
 - Credencial da Meta de cada clínica (`whatsapp_access_token`, `whatsapp_waba_id`) é dado por tenant, criptografado em repouso — nunca um `.env` de infraestrutura. Ver skill `lgpd-security`.
 - O preview de conversa nunca depende do registro salvo no banco — roda com o payload atual do formulário, sem persistir nada. Isso existe pra permitir testar antes de salvar/publicar.
 

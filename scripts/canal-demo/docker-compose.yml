@@ -1,0 +1,97 @@
+# Evolution API local, SÓ para o canal de demonstração (docs/specs/evolution-demo-v1.md).
+# Nunca no produto, nunca na Vercel. Roteiro em docs/infra-setup.md, seção
+# "Canal de demonstração (Evolution)".
+#
+#   docker compose -f scripts/canal-demo/docker-compose.yml up -d
+#
+# Os dois segredos (AUTHENTICATION_API_KEY e POSTGRES_PASSWORD) vêm do .env ao
+# lado deste arquivo, fora do git (modelo em .env.example). O resto não é
+# segredo e fica aqui, versionado, para valer igual em toda apresentação.
+#
+# Versão conferida no código da tag 2.3.7 (notas da tarefa 1 do plano
+# docs/superpowers/plans/2026-10-11-canal-de-demonstracao-evolution.md).
+#
+# LGPD (decisão do Jhones, 2026-10-11): a Evolution não guarda mensagem,
+# contato, conversa nem número consultado, não manda telemetria, e o log do
+# contêiner da API fica desligado (ela faz console.log de toda mensagem
+# recebida, com texto e telefone). Fica só a sessão do chip. A mensagem
+# vive cifrada no Supabase, e sai na limpeza (scripts/canal-demo.ts limpar).
+
+name: nextech-canal-demo
+
+services:
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.7
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    # Só no próprio computador: nada exposto na rede. O app local chega por
+    # localhost:8080, e a Evolution chega ao app por host.docker.internal:3000.
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      SERVER_TYPE: http
+      SERVER_PORT: "8080"
+      SERVER_URL: http://localhost:8080
+      LANGUAGE: pt-BR
+      AUTHENTICATION_API_KEY: ${AUTHENTICATION_API_KEY:?defina AUTHENTICATION_API_KEY no .env ao lado do compose}
+      # Deixa nulo o campo apikey do envelope do webhook.
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "false"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://evolution:${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env ao lado do compose}@postgres:5432/evolution
+      DATABASE_CONNECTION_CLIENT_NAME: evolution
+      # A instância fica (o guard do token da instância lê esta tabela); o resto não.
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "false"
+      DATABASE_SAVE_MESSAGE_UPDATE: "false"
+      DATABASE_SAVE_DATA_CONTACTS: "false"
+      DATABASE_SAVE_DATA_CHATS: "false"
+      DATABASE_SAVE_DATA_LABELS: "false"
+      DATABASE_SAVE_DATA_HISTORIC: "false"
+      DATABASE_SAVE_IS_ON_WHATSAPP: "false"
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/6
+      CACHE_REDIS_PREFIX_KEY: evolution
+      CACHE_REDIS_SAVE_INSTANCES: "true"
+      CACHE_LOCAL_ENABLED: "false"
+      TELEMETRY_ENABLED: "false"
+      WEBSOCKET_ENABLED: "false"
+      RABBITMQ_ENABLED: "false"
+      SQS_ENABLED: "false"
+      NATS_ENABLED: "false"
+      PUSHER_ENABLED: "false"
+      WEBHOOK_GLOBAL_ENABLED: "false"
+      LOG_LEVEL: ERROR,WARN
+      LOG_BAILEYS: error
+      DEL_INSTANCE: "false"
+      # O nome que aparece em "Aparelhos conectados", no celular do chip.
+      CONFIG_SESSION_PHONE_CLIENT: Nextech Demo
+      CONFIG_SESSION_PHONE_NAME: Chrome
+      QRCODE_LIMIT: "30"
+    volumes:
+      - evolution_instances:/evolution/instances
+    logging:
+      driver: none
+
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: evolution
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env ao lado do compose}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+volumes:
+  evolution_instances:
+  postgres_data:
+  redis_data:
