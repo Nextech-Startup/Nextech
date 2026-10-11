@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-const motor = vi.hoisted(() => ({ agirNaConversa: vi.fn() }))
-vi.mock("@/lib/conversations/mutations", () => motor)
+const motor = vi.hoisted(() => ({ agirNaConversa: vi.fn(), buscarConversas: vi.fn() }))
+vi.mock("@/lib/conversations/mutations", () => ({ agirNaConversa: motor.agirNaConversa }))
+vi.mock("@/lib/conversations/queries", () => ({ buscarConversas: motor.buscarConversas }))
 
-import { agir } from "./acoes"
+import { agir, buscar } from "./acoes"
 
 const ID = "00000000-0000-4000-8000-000000000001"
 
@@ -44,5 +45,38 @@ describe("agir (server action da tela de Conversas)", () => {
     expect(registrado).toContain("Falha na ação da conversa")
     expect(registrado).not.toContain("+5581999999999")
     expect(registrado).not.toContain("Maria")
+  })
+})
+
+describe("buscar (server action da busca da fila)", () => {
+  beforeEach(() => {
+    motor.buscarConversas.mockReset()
+  })
+  afterEach(() => vi.restoreAllMocks())
+
+  it.each([
+    ["termo que não é texto", 42],
+    ["termo longo demais", "a".repeat(81)],
+  ])("%s não chega ao banco", async (_caso, termo) => {
+    expect(await buscar(termo)).toEqual({ conversas: [], erro: "Busque por um nome ou por parte do telefone." })
+    expect(motor.buscarConversas).not.toHaveBeenCalled()
+  })
+
+  it("devolve as conversas que casam", async () => {
+    motor.buscarConversas.mockResolvedValue([{ id: "c1" }])
+    expect(await buscar("Maria")).toEqual({ conversas: [{ id: "c1" }], erro: null })
+    expect(motor.buscarConversas).toHaveBeenCalledWith("Maria")
+  })
+
+  it("a falha não leva o termo para o log", async () => {
+    motor.buscarConversas.mockImplementation(async () => {
+      throw new Error("falhou buscando Maria Souza (81) 99999-0000")
+    })
+    const log = vi.spyOn(console, "error").mockImplementation(() => {})
+    expect(await buscar("Maria Souza")).toEqual({ conversas: [], erro: "Não foi possível buscar. Tente de novo." })
+    const registrado = JSON.stringify(log.mock.calls)
+    expect(registrado).toContain("Falha na busca de conversas")
+    expect(registrado).not.toContain("Maria")
+    expect(registrado).not.toContain("99999")
   })
 })

@@ -96,8 +96,13 @@ const conversasReais = vi.hoisted(() => {
   }
 })
 
+const listarConversas = vi.hoisted(() => vi.fn())
 vi.mock("@/lib/conversations/queries", () => ({
-  listarConversas: async () => conversasReais.fila,
+  listarConversas: async (...args: unknown[]) => {
+    listarConversas(...args)
+    return conversasReais.fila
+  },
+  buscarConversas: async () => [],
   abrirConversa: async (id: string) => (id === conversasReais.aberta.id ? conversasReais.aberta : null),
   avisosDeDesconexao: async () => conversasReais.avisos,
 }))
@@ -319,6 +324,15 @@ describe("numa clínica comum", () => {
   ])("com %s na URL, nenhuma conversa abre", async (_caso, c) => {
     const tela = await abrir({ ...rota("/dashboard/conversations"), busca: { c } })
     expect((tela.props as { aberta: unknown }).aberta).toBeNull()
+  })
+
+  it("o ?q= da URL não é lido: a busca da tela real é por POST", async () => {
+    listarConversas.mockClear()
+    const tela = await abrir({ ...rota("/dashboard/conversations"), busca: { q: "Maria" } })
+    const props = tela.props as { filtro: { busca: string }; buscar: unknown }
+    expect(props.filtro.busca).toBe("")
+    expect(typeof props.buscar).toBe("function")
+    expect(listarConversas).toHaveBeenCalledWith()
   })
 
   it("o profissional vê a permissão negada de Conversas, sem o caminho da demonstração", async () => {

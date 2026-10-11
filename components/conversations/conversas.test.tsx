@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
 import { AvisoDeDesconexao } from "./aviso-de-desconexao"
+import { BuscaDaFila } from "./busca-da-fila"
 import { Conversa, pedirAcao, type ModoDaConversa } from "./conversa"
 import { ListaDeConversas } from "./lista-de-conversas"
 import { ordenarConversas } from "./estado"
@@ -236,5 +237,30 @@ describe("ligação das ações da tela real", () => {
   it("no suporte e no protótipo, nada vai ao servidor", async () => {
     expect(await pedirAcao({ tipo: "suporte" }, "assumir", "conv-1")).toBeNull()
     expect(await pedirAcao({ tipo: "prototipo" }, "assumir", "conv-1")).toBeNull()
+  })
+})
+
+describe("busca da fila na tela real", () => {
+  const html = renderToStaticMarkup(
+    <BuscaDaFila
+      buscar={async () => ({ conversas: [], erro: null })}
+      estado="todas"
+      caminho="/dashboard/conversations"
+      selecionada={null}
+      agora={AGORA}
+      segmentos={<nav>segmentos</nav>}
+      lista={<ul data-lista="servidor" />}
+    />,
+  )
+
+  it("o termo não tem como ir para a URL: sem GET e sem campo com nome", () => {
+    expect(html).toContain('role="search"')
+    expect(html).not.toMatch(/method="get"/i)
+    expect(html).not.toMatch(/<input[^>]*name=/)
+  })
+
+  it("sem busca, mostra a fila do servidor e os recortes", () => {
+    expect(html).toContain('data-lista="servidor"')
+    expect(html).toContain("segmentos")
   })
 })

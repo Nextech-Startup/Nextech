@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { cifrarConteudo } from "@/lib/conversations/conteudo"
-import { carregarAvisosDeDesconexao, carregarConversa, carregarFila } from "@/lib/conversations/leitura"
+import { buscarNaFila, carregarAvisosDeDesconexao, carregarConversa, carregarFila } from "@/lib/conversations/leitura"
 import { ROTULO_DA_MIDIA, TEXTO_ILEGIVEL } from "@/lib/conversations/tela"
 import {
   admin,
+  anonClient,
   comoUsuario,
   emMinutos,
   limparClinica,
@@ -138,7 +139,7 @@ describe("carregarConversa", () => {
 describe("carregarFila", () => {
   it("com limite 1, a urgente antiga entra junto da mais recente", async () => {
     const owner = await comoUsuario(A.equipe.owner!)
-    const fila = await carregarFila(owner as never, A.id, { busca: "", limite: 1 })
+    const fila = await carregarFila(owner as never, A.id, { limite: 1 })
     expect(fila.map((c) => c.id).sort()).toEqual([antiga, conversa].sort())
     const principal = fila.find((c) => c.id === conversa)!
     // A prévia é a última mensagem visível, já decifrada (aqui, a ilegível).
@@ -146,27 +147,68 @@ describe("carregarFila", () => {
     expect(principal.paciente.nome).toBe("Paciente Principal")
   })
 
+})
+
+describe("buscarNaFila (por POST)", () => {
   it.each([
-    ["pelo nome", "joana"],
+    ["pelo nome, sem maiúscula", "joana"],
     ["pelos 4 últimos dígitos", TELEFONE_BUSCADO.slice(-4)],
-  ])("a busca %s acha a conversa fora do limite", async (_caso, busca) => {
+  ])("a busca %s acha a conversa fora das mais recentes", async (_caso, busca) => {
     const owner = await comoUsuario(A.equipe.owner!)
-    const fila = await carregarFila(owner as never, A.id, { busca, limite: 1 })
-    expect(fila.map((c) => c.id)).toContain(buscada)
+    const achadas = await buscarNaFila(owner as never, A.id, busca)
+    expect(achadas.map((c) => c.id)).toEqual([buscada])
+    expect(achadas[0].paciente.nome).toBe("Joana Buscável")
+  })
+
+  it.each([
+    ["curinga de LIKE escapado", "100%"],
+    ["sublinhado escapado", "Joana_"],
+    ["termo sem busca possível", "81"],
+  ])("%s não casa tudo", async (_caso, busca) => {
+    const owner = await comoUsuario(A.equipe.owner!)
+    expect(await buscarNaFila(owner as never, A.id, busca)).toEqual([])
+  })
+
+  it("o termo vai no corpo do POST da RPC, e nunca na URL", async () => {
+    const owner = await comoUsuario(A.equipe.owner!)
+    const chamadas: { url: string; metodo: string; corpo: string }[] = []
+    const original = globalThis.fetch
+    globalThis.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
+      chamadas.push({ url: String(entrada), metodo: init?.method ?? "GET", corpo: String(init?.body ?? "") })
+      return original(entrada, init)
+    }
+    try {
+      await buscarNaFila(owner as never, A.id, "Joana")
+    } finally {
+      globalThis.fetch = original
+    }
+    expect(chamadas.some((c) => c.metodo === "POST" && c.url.includes("/rpc/search_conversations") && c.corpo.includes("Joana"))).toBe(true)
+    for (const c of chamadas) expect(decodeURIComponent(c.url)).not.toMatch(/joana/i)
+  })
+
+  it("outra clínica não acha, com qualquer clínica no filtro; anônimo e service_role não chamam", async () => {
+    const ownerB = await comoUsuario(B.equipe.owner!)
+    expect(await buscarNaFila(ownerB as never, A.id, "joana")).toEqual([])
+    expect(await buscarNaFila(ownerB as never, B.id, "joana")).toEqual([])
+    for (const cliente of [anonClient(), admin]) {
+      const { data, error } = await cliente.rpc("search_conversations", { p_clinic_id: A.id, p_nome: "%joana%", p_telefone: null })
+      expect(error).not.toBeNull()
+      expect(data).toBeNull()
+    }
   })
 })
 
 describe("isolamento", () => {
   it("o client de B, pedindo a clínica A, não recebe nada", async () => {
     const ownerB = await comoUsuario(B.equipe.owner!)
-    expect(await carregarFila(ownerB as never, A.id, { busca: "" })).toEqual([])
+    expect(await carregarFila(ownerB as never, A.id)).toEqual([])
     expect(await carregarConversa(ownerB as never, A.id, conversa)).toBeNull()
   })
 
   it("com o próprio clinicId e o id da conversa de A, também não", async () => {
     const ownerB = await comoUsuario(B.equipe.owner!)
     expect(await carregarConversa(ownerB as never, B.id, conversa)).toBeNull()
-    const fila = await carregarFila(ownerB as never, B.id, { busca: "" })
+    const fila = await carregarFila(ownerB as never, B.id)
     expect(fila.map((c) => c.id)).toEqual([conversaB])
   })
 })

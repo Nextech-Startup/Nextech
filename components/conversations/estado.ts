@@ -73,6 +73,17 @@ export function filtrarConversas(
   )
 }
 
+/**
+ * O link da fila com os parâmetros que valem (`status`, `q`, `c`); vazio
+ * não entra. Na tela real, `q` nunca é passado: a busca não vai para a URL.
+ */
+export function hrefDaFila(caminho: string, params: Record<string, string | undefined>): string {
+  const busca = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) if (v) busca.set(k, v)
+  const texto = busca.toString()
+  return texto ? `${caminho}?${texto}` : caminho
+}
+
 /** O filtro vem da URL: valor desconhecido não quebra a tela, vira "todas". */
 export function lerFiltroDeEstado(valor: string | undefined): FiltroDeEstado {
   return (ESTADOS as readonly string[]).includes(valor ?? "") ? (valor as EstadoDaConversa) : "todas"

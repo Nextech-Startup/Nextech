@@ -1,6 +1,6 @@
 import { requireClinicContext } from "@/lib/auth/context"
 import type { AvisoDeDesconexao } from "@/lib/whatsapp/conexao"
-import { carregarAvisosDeDesconexao, carregarConversa, carregarFila } from "./leitura"
+import { buscarNaFila, carregarAvisosDeDesconexao, carregarConversa, carregarFila } from "./leitura"
 import type { ConversaAberta, ConversaResumo } from "./tipos-da-tela"
 
 /**
@@ -8,9 +8,15 @@ import type { ConversaAberta, ConversaResumo } from "./tipos-da-tela"
  * vínculo do usuário autenticado, e a RLS é a segunda barreira.
  */
 
-export async function listarConversas(opcoes: { busca: string }): Promise<ConversaResumo[]> {
+export async function listarConversas(): Promise<ConversaResumo[]> {
   const { supabase, clinicId } = await requireClinicContext()
-  return carregarFila(supabase, clinicId, opcoes)
+  return carregarFila(supabase, clinicId)
+}
+
+/** A busca da fila, por POST: o termo nunca entra em URL. */
+export async function buscarConversas(busca: string): Promise<ConversaResumo[]> {
+  const { supabase, clinicId } = await requireClinicContext()
+  return buscarNaFila(supabase, clinicId, busca)
 }
 
 export async function abrirConversa(conversaId: string): Promise<ConversaAberta | null> {

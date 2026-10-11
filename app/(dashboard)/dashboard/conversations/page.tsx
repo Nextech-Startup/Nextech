@@ -15,7 +15,7 @@ import {
 import { PermissaoNegada } from "@/components/patterns/permissao-negada"
 import { AGORA } from "@/app/_fixtures/agora"
 import { CONVERSAS } from "@/app/_fixtures/conversas"
-import { agir } from "./acoes"
+import { agir, buscar } from "./acoes"
 
 export const metadata: Metadata = {
   title: "Conversas",
@@ -50,10 +50,12 @@ export default async function ConversasPage({
   }
 
   const params = await searchParams
-  const filtro = { estado: lerFiltroDeEstado(texto(params.status)), busca: texto(params.q) ?? "" }
+  const estado = lerFiltroDeEstado(texto(params.status))
   const pedida = texto(params.c)
 
   if (isDemo) {
+    // Na demonstração, a busca segue na URL: só há fixture.
+    const filtro = { estado, busca: texto(params.q) ?? "" }
     const relogio = relogioDaDemonstracao(AGORA)
     const todas = relogio.deslocar(CONVERSAS)
     const conversas = filtrarConversas(todas, filtro)
@@ -74,8 +76,11 @@ export default async function ConversasPage({
     )
   }
 
+  // Na tela real, o ?q= nunca é lido: nome e telefone de paciente não vivem
+  // na URL. A busca é por POST (BuscaDaFila e a action `buscar`).
+  const filtro = { estado, busca: "" }
   const agora = new Date().toISOString()
-  const [todas, avisos] = await Promise.all([listarConversas({ busca: filtro.busca }), avisosDeDesconexao()])
+  const [todas, avisos] = await Promise.all([listarConversas(), avisosDeDesconexao()])
   const conversas = filtrarConversas(todas, filtro)
   // Um id inválido ou de outra clínica dá null: a tela pede para escolher na fila.
   const idAberta = pedida ?? conversas[0]?.id
@@ -92,6 +97,7 @@ export default async function ConversasPage({
       caminho={ROTA}
       // Pacientes ainda é "em breve" fora da demonstração: sem link para a ficha.
       modo={{ tipo: "clinica", agir }}
+      buscar={buscar}
       aoVivo={<AoVivo clinicId={clinicId} />}
       aviso={
         avisos.length > 0 && (

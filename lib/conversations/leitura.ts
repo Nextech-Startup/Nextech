@@ -29,7 +29,6 @@ export type Cliente = ReturnType<typeof createServiceClient>
 export const LIMITE_DA_FILA = 100
 /** A conversa aberta: as mensagens mais recentes. */
 export const LIMITE_DA_CONVERSA = 200
-const LIMITE_DA_BUSCA = 50
 
 const COLUNAS_DA_CONVERSA = `
   id, handled_by, is_urgent, human_took_over_at, ai_failed_at, qualified_at,
@@ -84,43 +83,10 @@ function paraMensagem(clinicId: string, conversaId: string, m: MensagemBruta, id
   }
 }
 
-async function idsDaBusca(supabase: Cliente, clinicId: string, busca: string): Promise<string[] | null> {
-  const padrao = padraoDeBusca(busca)
-  if (!padrao) return null
-  let consulta = supabase.from("patients").select("id").eq("clinic_id", clinicId).limit(LIMITE_DA_BUSCA)
-  consulta = padrao.nome
-    ? consulta.ilike("name", padrao.nome)
-    : consulta.like("whatsapp_phone_number", padrao.telefone!)
-  const { data, error } = await consulta
-  if (error) throw error
-  return (data ?? []).map((p) => p.id as string)
-}
-
-/**
- * A fila da clínica: as `limite` conversas mais recentes, todas as
- * urgentes (nenhuma fica de fora por ser antiga) e, com busca, as dos
- * pacientes que casam por nome ou telefone.
- */
-export async function carregarFila(
-  supabase: Cliente,
-  clinicId: string,
-  opcoes: { busca: string; limite?: number },
-): Promise<ConversaResumo[]> {
-  const base = () => supabase.from("conversations").select(COLUNAS_DA_CONVERSA).eq("clinic_id", clinicId)
-
-  const daBusca = async () => {
-    const pacientes = await idsDaBusca(supabase, clinicId, opcoes.busca)
-    return pacientes && pacientes.length > 0 ? base().in("patient_id", pacientes) : { data: [], error: null }
-  }
-  const [recentes, urgentes, buscadas] = await Promise.all([
-    base().order("last_message_at", { ascending: false }).limit(opcoes.limite ?? LIMITE_DA_FILA),
-    base().eq("is_urgent", true),
-    daBusca(),
-  ])
-  for (const r of [recentes, urgentes, buscadas]) if (r.error) throw r.error
-
+/** Junta as linhas sem repetir e acrescenta a prévia de cada uma, numa ida só. */
+async function resumir(supabase: Cliente, clinicId: string, brutas: readonly LinhaBruta[]): Promise<ConversaResumo[]> {
   const porId = new Map<string, LinhaDaConversa>()
-  for (const bruta of [...recentes.data!, ...urgentes.data!, ...buscadas.data!] as unknown as LinhaBruta[]) {
+  for (const bruta of brutas) {
     const linha = paraLinha(bruta)
     if (linha) porId.set(linha.id, linha)
   }
@@ -139,6 +105,50 @@ export async function carregarFila(
   )
 
   return [...porId.values()].map((c) => paraResumo(c, previaDa.get(c.id) ?? null))
+}
+
+/**
+ * A fila da clínica: as `limite` conversas mais recentes e todas as
+ * urgentes (nenhuma fica de fora por ser antiga).
+ */
+export async function carregarFila(
+  supabase: Cliente,
+  clinicId: string,
+  opcoes: { limite?: number } = {},
+): Promise<ConversaResumo[]> {
+  const base = () => supabase.from("conversations").select(COLUNAS_DA_CONVERSA).eq("clinic_id", clinicId)
+  const [recentes, urgentes] = await Promise.all([
+    base().order("last_message_at", { ascending: false }).limit(opcoes.limite ?? LIMITE_DA_FILA),
+    base().eq("is_urgent", true),
+  ])
+  for (const r of [recentes, urgentes]) if (r.error) throw r.error
+  return resumir(supabase, clinicId, [...recentes.data!, ...urgentes.data!] as unknown as LinhaBruta[])
+}
+
+/**
+ * As conversas dos pacientes que casam por nome ou telefone, inclusive
+ * fora das mais recentes. O termo vai no corpo do POST da RPC, e nunca
+ * numa URL: a URL do PostgREST e a da tela vão para log (lgpd-security,
+ * regra 1). Daqui em diante, só ids.
+ */
+export async function buscarNaFila(supabase: Cliente, clinicId: string, busca: string): Promise<ConversaResumo[]> {
+  const padrao = padraoDeBusca(busca)
+  if (!padrao) return []
+  const { data: ids, error } = await supabase.rpc("search_conversations", {
+    p_clinic_id: clinicId,
+    p_nome: padrao.nome,
+    p_telefone: padrao.telefone,
+  })
+  if (error) throw error
+  if (!ids || ids.length === 0) return []
+
+  const { data, error: erroDasLinhas } = await supabase
+    .from("conversations")
+    .select(COLUNAS_DA_CONVERSA)
+    .eq("clinic_id", clinicId)
+    .in("id", ids as string[])
+  if (erroDasLinhas) throw erroDasLinhas
+  return resumir(supabase, clinicId, (data ?? []) as unknown as LinhaBruta[])
 }
 
 /** A conversa aberta, com as mensagens mais recentes; `null` se não for desta clínica. */
