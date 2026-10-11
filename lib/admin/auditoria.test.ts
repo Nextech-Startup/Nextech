@@ -32,6 +32,21 @@ describe("descreverRegistro", () => {
     )
   })
 
+  it("o canal de demonstração: a conexão e a limpeza, com a contagem e sem o telefone", () => {
+    expect(
+      descreverRegistro(registro({ id: "c1", acao: "clinic.demo_channel_connect", metadata: { agente: "criado", regra: "criada" } })),
+    ).toEqual({ acao: "Conectou o canal de demonstração", suporte: false })
+    expect(descreverRegistro(registro({ id: "c2", acao: "clinic.demo_channel_clear", metadata: { pacientes_apagados: 3 } }))).toEqual({
+      acao: "Limpou o canal de demonstração",
+      detalhe: "3 pacientes apagados.",
+      suporte: false,
+    })
+    expect(descreverRegistro(registro({ id: "c3", acao: "clinic.demo_channel_clear", metadata: { pacientes_apagados: 1 } })).detalhe).toBe(
+      "1 paciente apagado.",
+    )
+    expect(clinicaDoRegistro(registro({ id: "c4", acao: "clinic.demo_channel_clear", clinica: null }))).toBe("Clínica removida")
+  })
+
   it("o convite diz se a conta é nova, sem o e-mail", () => {
     expect(descreverRegistro(registro({ id: "5", acao: "member.invite", metadata: { role: "owner", usuario_novo: true } }))).toEqual({
       acao: "Convidou o responsável",

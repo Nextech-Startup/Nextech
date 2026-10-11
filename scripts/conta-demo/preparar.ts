@@ -181,7 +181,7 @@ async function preencherSeVazia(
 }
 
 /** O Auth não busca por e-mail: percorre as páginas uma vez, de id para e-mail. */
-async function emailsDosUsuarios(db: SupabaseClient): Promise<Map<string, string>> {
+export async function emailsDosUsuarios(db: SupabaseClient): Promise<Map<string, string>> {
   const emails = new Map<string, string>()
   const porPagina = 200
   for (let page = 1; ; page++) {

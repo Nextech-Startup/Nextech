@@ -62,6 +62,16 @@ export function descreverRegistro(r: RegistroDaTrilha): DescricaoDoRegistro {
         detalhe: r.metadata.vinculo === "criado" ? "Passou a responder pela clínica." : "Já respondia pela clínica.",
         suporte: false,
       }
+    case "clinic.demo_channel_connect":
+      return { acao: "Conectou o canal de demonstração", suporte: false }
+    case "clinic.demo_channel_clear": {
+      const n = Number(r.metadata.pacientes_apagados ?? 0)
+      return {
+        acao: "Limpou o canal de demonstração",
+        detalhe: n === 1 ? "1 paciente apagado." : `${n} pacientes apagados.`,
+        suporte: false,
+      }
+    }
     case "conversation.list":
       return { acao: "Abriu as conversas", detalhe: justificativa(r), suporte: true }
     case "conversation.list_view":
@@ -79,6 +89,8 @@ const ACOES_DE_CLINICA: readonly string[] = [
   "clinic.update_status",
   "member.invite",
   "clinic.prepare_demo",
+  "clinic.demo_channel_connect",
+  "clinic.demo_channel_clear",
   "conversation.list",
   "conversation.list_view",
   "conversation.view",

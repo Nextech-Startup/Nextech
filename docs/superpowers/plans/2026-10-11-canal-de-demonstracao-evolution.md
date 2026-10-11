@@ -308,18 +308,18 @@ export async function limparCanalDeDemonstracao(
   p: { clinicId: string; autorEmail: string },
 ): Promise<{ pacientesApagados: number }>
 ```
-- [ ] Conectar:
+- [x] Conectar:
   - recusa clínica sem `is_demo`;
   - cria ou atualiza o agente "Canal de demonstração" com persona, saudação e horário fictícios, `whatsapp_phone_number_id` e `whatsapp_waba_id` = `evolution:<instância>`, `whatsapp_access_token_encrypted = cifrarSegredo(token)` e `status = 'active'`;
   - garante a regra de urgência "Dor forte" ativa, com palavras e protocolo fictícios e confirmação completa (`confirmed_by` do `admin@`, `confirmed_at` e `confirmed_content_hash = hashDoConteudo(...)`);
   - grava `clinic.demo_channel_connect` na trilha.
-- [ ] Limpar:
+- [x] Limpar:
   - apaga os pacientes da clínica (a cascata leva o resto);
   - pausa o agente do canal e zera identificador, WABA e token;
   - grava `clinic.demo_channel_clear`;
   - confere que não sobrou paciente, conversa, mensagem nem agente com identificador.
-- [ ] `auditoria.ts`: frases das duas ações novas ("Conectou o canal de demonstração" e "Limpou o canal de demonstração"), com `suporte: false` e teste.
-- [ ] Testes contra o banco:
+- [x] `auditoria.ts`: frases das duas ações novas ("Conectou o canal de demonstração" e "Limpou o canal de demonstração"), com `suporte: false` e teste.
+- [x] Testes contra o banco:
   - conectar duas vezes dá o mesmo estado;
   - o agente fica `active`;
   - a regra fica ativa;
@@ -327,7 +327,7 @@ export async function limparCanalDeDemonstracao(
   - limpar depois de uma conversa gravada deixa a clínica zerada;
   - limpar duas vezes não falha;
   - depois da limpeza, `prepararContaDeDemonstracao` passa.
-- [ ] Commit: `feat(demo): scripts de conexão e limpeza do canal de demonstração`.
+- [x] Commit: `feat(demo): scripts de conexão e limpeza do canal de demonstração`.
 
 ### Tarefa 10: Infra local e documentação de uso
 
@@ -431,3 +431,9 @@ Fica só a sessão do chip (chaves de cifra por contato, como em qualquer aparel
   - A `CaixaDeConversas` não precisou mudar de comportamento: o `modo` já vinha da página, e com `buscar` ela já usava a `BuscaDaFila`. A busca em `?q=` ficou só no protótipo do painel interno (`/admin/design-system/telas/conversas`), que é só fixture. Mudou o comentário.
   - Id de conversa que não abre: na demonstração, um uuid desconhecido dá `null` ("Escolha uma conversa na fila"), como na tela real; antes, um id de fixture desconhecido caía na primeira da fila.
   - Testes: `tests/demo/rotas.test.ts` (fila junta, contagem, real com ações e sem ficha, exemplo com protótipo e ficha, uuid alheio, `?q=` não lido, relógio no minuto, `AoVivo` com o `clinicId`), `acoes.test.ts` (a busca da demonstração junta as duas; fora dela, nunca fixture; o papel sem a tela não recebe nem as de exemplo), `conversas.test.tsx` (a vista da busca ordena a real e a de exemplo juntas, sem o termo no link) e `lib/demo/relogio.test.ts`. `tests/conversations/leitura.test.ts` sozinho: 15 casos.
+- **Tarefa 9.**
+  - O executável não pede id: acha a clínica pelo vínculo do admin (`scripts/canal-demo.ts conectar|limpar [e-mail]`, padrão `admin@nextech.ia.br`), que o preparo da demonstração garante ser um só, e exige `is_demo`. Assim, nunca acerta uma clínica de teste nem a de um cliente. O `conectar` valida as `EVOLUTION_*` antes (`validarConfigDaEvolution`, pelo nome da variável) e lê o `EVOLUTION_INSTANCE_TOKEN`.
+  - As duas funções recebem `dominioDaEquipe` (padrão `nextech.ia.br`), como o `prepararContaDeDemonstracao`, para o teste usar contas `@exemplo.test`. O `emailsDosUsuarios` do `preparar.ts` passou a ser exportado.
+  - O `limpar` desliga **todo** agente conectado ou no ar da clínica antes de apagar os pacientes: nenhuma mensagem entra no meio da limpeza. A regra de urgência fica (é fictícia, e o `conectar` a garante de novo). O fim da limpeza lembra de apagar as conversas no celular do chip.
+  - O agente e a regra são achados pelo nome ("Canal de demonstração" e "Dor forte"); conectar de novo atualiza os dois.
+  - Ambiente: na primeira rodada, o `afterAll` do `tests/rls/conta-demo.test.ts` estourou os 10 s (banco remoto lento, 65 s no arquivo) e deixou 6 usuários `teste-conta-demo-*`. Apaguei, e a rodada seguinte passou em 50 s. Fica a fragilidade daquele arquivo (muitas idas sequenciais), que não é desta spec.

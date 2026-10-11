@@ -8,6 +8,9 @@ export type AdminAction =
   | "member.invite"
   /** O script da conta de demonstração (scripts/conta-demo.ts), fora do painel. */
   | "clinic.prepare_demo"
+  /** Os scripts do canal de demonstração pela Evolution (scripts/canal-demo.ts), fora do painel. */
+  | "clinic.demo_channel_connect"
+  | "clinic.demo_channel_clear"
   /** Acesso de suporte às conversas de uma clínica: a lista e cada conversa aberta. */
   | AcaoDeSuporte
 
