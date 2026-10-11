@@ -17,7 +17,9 @@
 
 **1546 testes passando** · 29 migrations aplicadas · em produção em `app.nextech.ia.br`
 
-**Próximas sessões, nesta ordem:** (1) a correção da posse do WhatsApp; (2) o MFA no painel interno; (3) a parte 5 da 3b (preview e áudio). As duas primeiras são bloqueios de go-live (Pendências, abaixo).
+**Prioridade atual (decisão do Jhones, 2026-10-11): a apresentação para investidor.** As telas da conta de demonstração mais a IA conversando pelo WhatsApp de verdade, por um canal de demonstração na Evolution API (`docs/specs/evolution-demo-v1.md`), rodando no computador do Jhones durante a apresentação.
+
+**Próximas sessões, nesta ordem:** (1) implementar `evolution-demo-v1`; (2) o PR `staging` → `main`, quando o Jhones pedir, para a produção ter as telas da demonstração; (3) a correção da posse do WhatsApp; (4) o MFA no painel interno; (5) a parte 5 da 3b (preview e áudio). A posse e o MFA são bloqueios de go-live (Pendências, abaixo) e não da apresentação: a demonstração não conecta WhatsApp, e a clínica de apresentação usa um chip da Nextech.
 
 ---
 
@@ -255,6 +257,7 @@ Spec `docs/specs/demo-account-v1.md`; plano `docs/superpowers/plans/2026-09-27-c
 - [ ] **DNS de `nextech.ia.br` sem `www`** — não resolve. Precisa de registro `A` para `76.76.21.21` ou o ALIAS que a Vercel indicar; CNAME não funciona em domínio raiz
 - [ ] **Proteção de deployment do `staging`** — hoje exige login da Vercel (302 para SSO). Desativar em Settings → Deployment Protection, se quiser acesso direto
 - [ ] **Credenciais da Meta** — iniciar o processo, que leva tempo e não trava código
+- [ ] **Para a apresentação ao investidor** (`docs/specs/evolution-demo-v1.md`): um chip dedicado com WhatsApp (nunca o de uma clínica), Docker Desktop no computador da apresentação e os números do investidor e do Jhones para a lista de permitidos
 - [x] ~~**Prova de posse do número na conexão**~~: entrou na parte 2 da 3b. `connectWhatsapp` confere na Graph API que o número pertence ao WABA
 - [ ] **Antes de assinar o webhook da Meta em produção (bloqueio de go-live):**
   - ~~a triagem de urgência, o opt-out e a varredura das respostas `pending`~~: entraram na parte 3 da 3b;

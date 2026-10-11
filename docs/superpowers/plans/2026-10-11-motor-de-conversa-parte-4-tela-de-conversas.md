@@ -92,7 +92,7 @@ Duas sessões no mesmo dia: a primeira fez as tarefas 1 a 6 e as revisões; a se
   - no celular, a fila escondida continua no DOM com a conversa aberta: o seletor precisa de `.filter({ visible: true })`;
   - para provar que um termo não vai para a URL, registrar toda requisição e navegação (`page.on("request")` e `framenavigated`) e ignorar o `q=75` do `/_next/image`, que é a qualidade da imagem.
 - **Server action é endpoint público:** qualquer membro logado chama, sem passar pela página. Trava de papel fica na lib, nunca só na página.
-- **Próximas sessões, nesta ordem:**
+- **Próximas sessões** (superada no mesmo dia: a prioridade passou a ser a apresentação para investidor, `docs/specs/evolution-demo-v1.md`; a ordem atual está em `docs/status.md`):
   1. a correção da posse do WhatsApp (pendência alta de `docs/status.md`);
   2. MFA no painel interno;
   3. a parte 5 da 3b (áudio e preview).
