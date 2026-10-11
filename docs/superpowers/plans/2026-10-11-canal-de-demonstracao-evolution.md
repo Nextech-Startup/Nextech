@@ -142,21 +142,21 @@ export async function tratarMensagem(
 
 **Arquivos:** criar `supabase/migrations/20261012120000_demo_evolution_channel.sql` e `tests/rls/demo-evolution.test.ts`.
 
-- [ ] Ler `20260927250000_demo_clinic_no_whatsapp.sql` (o original) e escrever o `create or replace function private.agent_block_demo()` novo:
+- [x] Ler `20260927250000_demo_clinic_no_whatsapp.sql` (o original) e escrever o `create or replace function private.agent_block_demo()` novo:
   - `new.whatsapp_phone_number_id like 'evolution:%'` numa clínica que **não** é demonstração: `raise … using errcode = 'NX005'` ("Canal de demonstração só existe na clínica de demonstração.");
   - clínica de demonstração com `auth.role() = 'service_role'`: aceita identificador `evolution:%` (e `status = 'active'` com ele); identificador que não começa com `evolution:` continua NX004;
   - clínica de demonstração com qualquer outro papel: NX004, como antes;
   - comentário da função atualizado, citando a spec `evolution-demo-v1`.
-- [ ] `clinic_block_demo_with_whatsapp` não muda. O trigger continua se chamando `agents_block_demo`, para rodar antes do `agents_enforce_publish`.
-- [ ] Testes contra o banco, com uma clínica de demonstração temporária (`is_demo = true` pelo `service_role`) e uma clínica comum. Owner da temporária com login próprio, um por arquivo:
+- [x] `clinic_block_demo_with_whatsapp` não muda. O trigger continua se chamando `agents_block_demo`, para rodar antes do `agents_enforce_publish`.
+- [x] Testes contra o banco, com uma clínica de demonstração temporária (`is_demo = true` pelo `service_role`) e uma clínica comum. Owner da temporária com login próprio, um por arquivo:
   - o owner (`authenticated`) da demonstração não grava `evolution:x` nem identificador da Meta e não publica (NX004);
   - o `service_role` grava `evolution:<id>`, a WABA e o token cifrado, e publica (`active`);
   - o `service_role` não grava identificador da Meta na demonstração (NX004);
   - `evolution:` na clínica comum é recusado para o owner e para o `service_role` (NX005);
   - `tests/rls/conta-demo.test.ts` (o NX004 original) segue passando, rodado sozinho.
-- [ ] `npx supabase db push --dry-run`, conferir que só entra esta migration, e aplicar (`echo y | npx supabase db push`).
-- [ ] Rodar `tests/rls/demo-evolution.test.ts` e `tests/rls/conta-demo.test.ts`, um de cada vez.
-- [ ] Commit (migration e teste juntos): `feat(demo): canal de demonstração só pelo service_role, e só na clínica de demonstração`.
+- [x] `npx supabase db push --dry-run`, conferir que só entra esta migration, e aplicar (`echo y | npx supabase db push`).
+- [x] Rodar `tests/rls/demo-evolution.test.ts` e `tests/rls/conta-demo.test.ts`, um de cada vez.
+- [x] Commit (migration e teste juntos): `feat(demo): canal de demonstração só pelo service_role, e só na clínica de demonstração`.
 
 ### Tarefa 4: Leitura do payload da Evolution
 
@@ -413,3 +413,7 @@ Fonte: o código da tag `2.3.7` do repositório `EvolutionAPI/evolution-api` (a 
 - `logging: driver: none` no serviço da API (o `console.log(messageRaw)` não fica em lugar nenhum).
 
 Fica só a sessão do chip (chaves de cifra por contato, como em qualquer aparelho). Custo aceito: se o celular do investidor pedir reenvio de uma mensagem nossa (falha rara de decifração), o `getMessage` não acha o original, e o reenvio pode sair vazio. O celular do chip guarda a conversa como qualquer WhatsApp: o roteiro da limpeza inclui apagar as conversas nele.
+
+## Ajustes da execução
+
+- **Tarefa 3.** O NX004 original é testado em `tests/rls/demo.test.ts`; o `conta-demo.test.ts` testa o script de preparo. Rodei os dois, um de cada vez (10 e 11 casos). As clínicas temporárias do teste novo são HealthTech, como a real: no Starter, o limite de 1 agente recusa o segundo antes da trava. A função ganhou um `coalesce` no `like`: com o identificador nulo, a comparação daria `null` e deixaria publicar sem número na demonstração (caso coberto no teste).
