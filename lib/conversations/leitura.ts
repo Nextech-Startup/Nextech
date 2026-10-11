@@ -127,6 +127,7 @@ export async function carregarFila(
   if (porId.size === 0) return []
 
   const { data: previas, error } = await supabase.rpc("conversation_previews", {
+    p_clinic_id: clinicId,
     p_conversation_ids: [...porId.keys()],
   })
   if (error) throw error

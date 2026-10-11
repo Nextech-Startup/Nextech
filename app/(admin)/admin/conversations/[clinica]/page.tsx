@@ -45,7 +45,7 @@ export default async function AcessoDeSuportePage({
   const [clinica, acesso] = await Promise.all([resumoParaSuporte(ctx, id), acessoDeSuporteVigente(ctx, id, agora)])
   if (!clinica) notFound()
 
-  const conversas = acesso ? await listarConversasParaSuporte(ctx, id) : []
+  const conversas = acesso ? await listarConversasParaSuporte(ctx, id, acesso.justificativa) : []
   const codigo = typeof erro === "string" && Object.hasOwn(ERROS, erro) ? (erro as CodigoDeErro) : null
 
   return (

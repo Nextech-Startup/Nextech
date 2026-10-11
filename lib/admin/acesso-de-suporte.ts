@@ -23,8 +23,14 @@ export const ROTULO_DO_MOTIVO: Record<MotivoDeSuporte, string> = {
 
 export type Justificativa = { motivo: MotivoDeSuporte; chamado: string }
 
-/** Fazem parte do `AdminAction` de `audit.ts` (motor de conversa, parte 4). */
-export type AcaoDeSuporte = "conversation.list" | "conversation.view"
+/**
+ * Fazem parte do `AdminAction` de `audit.ts` (motor de conversa, parte 4):
+ * - `conversation.list`: a justificativa, que libera a clínica por 30 min;
+ * - `conversation.list_view`: cada leitura da lista de nomes dentro do acesso;
+ * - `conversation.view`: cada conversa aberta.
+ * Só `conversation.list` concede acesso: a releitura não renova a janela.
+ */
+export type AcaoDeSuporte = "conversation.list" | "conversation.list_view" | "conversation.view"
 
 /** Tempo para investigar um chamado sem justificar de novo a cada conversa. */
 export const DURACAO_DO_ACESSO_MS = 30 * 60 * 1000
@@ -97,9 +103,13 @@ export function registroDeSuporte(p: {
   clinicaId: string
   justificativa: Justificativa
   conversaId?: string
+  /** Ler a lista de novo dentro do acesso, e não concedê-lo. */
+  releituraDaLista?: boolean
 }): RegistroDeSuporte {
   const metadata = { motivo: p.justificativa.motivo, chamado: p.justificativa.chamado }
-  if (p.conversaId === undefined) return { action: "conversation.list", clinicId: p.clinicaId, metadata }
+  if (p.conversaId === undefined) {
+    return { action: p.releituraDaLista ? "conversation.list_view" : "conversation.list", clinicId: p.clinicaId, metadata }
+  }
   return {
     action: "conversation.view",
     clinicId: p.clinicaId,

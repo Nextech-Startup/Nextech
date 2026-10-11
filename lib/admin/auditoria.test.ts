@@ -50,6 +50,11 @@ describe("descreverRegistro", () => {
     expect(descreverRegistro(registro({ id: "7", acao: "conversation.view", alvo: "conv-9", metadata })).acao).toBe(
       "Abriu uma conversa",
     )
+    expect(descreverRegistro(registro({ id: "9", acao: "conversation.list_view", metadata }))).toEqual({
+      acao: "Viu a lista de conversas",
+      detalhe: "A IA não respondeu, chamado #4821",
+      suporte: true,
+    })
   })
 
   it("acesso de suporte sem justificativa na trilha é anomalia, e a frase diz isso", () => {

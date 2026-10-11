@@ -137,7 +137,10 @@ describe("quem não opera a conversa recebe 'nao-encontrada' e nada muda", () =>
   })
 
   it.each([...RPCS, "conversation_previews"] as const)("o anônimo recebe erro em %s", async (rpc) => {
-    const args = rpc === "conversation_previews" ? { p_conversation_ids: [conversaA] } : { p_conversation_id: conversaA }
+    const args =
+      rpc === "conversation_previews"
+        ? { p_clinic_id: A.id, p_conversation_ids: [conversaA] }
+        : { p_conversation_id: conversaA }
     const { data, error } = await anonClient().rpc(rpc, args)
     expect(error).not.toBeNull()
     expect(data).toBeNull()
@@ -212,7 +215,10 @@ describe("conversation_events", () => {
 describe("conversation_previews", () => {
   it("devolve a última mensagem visível: a resposta que não chegou não conta", async () => {
     const owner = await comoUsuario(A.equipe.owner!)
-    const { data, error } = await owner.rpc("conversation_previews", { p_conversation_ids: [conversaA] })
+    const { data, error } = await owner.rpc("conversation_previews", {
+      p_clinic_id: A.id,
+      p_conversation_ids: [conversaA],
+    })
     expect(error).toBeNull()
     expect(data).toHaveLength(1)
     expect(data[0]).toMatchObject({ conversation_id: conversaA, author: "patient" })
@@ -220,12 +226,35 @@ describe("conversation_previews", () => {
     expect(respostaFalhaA).toBeTruthy()
   })
 
-  it("outra clínica, pedindo os ids de A, recebe nada", async () => {
+  it("outra clínica, pedindo os ids de A, recebe nada, com qualquer clínica no filtro", async () => {
     const ownerB = await comoUsuario(B.equipe.owner!)
-    const { data, error } = await ownerB.rpc("conversation_previews", { p_conversation_ids: [conversaA, urgenteA] })
-    expect(error).toBeNull()
-    expect(data).toEqual([])
-    const { data: propria } = await ownerB.rpc("conversation_previews", { p_conversation_ids: [conversaB] })
+    for (const clinica of [A.id, B.id]) {
+      const { data, error } = await ownerB.rpc("conversation_previews", {
+        p_clinic_id: clinica,
+        p_conversation_ids: [conversaA, urgenteA],
+      })
+      expect(error).toBeNull()
+      expect(data).toEqual([])
+    }
+    const { data: propria } = await ownerB.rpc("conversation_previews", {
+      p_clinic_id: B.id,
+      p_conversation_ids: [conversaB],
+    })
     expect(propria).toHaveLength(1)
+  })
+
+  it("a própria clínica com o filtro de outra não recebe nada", async () => {
+    const owner = await comoUsuario(A.equipe.owner!)
+    const { data } = await owner.rpc("conversation_previews", { p_clinic_id: B.id, p_conversation_ids: [conversaA] })
+    expect(data).toEqual([])
+  })
+
+  it("o service_role não chama a prévia: o suporte não depende dela", async () => {
+    const { data, error } = await admin.rpc("conversation_previews", {
+      p_clinic_id: A.id,
+      p_conversation_ids: [conversaA],
+    })
+    expect(error).not.toBeNull()
+    expect(data).toBeNull()
   })
 })

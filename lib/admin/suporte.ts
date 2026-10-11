@@ -1,6 +1,7 @@
 import type { ClinicPlan } from "@/lib/agent-config/schema"
 import { carregarConversa } from "@/lib/conversations/leitura"
 import type { ConversaAberta } from "@/lib/conversations/tipos-da-tela"
+import { mascararTelefone } from "@/lib/formatters/telefone"
 import {
   DURACAO_DO_ACESSO_MS,
   acessoVigente,
@@ -118,8 +119,17 @@ export async function liberarAcessoDeSuporte(
   return { ok: true }
 }
 
-/** As conversas da clínica: as 200 mais recentes e todas as urgentes. Só com acesso vigente. */
-export async function listarConversasParaSuporte(ctx: AdminContext, clinicaId: string): Promise<ConversaParaSuporte[]> {
+/**
+ * As conversas da clínica: as 200 mais recentes e todas as urgentes. Só com
+ * acesso vigente. Cada leitura da lista mostra nomes de pacientes, então
+ * vira um `conversation.list_view` na trilha antes de sair daqui; se a
+ * gravação falhar, a lista não aparece.
+ */
+export async function listarConversasParaSuporte(
+  ctx: AdminContext,
+  clinicaId: string,
+  justificativa: Justificativa,
+): Promise<ConversaParaSuporte[]> {
   const colunas = `id, ${COLUNAS_DE_ESTADO}, agente:agents(name), paciente:patients(name)`
   const base = () => ctx.supabase.from("conversations").select(colunas).eq("clinic_id", clinicaId)
   const [recentes, urgentes] = await Promise.all([
@@ -131,6 +141,9 @@ export async function listarConversasParaSuporte(ctx: AdminContext, clinicaId: s
   type Linha = LinhaDeEstado & { id: string; agente: { name: string } | null; paciente: { name: string | null } | null }
   const porId = new Map<string, Linha>()
   for (const l of [...recentes.data!, ...urgentes.data!] as unknown as Linha[]) porId.set(l.id, l)
+
+  const gravou = await registrarAcao(ctx, registroDeSuporte({ clinicaId, justificativa, releituraDaLista: true }))
+  if (!gravou) throw new Error("Auditoria indisponível: a lista não foi aberta.")
 
   return [...porId.values()].map((l) => ({
     id: l.id,
@@ -145,6 +158,9 @@ export async function listarConversasParaSuporte(ctx: AdminContext, clinicaId: s
  * Uma conversa, para quem tem acesso vigente. A abertura é gravada na
  * trilha ANTES de o conteúdo sair daqui: se a gravação falhar, lança, e a
  * conversa não aparece. Conversa de outra clínica dá `null`, sem registro.
+ *
+ * O telefone sai mascarado: nenhum motivo de suporte precisa dele inteiro
+ * (LGPD, art. 6º, III), e assim ele nem chega ao navegador.
  */
 export async function abrirConversaParaSuporte(
   ctx: AdminContext,
@@ -157,5 +173,5 @@ export async function abrirConversaParaSuporte(
 
   const gravou = await registrarAcao(ctx, registroDeSuporte({ clinicaId, justificativa, conversaId }))
   if (!gravou) throw new Error("Auditoria indisponível: a conversa não foi aberta.")
-  return conversa
+  return { ...conversa, paciente: { ...conversa.paciente, telefone: mascararTelefone(conversa.paciente.telefone) } }
 }

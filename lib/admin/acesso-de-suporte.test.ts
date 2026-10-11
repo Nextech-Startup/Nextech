@@ -84,6 +84,14 @@ describe("registroDeSuporte", () => {
     })
   })
 
+  it("ler a lista de novo registra conversation.list_view, que não concede acesso", () => {
+    expect(registroDeSuporte({ clinicaId: "c1", justificativa: J, releituraDaLista: true })).toEqual({
+      action: "conversation.list_view",
+      clinicId: "c1",
+      metadata: { motivo: "ia-nao-respondeu", chamado: "4821" },
+    })
+  })
+
   it("abrir uma conversa registra conversation.view, com a conversa como alvo", () => {
     expect(registroDeSuporte({ clinicaId: "c1", justificativa: J, conversaId: "conv-9" })).toEqual({
       action: "conversation.view",

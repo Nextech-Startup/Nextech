@@ -115,6 +115,9 @@ describe("abrir uma conversa", () => {
   it("com acesso, devolve o texto decifrado e grava a abertura com o id da conversa", async () => {
     const aberta = await abrirConversaParaSuporte(ctx, A.id, conversaA, { motivo: "ia-nao-respondeu", chamado: "4821" })
     expect(aberta?.itens.some((i) => i.tipo === "mensagem" && i.texto === "A IA não me respondeu")).toBe(true)
+    // O telefone sai mascarado: o número inteiro nem chega ao navegador.
+    expect(aberta?.paciente.telefone).toBe(`(81) •••••-${TELEFONE_A.slice(-4)}`)
+    expect(JSON.stringify(aberta)).not.toContain(TELEFONE_A.slice(1))
 
     const vistas = await registros("conversation.view")
     expect(vistas).toHaveLength(1)
@@ -143,9 +146,26 @@ describe("listas", () => {
     expect(json).not.toContain(TELEFONE_A)
   })
 
-  it("as conversas de A só trazem A, com o estado de suporte", async () => {
-    const conversas = await listarConversasParaSuporte(ctx, A.id)
+  it("as conversas de A só trazem A, com o estado de suporte, e cada leitura fica na trilha", async () => {
+    const J = { motivo: "ia-nao-respondeu", chamado: "4821" } as const
+    const conversas = await listarConversasParaSuporte(ctx, A.id, J)
     expect(conversas.map((c) => c.id)).toEqual([conversaA])
     expect(conversas[0]).toMatchObject({ paciente: NOME_A, estado: "ia" })
+
+    await listarConversasParaSuporte(ctx, A.id, J)
+    const leituras = await registros("conversation.list_view")
+    expect(leituras).toHaveLength(2)
+    expect(leituras[0]).toMatchObject({ clinic_id: A.id, metadata: J })
+  })
+
+  it("a releitura da lista não renova o acesso", async () => {
+    // Só conversation.list concede: a clínica B, que só teria leituras, segue fechada.
+    await admin.from("admin_audit_log").insert({
+      actor_user_id: equipe.id,
+      action: "conversation.list_view",
+      clinic_id: B.id,
+      metadata: { motivo: "outro", chamado: "1" },
+    })
+    expect(await acessoDeSuporteVigente(ctx, B.id, new Date().toISOString())).toBeNull()
   })
 })

@@ -64,6 +64,8 @@ export function descreverRegistro(r: RegistroDaTrilha): DescricaoDoRegistro {
       }
     case "conversation.list":
       return { acao: "Abriu as conversas", detalhe: justificativa(r), suporte: true }
+    case "conversation.list_view":
+      return { acao: "Viu a lista de conversas", detalhe: justificativa(r), suporte: true }
     case "conversation.view":
       return { acao: "Abriu uma conversa", detalhe: justificativa(r), suporte: true }
     default:
@@ -78,6 +80,7 @@ const ACOES_DE_CLINICA: readonly string[] = [
   "member.invite",
   "clinic.prepare_demo",
   "conversation.list",
+  "conversation.list_view",
   "conversation.view",
 ]
 

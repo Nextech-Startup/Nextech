@@ -3,7 +3,7 @@ import {
   chaveDoDia, descreverDia, diasEntre, formatarData, formatarDataCurta, formatarDuracao, formatarHora,
   partesDaData, rotuloCurtoDoDia, semanaDe, somarDias, tempoRelativo,
 } from "./data"
-import { formatarTelefone } from "./telefone"
+import { formatarTelefone, mascararTelefone } from "./telefone"
 import { formatarMoeda, formatarNumero, formatarPercentual } from "./numero"
 import { contemBusca, iniciais, normalizarTexto, plural } from "./texto"
 
@@ -159,5 +159,22 @@ describe("diasEntre", () => {
 
   it("atravessa fevereiro de ano bissexto", () => {
     expect(diasEntre("2028-02-28", "2028-03-01")).toBe(2)
+  })
+})
+
+describe("mascararTelefone", () => {
+  it("mantém o DDD e os 4 últimos dígitos", () => {
+    expect(mascararTelefone("+5581999112895")).toBe("(81) •••••-2895")
+    expect(mascararTelefone("+558133334444")).toBe("(81) •••••-4444")
+  })
+
+  it("número de fora do Brasil mostra só o fim", () => {
+    expect(mascararTelefone("+14155550123")).toBe("•••• 0123")
+  })
+
+  it("nunca devolve o número inteiro", () => {
+    for (const n of ["+5581999112895", "+14155550123", "abc"]) {
+      expect(mascararTelefone(n)).not.toContain(n.replace("+", ""))
+    }
   })
 })
