@@ -210,15 +210,15 @@ export async function enviarPeloCanal(p: Envio, opcoes?: { fetch?: typeof fetch 
 - Sem `key.id` na resposta, lança `EvolutionError("resposta-sem-id", 200, false)`. 429 é repetível; 5xx não, pela mesma razão da Meta (pode ter enviado).
 - `resposta.ts`: `enviar` usa `enviarPeloCanal`, e `repetivel` inclui `EvolutionError`.
 
-- [ ] Testes com `fetch` interceptado:
+- [x] Testes com `fetch` interceptado:
   - URL, cabeçalho e corpo certos;
   - id com prefixo;
   - sem id, 429 e 500 com as classes certas;
   - erro sem conteúdo nem telefone na mensagem;
   - `canalDoAgente` pelo prefixo;
   - `enviarPeloCanal` chama a Meta para identificador comum e a Evolution para `evolution:`.
-- [ ] `npx vitest run lib/whatsapp lib/conversations`, depois `tests/conversations/resposta.test.ts` sozinho (banco).
-- [ ] Commit: `feat(whatsapp): cliente da Evolution e envio pelo canal do agente`.
+- [x] `npx vitest run lib/whatsapp lib/conversations`, depois `tests/conversations/resposta.test.ts` sozinho (banco).
+- [x] Commit: `feat(whatsapp): cliente da Evolution e envio pelo canal do agente`.
 
 ### Tarefa 6: Teto diário
 
@@ -418,3 +418,4 @@ Fica só a sessão do chip (chaves de cifra por contato, como em qualquer aparel
 
 - **Tarefa 3.** O NX004 original é testado em `tests/rls/demo.test.ts`; o `conta-demo.test.ts` testa o script de preparo. Rodei os dois, um de cada vez (10 e 11 casos). As clínicas temporárias do teste novo são HealthTech, como a real: no Starter, o limite de 1 agente recusa o segundo antes da trava. A função ganhou um `coalesce` no `like`: com o identificador nulo, a comparação daria `null` e deixaria publicar sem número na demonstração (caso coberto no teste).
 - **Tarefa 4.** `MotivoIgnorado` ganhou `sem-conteudo` (reação, edição, apagamento, voto): não são formato errado, e o log do ensaio fica legível. A lista de permitidos compara por `chaveDoNumero` (nota 8 da Evolution), e `@lid` sem `remoteJidAlt` é `formato`. A checagem da lista vem antes da leitura do conteúdo.
+- **Tarefa 5.** O `EvolutionError` usa `code` (e não `codigo`, como a interface do plano dizia), igual ao `MetaError`: é a propriedade que o `erroParaLog` leva ao log e o `fail_ai_reply` grava. O `status` aceita `null` (sem resposta da Evolution, `rede`). O `resposta-sem-id` leva o status real da resposta (201), não 200. O envio pela Evolution também ganhou casos no `dependencias.test.ts` (o caminho de produção do `enviar`).

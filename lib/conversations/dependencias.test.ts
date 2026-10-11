@@ -12,6 +12,7 @@ const original = {
   chave: process.env.OPENROUTER_API_KEY,
   modelo: process.env.OPENROUTER_MODEL,
   versao: process.env.WHATSAPP_API_VERSION,
+  evolution: process.env.EVOLUTION_API_URL,
 }
 
 function restaurar(nome: string, valor: string | undefined) {
@@ -26,6 +27,7 @@ beforeEach(() => {
   process.env.OPENROUTER_API_KEY = "chave-de-teste"
   process.env.OPENROUTER_MODEL = "provedor/modelo-de-teste"
   process.env.WHATSAPP_API_VERSION = "v99.0"
+  process.env.EVOLUTION_API_URL = "http://localhost:8080"
   vi.useFakeTimers()
 })
 
@@ -35,6 +37,7 @@ afterEach(() => {
   restaurar("OPENROUTER_API_KEY", original.chave)
   restaurar("OPENROUTER_MODEL", original.modelo)
   restaurar("WHATSAPP_API_VERSION", original.versao)
+  restaurar("EVOLUTION_API_URL", original.evolution)
 })
 
 /** As esperas que o código pediu ao relógio, em ms. */
@@ -122,6 +125,47 @@ describe("DEPENDENCIAS_PADRAO.enviar", () => {
     await vi.runAllTimersAsync()
 
     await expect(resultado).resolves.toEqual({ waMessageId: "wamid.ok" })
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(esperasPedidas(relogio)).toEqual([1000])
+  })
+})
+
+describe("DEPENDENCIAS_PADRAO.enviar pelo canal de demonstração (evolution-demo-v1)", () => {
+  const envio = () => ({
+    phoneNumberId: "evolution:nextech-demo",
+    tokenCifrado: cifrarSegredo("token-da-instancia"),
+    para: "5511987654321",
+    texto: "oi",
+  })
+
+  it("sai pela Evolution, e não pela Meta", async () => {
+    const fetch = vi.fn(async (..._: unknown[]) => json(201, { key: { id: "3EB0" } }))
+    vi.stubGlobal("fetch", fetch)
+    await expect(DEPENDENCIAS_PADRAO.enviar(envio())).resolves.toEqual({ waMessageId: "evo:3EB0" })
+    expect(String(fetch.mock.calls[0][0])).toBe("http://localhost:8080/message/sendText/nextech-demo")
+  })
+
+  it("5xx não repete", async () => {
+    const fetch = vi.fn(async () => json(500, {}))
+    vi.stubGlobal("fetch", fetch)
+    const resultado = DEPENDENCIAS_PADRAO.enviar(envio()).catch((e: unknown) => e)
+    await vi.runAllTimersAsync()
+    expect(await resultado).toMatchObject({ name: "EvolutionError", repetivel: false })
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it("429 repete uma vez, depois de 1 s", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(json(429, {}))
+      .mockResolvedValueOnce(json(201, { key: { id: "3EB0" } }))
+    vi.stubGlobal("fetch", fetch)
+    const relogio = vi.spyOn(globalThis, "setTimeout")
+
+    const resultado = DEPENDENCIAS_PADRAO.enviar(envio())
+    await vi.runAllTimersAsync()
+
+    await expect(resultado).resolves.toEqual({ waMessageId: "evo:3EB0" })
     expect(fetch).toHaveBeenCalledTimes(2)
     expect(esperasPedidas(relogio)).toEqual([1000])
   })

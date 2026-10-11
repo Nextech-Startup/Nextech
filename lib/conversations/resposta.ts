@@ -11,7 +11,9 @@ import { lerBusinessHours, type MedicalSpecialty } from "@/lib/agent-config/sche
 import { gerarResposta, IaError } from "@/lib/ai/client"
 import { comRetentativas, dormir, ESPERAS_DA_IA_MS } from "@/lib/ai/retentativa"
 import { erroParaLog } from "@/lib/security/erro-para-log"
-import { enviarTexto, MetaError } from "@/lib/whatsapp/client"
+import { enviarPeloCanal } from "@/lib/whatsapp/canal"
+import { MetaError } from "@/lib/whatsapp/client"
+import { EvolutionError } from "@/lib/whatsapp/evolution"
 import { falhaDefinitiva } from "@/lib/whatsapp/webhook"
 import { cifrarConteudo, decifrarConteudo } from "./conteudo"
 import { custoDaResposta } from "./custo"
@@ -48,7 +50,7 @@ const ESPERAS_DA_CONFIRMACAO_MS = [500, 2000] as const
 
 export type Envio = { phoneNumberId: string; tokenCifrado: string; para: string; texto: string }
 
-/** O que sai do processo: o modelo, a Meta, o relógio. Injetável para o teste. */
+/** O que sai do processo: o modelo, o WhatsApp, o relógio. Injetável para o teste. */
 export type Dependencias = {
   gerar: (mensagens: MensagemDoModelo[]) => Promise<SaidaDoModelo>
   enviar: (p: Envio) => Promise<{ waMessageId: string }>
@@ -56,7 +58,8 @@ export type Dependencias = {
   agora: () => string
 }
 
-const repetivel = (erro: unknown) => (erro instanceof IaError || erro instanceof MetaError) && erro.repetivel
+const repetivel = (erro: unknown) =>
+  (erro instanceof IaError || erro instanceof MetaError || erro instanceof EvolutionError) && erro.repetivel
 
 export const DEPENDENCIAS_PADRAO: Dependencias = {
   // A leitura do JSON fica dentro da retentativa: a saída fora do formato
@@ -66,9 +69,10 @@ export const DEPENDENCIAS_PADRAO: Dependencias = {
       async () => lerSaidaDoModelo((await gerarResposta(mensagens, { formato: FORMATO_DA_RESPOSTA })).texto),
       { esperas: ESPERAS_DA_IA_MS, repetivel, dormir },
     ),
-  // Só o limite de taxa se repete (MetaError.repetivel): um 5xx pode ter
-  // enviado, e repetir mandaria a resposta duas vezes.
-  enviar: (p) => comRetentativas(() => enviarTexto(p), { esperas: [1000], repetivel, dormir }),
+  // Só o limite de taxa se repete (MetaError e EvolutionError.repetivel): um
+  // 5xx pode ter enviado, e repetir mandaria a resposta duas vezes. O canal
+  // sai do identificador do agente (evolution-demo-v1).
+  enviar: (p) => comRetentativas(() => enviarPeloCanal(p), { esperas: [1000], repetivel, dormir }),
   dormir,
   agora: () => new Date().toISOString(),
 }
