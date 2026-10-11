@@ -22,7 +22,7 @@ const normalizar = (f: string) => f.replace(/\\/g, "/")
 // middleware.ts é exceção justificada: roda no edge, antes do React, e não
 // tem acesso ao cookies() do Next — precisa montar o client com os cookies
 // da própria request. Ele não lê dado de clínica, só renova a sessão.
-const FABRICAS_AUTORIZADAS = ["lib/supabase/server.ts", "middleware.ts"]
+const FABRICAS_AUTORIZADAS = ["lib/supabase/server.ts", "lib/supabase/browser.ts", "middleware.ts"]
 
 describe("fronteiras de arquitetura", () => {
   it("apenas lib/supabase/server.ts instancia client do Supabase", () => {
@@ -48,6 +48,17 @@ describe("fronteiras de arquitetura", () => {
       .map(normalizar)
 
     expect(infratores).toEqual([])
+  })
+
+  // O client do navegador existe só para o Realtime da tela de Conversas:
+  // dado de clínica se lê no servidor, com requireClinicContext().
+  it("o client do navegador só é importado pela assinatura do Realtime", () => {
+    const importadores = [...walk("app"), ...walk("lib"), ...walk("components")]
+      .filter((f) => /from\s+["']@\/lib\/supabase\/browser["']/.test(readFileSync(f, "utf8")))
+      .map(normalizar)
+
+    expect(importadores).toEqual(["lib/conversations/ao-vivo.ts"])
+    expect(readFileSync("lib/supabase/browser.ts", "utf8")).not.toMatch(/SERVICE_ROLE/)
   })
 
   it("service-context não é importado por página nem componente", () => {
