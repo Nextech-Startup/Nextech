@@ -294,9 +294,9 @@ Spec `docs/specs/demo-account-v1.md`; plano `docs/superpowers/plans/2026-09-27-c
   Integrações, as fases 3b, 5 e 6
 - [ ] **Clínicas "Completa Ltda" no banco**: duas, sem responsável, parecem resíduo
   de teste antigo. Confirmar e apagar
-- [ ] **"Clínica a (conversas)" no banco** (`4664b646-…`, de 2026-09-27): resíduo de um
-  teste de banco, com o owner `teste-conv-a-…@exemplo.test` (nunca entrou) e um paciente
-  fictício. Achado na limpeza da revisão visual da parte 4. Confirmar e apagar
+- [x] ~~**"Clínica a (conversas)" no banco**~~ (`4664b646-…`, de 2026-09-27): resíduo de um
+  teste de banco, com um owner de teste que nunca entrou e um paciente fictício. Apagada
+  em 2026-10-11, a pedido do Jhones, e conferida no banco
 
 ### Dívida técnica conhecida
 
