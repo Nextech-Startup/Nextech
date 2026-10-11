@@ -44,7 +44,7 @@ celular do investidor ──WhatsApp──▶ chip da Nextech (Evolution, Docker
 1. A rota só existe com `EVOLUTION_*` configuradas; sem elas, responde 404.
 2. O cabeçalho com o segredo do webhook é comparado com `comparacaoSegura()`. Faltando ou errado, responde 401 e não grava nada.
 3. Só o evento de mensagem nova (`MESSAGES_UPSERT`) da instância configurada é processado. Os outros eventos e as outras instâncias respondem 200 e são ignorados.
-4. O agente é procurado pela instância **e** pela clínica de demonstração (`EVOLUTION_*`), nunca só pelo identificador. Assim, um agente de outra clínica com o mesmo identificador (o achado da posse) não recebe a mensagem.
+4. O agente é procurado pelo identificador `evolution:<instância>`, que é único no banco (`whatsapp_phone_number_id` é UNIQUE global) e **só pode existir em agente da clínica de demonstração** (regra no banco, ver item 3 de Comportamento). Assim, um agente de outra clínica não toma o identificador pelo achado da posse, nem pelo `authenticated` nem pelo `service_role`.
 5. A leitura do payload é uma função pura, com teste, que devolve o formato que a recepção do motor já usa:
    - telefone em E.164, vindo do `remoteJid`;
    - autor `patient`, ou `human` quando a mensagem saiu do próprio celular (`fromMe`, o eco da coexistência);
@@ -62,6 +62,7 @@ celular do investidor ──WhatsApp──▶ chip da Nextech (Evolution, Docker
 ### 3. A trava da demonstração (NX004), numa migration nova
 - **Continua:** o `authenticated` não grava número nem credencial de WhatsApp em agente da clínica de demonstração, nem o publica. O `clinica@` e o `admin@` seguem sem conseguir conectar nada por lá.
 - **Muda:** só o `service_role` (o script de conexão) grava, na clínica de demonstração, um identificador com prefixo `evolution:` e publica esse agente. Identificador da Meta continua recusado na demonstração, por qualquer papel.
+- **Novo:** identificador `evolution:` fora da clínica de demonstração é recusado, por qualquer papel.
 - A outra ponta (`clinic_block_demo_with_whatsapp`) não muda: clínica de cliente com WhatsApp continua sem poder virar demonstração.
 - Migration aditiva, com `--dry-run` antes. Ela troca a função de um trigger de tabela existente, mas não muda grant.
 
@@ -117,9 +118,9 @@ Nenhum: é um canal interno de demonstração. A clínica de demonstração usa 
 - Skills `integrations` e `architecture`: registrar a Evolution como canal só de demonstração.
 
 ## Dependências (ação do Jhones)
-- Um chip dedicado com WhatsApp, conectado à Evolution por QR code.
-- Docker Desktop rodando no computador da apresentação.
-- Os números do investidor e do Jhones na lista de permitidos, no `.env` local.
+- [x] Um celular dedicado com o chip da demonstração (confirmado em 2026-10-11). Conecta à Evolution por QR code na implementação.
+- [x] Docker instalado no computador da apresentação (confirmado em 2026-10-11).
+- [ ] Os números que vão conversar (o do investidor e outro celular para o ensaio, diferente do chip), na lista de permitidos do `.env` local.
 - `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` e `MESSAGE_CONTENT_ENCRYPTION_KEY` no `.env` local (já existem).
 - Passo a passo em `docs/infra-setup.md`, escrito na implementação.
 
@@ -137,7 +138,7 @@ Nenhum: é um canal interno de demonstração. A clínica de demonstração usa 
 - [ ] Falha no envio pela Evolution passa a conversa para a equipe, sem nada enviado.
 - [ ] No teto diário, a IA não é chamada.
 - [ ] Log sem conteúdo nem telefone em todos os caminhos, inclusive no de erro (teste com o `console` espionado).
-- [ ] **NX004, contra o banco:** o `authenticated` continua recusado ao gravar identificador (da Meta ou `evolution:`) e ao publicar agente na demonstração. O `service_role` grava `evolution:` e publica. Identificador da Meta é recusado na demonstração também pelo `service_role`.
+- [ ] **NX004, contra o banco:** o `authenticated` continua recusado ao gravar identificador (da Meta ou `evolution:`) e ao publicar agente na demonstração. O `service_role` grava `evolution:` e publica. Identificador da Meta é recusado na demonstração também pelo `service_role`, e `evolution:` é recusado em clínica que não é de demonstração, por qualquer papel.
 - [ ] **Conversas da demonstração:** a fila junta a conversa real com as de exemplo, na ordem e com a contagem certas. A real abre com as ações reais, e a de exemplo com o protótipo. A mensagem nova aparece ao vivo.
 - [ ] **Busca da demonstração por POST:** a página não lê `?q=`, e a busca acha a conversa real e a de exemplo.
 - [ ] **Isolamento:** o membro de outra clínica não vê a conversa real da demonstração (RLS e canal privado, contra o banco real).
