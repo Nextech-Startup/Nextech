@@ -2,9 +2,9 @@
 
 > **Para quem executa:** SUB-SKILL OBRIGATÓRIA: `superpowers:executing-plans`, tarefa por tarefa, sem subagentes. Carregue `supabase-postgres-best-practices` antes das tarefas 2 e 3, e `frontend-design` com `ui-ux` antes das tarefas 4, 5 e 6. Os passos usam checkbox (`- [ ]`).
 
-## Status da execução: 🟡 tarefas 1 a 6 feitas e revisadas; falta a verificação final e a tarefa 7
+## Status da execução: ✅ concluído em 2026-10-11
 
-Sessão de 2026-10-11. Tudo na `staging` local, **sem push**: o push é o último passo da tarefa 7.
+Duas sessões no mesmo dia: a primeira fez as tarefas 1 a 6 e as revisões; a segunda, a revisão visual da busca nova, a verificação final, as conferências e a tarefa 7. Tudo na `staging`, com push no fim.
 
 ### Feito
 
@@ -14,7 +14,16 @@ Sessão de 2026-10-11. Tudo na `staging` local, **sem push**: o push é o últim
   - `98350c4`: ajustes da revisão visual (tarefa 6);
   - `d57415a`: achados baixos e observações da revisão de segurança;
   - `e5745e3`: lacunas da revisão de QA;
-  - `2cb5ca9`: busca da fila por POST (achado médio de segurança, decisão do Jhones).
+  - `2cb5ca9`: busca da fila por POST (achado médio de segurança, decisão do Jhones);
+  - `9bb3673`: a busca volta à fila com o campo vazio (revisão visual da busca);
+  - `5c9f8a3`: achados da conferência de segurança (papel na leitura, log do `next dev`, recorte da trilha);
+  - `913c0cf`: achados da conferência de QA (falha de rede nas ações do painel, busca em funções puras, casos de banco do suporte, do tempo real e do curinga);
+  - o commit desta documentação.
+- **Revisão visual da busca (segunda sessão):**
+  - clínica temporária, nos dois temas, em 1440 e 390 px, sem rolagem horizontal; a clínica, o owner temporário e todo o dado dela foram apagados e conferidos no banco;
+  - busca por nome e pelos 4 últimos dígitos, limpar, troca de recorte com a busca ativa (o termo fica, e o recorte sem a achada mostra o vazio), abrir a achada e voltar à fila no celular;
+  - nenhuma URL de requisição ou navegação levou o termo: ele só aparece no corpo do POST para `/dashboard/conversations`;
+  - **achado e corrigido (`9bb3673`):** apagar o termo pelo × do campo, pelo Esc ou pelo Backspace deixava o campo vazio com a lista ainda filtrada. A busca virou o redutor puro `reduzirBusca`: o campo vazio volta à fila, só vale a resposta da última busca (a que volta depois de limpar é descartada) e a falha de rede vira o aviso da busca, em vez de a rejeição dentro do `startTransition` derrubar a tela. Conferido no navegador com a resposta atrasada e com o POST abortado de propósito.
 - **Banco:** seis migrations, aplicadas uma a uma depois do `--dry-run`. O banco tem 29.
   - `20261011120000_conversation_panel.sql`: `conversation_events`, as três RPCs do painel e `conversation_previews`;
   - `20261011130000_conversations_realtime.sql`: `conversations` na publicação (desfeita pela seguinte);
@@ -26,12 +35,20 @@ Sessão de 2026-10-11. Tudo na `staging` local, **sem push**: o push é o últim
   - feita com uma clínica temporária, nos dois temas, em 1440 e 390 px, sem rolagem horizontal;
   - testados no navegador o tempo real (a mensagem nova aparece em ~3 s sem recarregar), as três ações, o fluxo de suporte e o erro da justificativa;
   - a clínica, o usuário temporário e a trilha de suporte dela foram apagados, e o banco foi conferido vazio.
-  - **Depois disso a busca mudou** (`BuscaDaFila`): a tela nova da busca ainda não foi vista no navegador.
-- **Revisões:** `security-reviewer` e `qa-reviewer` rodaram uma vez. Achados e destino abaixo. **As conferências das correções ainda não foram pedidas.**
-- **Testes:** cada arquivo afetado foi rodado depois da última mudança e passou.
-  - Unitários e travas: 1131 em 94 arquivos, mais os 695 de `lib`.
-  - Banco: painel 27, leitura 15, tempo real 11, suporte 14, painel e IA 2, webhook 30.
-  - **A suíte inteira ainda não rodou no último commit.** A rodada de `98350c4` deu 1458 testes e saída 0, mas houve edição de código durante ela, então não vale como prova.
+  - depois disso a busca mudou (`BuscaDaFila`, por POST), e a tela nova foi revista na segunda sessão (abaixo).
+- **Revisões:** `security-reviewer` e `qa-reviewer`, com conferência das correções e das correções da conferência.
+  - **Conferência de segurança** (`d57415a` e `2cb5ca9`): as cinco correções do `d57415a` fechadas; a busca por POST fechada com ressalva, porque abriu um achado médio e dois baixos, corrigidos em `5c9f8a3`:
+    - **médio:** a server action `buscar` não conferia o papel. A página barra o profissional, mas a action é um POST que qualquer membro logado alcança, e a RLS libera as linhas a todo membro: o profissional recebia até 100 conversas com a prévia decifrada. A trava foi para a lib (`contextoDaTela` em `lib/conversations/queries.ts`), com a regra do menu, e vale para a fila, a busca, a conversa e o aviso;
+    - **baixo:** o `next dev` imprime os argumentos de cada server action (o da busca é nome ou telefone): `logging.serverFunctions: false`, travado por teste;
+    - **baixo:** o recorte "Suporte" da trilha mandava `conversation.list_view` para "Clínicas": agora usa o `suporte` da descrição do registro.
+  - **Segunda conferência de segurança** (`5c9f8a3` e `913c0cf`): tudo fechado, sem achado novo. A observação sobre o comentário de `podeAcessar` (agora barreira do conteúdo decifrado, não só usabilidade) entrou no `913c0cf`.
+  - **Conferência de QA** (`e5745e3` e `2cb5ca9`, mais os commits do dia): as lacunas originais fechadas, três com ressalva, tratadas no `913c0cf`:
+    - **defeito:** `pedirAcao` não capturava a falha de rede da server action, e a rejeição dentro do `startTransition` levava a tela para o `error.tsx` ao assumir, devolver ou resolver. O teste novo falha sem a correção;
+    - a busca ganhou `termoParaBuscar`, `pedirBusca` e `vistaDaBusca`, com teste da falha de rede, do termo só com espaços e da achada fora e dentro do recorte;
+    - contra o banco: o acesso a A não abre B nas duas funções do suporte, o colega não lê a lista; a reconexão da Meta avisa, e o evento de conta de B não chega a A; o curinga `%` testado com "Jo%na".
+  - **Segunda conferência de QA** (`913c0cf`): os cinco itens fechados, sem lacuna nova.
+- **Testes:** suíte inteira no último commit, 1546 testes em 121 arquivos, saída 0, sem edição durante a rodada; `npx tsc --noEmit` e `npm run build` com saída 0.
+- **Revisão no navegador do build final:** o roteiro da busca (26 checagens) em 1440 escuro e 390 claro, e o de falhas (Esc, Backspace, resposta atrasada, POST abortado), de novo numa clínica temporária apagada e conferida no banco.
 
 ### Ajustes feitos durante a execução, além do que o plano descrevia
 
@@ -46,6 +63,9 @@ Sessão de 2026-10-11. Tudo na `staging` local, **sem push**: o push é o últim
 | Tempo real | A tela relê ao entrar e ao voltar ao canal; o evento de conta da Meta também avisa | Revisão de QA: o aviso perdido enquanto caído não chegava, e a faixa de desconexão só aparecia ao recarregar |
 | Busca | Por POST: estado da tela, server action `buscar` e RPC `search_conversations`; a página real não lê `?q=` | Revisão de segurança: o termo ia para o log do Supabase e da Vercel e para o histórico. Decisão do Jhones |
 | Tela | Botões com `data-acao` e o despacho em `pedirAcao`, testável sem DOM | Revisão de QA: o projeto não tem DOM nos testes |
+| Busca | Redutor puro `reduzirBusca` no lugar do `useTransition`: o campo vazio volta à fila e só vale a resposta da última busca | Revisão visual: o × do campo, o Esc e o Backspace deixavam a lista filtrada com o campo vazio |
+| Leitura | Trava de papel na lib (`contextoDaTela`), e não só na página | Conferência de segurança: a server action da busca é alcançável por qualquer membro logado |
+| Configuração | `logging.serverFunctions: false` no `next.config.mjs` | Conferência de segurança: o `next dev` imprimia o termo da busca no terminal |
 
 ### Achados das revisões que ficaram para depois (registrar em `docs/status.md` na tarefa 7)
 
@@ -57,22 +77,6 @@ Sessão de 2026-10-11. Tudo na `staging` local, **sem push**: o push é o últim
 - **Clique dos botões sem teste de DOM:** coberto por `data-acao` e `pedirAcao`, e no navegador pela revisão visual. Um teste de clique pediria `jsdom` e `@testing-library/react` como dependências de desenvolvimento.
 - **Resultado da busca não se atualiza sozinho** com o tempo real: a fila sim, mas a lista buscada só ao buscar de novo.
 
-### O que falta, em ordem (próxima sessão)
-
-1. **Revisão visual da busca nova** (tarefa 6, só a busca):
-   - clínica temporária com dado de teste, como na tarefa 6;
-   - na tela real, buscar por nome e pelos 4 últimos dígitos e conferir que a URL não ganha `?q=`; limpar; trocar de recorte com a busca ativa; abrir uma conversa achada;
-   - os dois temas, 1440 e 390 px, sem rolagem horizontal;
-   - apagar tudo no fim e conferir no banco.
-2. **Verificação final:**
-   - suíte inteira no último commit, sem editar nada enquanto ela roda;
-   - `npx tsc --noEmit` e `npm run build`.
-3. **Conferência das correções:**
-   - pedir ao `security-reviewer` a conferência das correções da revisão dele: `d57415a` e `2cb5ca9`;
-   - pedir ao `qa-reviewer` a conferência das correções da revisão dele: `e5745e3` e `2cb5ca9`;
-   - tratar os achados e pedir a conferência dessas correções também.
-4. **Tarefa 7:** documentação, memória e push.
-
 ### O que a próxima sessão precisa saber
 
 - **Vitest:**
@@ -83,11 +87,15 @@ Sessão de 2026-10-11. Tudo na `staging` local, **sem push**: o push é o últim
 - **Login do owner temporário no script de captura:** acrescente a credencial no `CREDS` do `shot.mjs` a partir do JSON do script.
 - **O 404 de `/_vercel/insights/script.js`** no `next start` local é o Vercel Analytics, que só existe na Vercel.
 - **Relógio do banco ~1 s à frente** do da máquina e da aplicação: comparação entre `created_at` do banco e o "agora" da aplicação precisa de folga.
+- **Revisão no navegador:**
+  - o `TaskStop` do `next start` em segundo plano não mata o node filho: a porta 3100 continua ocupada. Conferir com `Get-NetTCPConnection -LocalPort 3100` e parar o processo pelo PID, depois de ver na linha de comando que é o `next start`;
+  - no celular, a fila escondida continua no DOM com a conversa aberta: o seletor precisa de `.filter({ visible: true })`;
+  - para provar que um termo não vai para a URL, registrar toda requisição e navegação (`page.on("request")` e `framenavigated`) e ignorar o `q=75` do `/_next/image`, que é a qualidade da imagem.
+- **Server action é endpoint público:** qualquer membro logado chama, sem passar pela página. Trava de papel fica na lib, nunca só na página.
 - **Próximas sessões, nesta ordem:**
-  1. terminar esta parte (o que falta, acima);
-  2. a correção da posse do WhatsApp (pendência alta de `docs/status.md`);
-  3. MFA no painel interno;
-  4. a parte 5 da 3b (áudio e preview).
+  1. a correção da posse do WhatsApp (pendência alta de `docs/status.md`);
+  2. MFA no painel interno;
+  3. a parte 5 da 3b (áudio e preview).
 
 **Objetivo:** a clínica comum passa a ter a tela real de Conversas, com a fila e a conversa decifradas no servidor, atualização em tempo real, as ações de assumir, devolver e resolver urgência, e o aviso de desconexão do WhatsApp. A equipe Nextech ganha o acesso de suporte com justificativa e trilha. A conta de demonstração continua com a fixture.
 
@@ -1397,14 +1405,14 @@ Carregar `frontend-design` e `ui-ux` antes.
 
 ## Verificação final (antes da tarefa 7)
 
-- [ ] `npx vitest run` inteiro em segundo plano, com timeout longo, gravando num arquivo do scratchpad com o commit no topo e `echo exit=$?` no fim. Ler o resultado.
-- [ ] `npx tsc --noEmit` e `npm run build`, com o código de saída.
-- [ ] Revisão do `qa-reviewer` e do `security-reviewer` sobre o diff da parte. Tratar os achados, rodar de novo e pedir a conferência das correções, inclusive das correções da própria conferência. *(Revisões feitas e achados tratados em `d57415a`, `e5745e3` e `2cb5ca9`; faltam as conferências.)*
+- [x] `npx vitest run` inteiro em segundo plano, com timeout longo, gravando num arquivo do scratchpad com o commit no topo e `echo exit=$?` no fim. Ler o resultado.
+- [x] `npx tsc --noEmit` e `npm run build`, com o código de saída.
+- [x] Revisão do `qa-reviewer` e do `security-reviewer` sobre o diff da parte. Tratar os achados, rodar de novo e pedir a conferência das correções, inclusive das correções da própria conferência. *(Revisões em `d57415a`, `e5745e3` e `2cb5ca9`; conferências e correções delas em `5c9f8a3` e `913c0cf`, todas fechadas.)*
 
 ### Tarefa 7: Documentação e fechamento
 
-- [ ] **Este plano:** status da execução, commits, ajustes e "O que a próxima sessão precisa saber" (a próxima sessão é a correção da posse do WhatsApp).
-- [ ] **Spec `conversation-engine-v1.md`:** a parte 4 em "Implementação" e o critério de aceite atualizado onde a tela entra (eco, retomada e urgência agora com ação pelo painel).
-- [ ] **`docs/roadmap.md` e `docs/status.md`:** a parte 4 concluída; a próxima sessão; a pendência de go-live "parte 4" riscada; o contador de testes e de migrations; e os achados que ficaram para depois (seção acima), com o MFA e a posse como bloqueios de go-live.
-- [ ] **Memória:** arquitetura (parte 4: Broadcast privado por clínica sem dado, RPC de linha única, busca por POST, trava do suporte na lib) e ambiente Supabase (29 migrations, relógio do banco ~1 s adiantado). E o aprendizado do Vitest (`beforeEach` que devolve função).
-- [ ] `git checkout -- CLAUDE.md`, commit `docs: fecha a parte 4 da 3b e aponta a correção da posse como próxima sessão`, `git status` limpo e `git push origin staging`.
+- [x] **Este plano:** status da execução, commits, ajustes e "O que a próxima sessão precisa saber" (a próxima sessão é a correção da posse do WhatsApp).
+- [x] **Spec `conversation-engine-v1.md`:** a parte 4 em "Implementação" e o critério de aceite atualizado onde a tela entra (eco, retomada e urgência agora com ação pelo painel).
+- [x] **`docs/roadmap.md` e `docs/status.md`:** a parte 4 concluída; a próxima sessão; a pendência de go-live "parte 4" riscada; o contador de testes e de migrations; e os achados que ficaram para depois (seção acima), com o MFA e a posse como bloqueios de go-live.
+- [x] **Memória:** arquitetura (parte 4: Broadcast privado por clínica sem dado, RPC de linha única, busca por POST, trava do suporte na lib) e ambiente Supabase (29 migrations, relógio do banco ~1 s adiantado). E o aprendizado do Vitest (`beforeEach` que devolve função).
+- [x] `git checkout -- CLAUDE.md`, commit `docs: fecha a parte 4 da 3b e aponta a correção da posse como próxima sessão`, `git status` limpo e `git push origin staging`.

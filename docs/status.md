@@ -1,6 +1,6 @@
 # Status do Projeto — Nextech SaaS
 
-> Atualizado em 2026-09-27. Documento de acompanhamento: o que está pronto, o que falta e o que bloqueia.
+> Atualizado em 2026-10-11. Documento de acompanhamento: o que está pronto, o que falta e o que bloqueia.
 
 ## Onde estamos
 
@@ -9,13 +9,15 @@
 | 1 — Specs do MVP | ✅ concluída — 9 specs |
 | 2 — Repo, CLAUDE.md, skills | ✅ concluída |
 | **3a — Fundação multi-tenant** | ✅ concluída |
-| **3b — Motor de conversa** | 🟡 partes 1, 2 e 3 de 5 ✅ (dados e recepção; decisão e resposta da IA; urgência, opt-out, manutenção pelo pg_cron e qualificação); falta: parte 4 (tela de Conversas) e parte 5 (preview e áudio) |
+| **3b — Motor de conversa** | 🟡 partes 1 a 4 de 5 ✅ (dados e recepção; decisão e resposta da IA; urgência, opt-out, manutenção pelo pg_cron e qualificação; tela real de Conversas e acesso de suporte); falta: parte 5 (preview e áudio) |
 | **3c — Shell de navegação** | ✅ concluída |
-| **Conta de demonstração** | ✅ concluída (`docs/specs/demo-account-v1.md`): todas as telas do painel na "Clínica Demonstração Nextech", com dado de exemplo e selo. **Próxima sessão:** parte 4 da 3b (tela de Conversas) |
+| **Conta de demonstração** | ✅ concluída (`docs/specs/demo-account-v1.md`): todas as telas do painel na "Clínica Demonstração Nextech", com dado de exemplo e selo |
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**1322 testes passando** · 23 migrations aplicadas · em produção em `app.nextech.ia.br`
+**1546 testes passando** · 29 migrations aplicadas · em produção em `app.nextech.ia.br`
+
+**Próximas sessões, nesta ordem:** (1) a correção da posse do WhatsApp; (2) o MFA no painel interno; (3) a parte 5 da 3b (preview e áudio). As duas primeiras são bloqueios de go-live (Pendências, abaixo).
 
 ---
 
@@ -170,6 +172,24 @@ Planos: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3.md` e `docs
   - é a fonte do funil do `dashboard-overview-v1.md`.
 - **Correção da conferência:** a `confirm_ai_reply` não fecha mais a sessão vencida (migration `20260927230000`). A mensagem atrasada volta a cair no mesmo atendimento.
 
+### Parte 4: tela real de Conversas ✅ (2026-10-11)
+
+Plano: `docs/superpowers/plans/2026-10-11-motor-de-conversa-parte-4-tela-de-conversas.md`. A conta de demonstração continua com a fixture.
+- **Tela da clínica** (`/dashboard/conversations`, owner e staff):
+  - fila e conversa decifradas no servidor: as 100 mais recentes mais todas as urgentes, e as 200 últimas mensagens;
+  - tempo real por Broadcast privado da clínica (`conversas:<clinic_id>`), sem conteúdo nem telefone no aviso: a tela relê do servidor;
+  - assumir, devolver para a IA e resolver a urgência;
+  - busca por nome ou telefone por POST, sem o termo na URL;
+  - aviso de desconexão do WhatsApp; no lugar do compositor, a tela explica que a resposta sai pelo WhatsApp Business no celular.
+- **Trava de papel na lib** (`lib/conversations/queries.ts`): a RLS libera as linhas a todo membro, mas o conteúdo decifrado só sai para quem tem a tela. A server action é um POST que qualquer membro logado alcança.
+- **Ações do painel:** três RPCs com um `update` condicionado ao estado e o evento em `conversation_events` (quem agiu e quando) na mesma transação. O papel é conferido no banco.
+- **Acesso de suporte** (`/admin/conversations`):
+  - justificativa por clínica (motivo e número do chamado), 30 min;
+  - a lista grava `conversation.list` e, a cada releitura, `conversation.list_view`; cada conversa aberta grava `conversation.view` antes de aparecer;
+  - telefone mascarado; links sem prefetch.
+- **Banco:** migrations `20261011120000_conversation_panel.sql`, `20261011130000_conversations_realtime.sql` (desfeita pela seguinte), `20261011140000_conversations_private_broadcast.sql`, `20261011150000_conversation_panel_hardening.sql`, `20261011160000_account_events_broadcast.sql` e `20261011170000_conversation_search.sql`.
+- **Revisões:** `security-reviewer` e `qa-reviewer`, com conferência das correções e das correções da conferência. A revisão visual foi feita no navegador, numa clínica temporária já apagada, nos dois temas e em 1440 e 390 px. Achados que ficaram para depois: Pendências e Dívida técnica, abaixo.
+
 **Herda de `agent-config-v1`:** o **preview de conversa** (comportamento 3 e
 critério de aceite 3 daquela spec) não foi entregue — depende deste motor. A
 tela do agente já mostra o cartão "Testar conversa" como inerte, em vez de
@@ -230,7 +250,8 @@ Spec `docs/specs/demo-account-v1.md`; plano `docs/superpowers/plans/2026-09-27-c
 
 ### Precisam de ação do Jhones
 
-- [ ] **Prioridade (segurança, alto, anterior à conta de demonstração): conexão do WhatsApp sem prova de posse pelo PostgREST.** O `authenticated` tem insert e update em `whatsapp_phone_number_id`, `whatsapp_waba_id` e `whatsapp_access_token_encrypted` de `agents` (`20260916240000_agent_config.sql`). Assim, o dono de uma clínica grava direto o número de outra, sem o `conferirPosse`, que só existe na aplicação. Se essa outra estiver desconectada, as mensagens dos pacientes dela passam a ser gravadas na clínica dele, mesmo com o agente em rascunho. Correção proposta: revogar as três colunas do `authenticated` e gravar a conexão no servidor, depois da prova de posse (contexto de serviço ou RPC). Muda grant de tabela existente, por isso pede confirmação. Achado da conferência de segurança da conta de demonstração (2026-09-27); é bloqueio de go-live
+- [ ] **Prioridade (segurança, alto, anterior à conta de demonstração): conexão do WhatsApp sem prova de posse pelo PostgREST.** O `authenticated` tem insert e update em `whatsapp_phone_number_id`, `whatsapp_waba_id` e `whatsapp_access_token_encrypted` de `agents` (`20260916240000_agent_config.sql`). Assim, o dono de uma clínica grava direto o número de outra, sem o `conferirPosse`, que só existe na aplicação. Se essa outra estiver desconectada, as mensagens dos pacientes dela passam a ser gravadas na clínica dele, mesmo com o agente em rascunho. Correção proposta: revogar as três colunas do `authenticated` e gravar a conexão no servidor, depois da prova de posse (contexto de serviço ou RPC). Muda grant de tabela existente, por isso pede confirmação. Achado da conferência de segurança da conta de demonstração (2026-09-27); é bloqueio de go-live. **A tela de Conversas (parte 4) agrava o impacto:** quem desviar o número de outra clínica passa a ler as mensagens dos pacientes dela decifradas e ao vivo. É a próxima sessão, e precisa vir antes de qualquer número real
+- [ ] **MFA (aal2) no painel interno, bloqueio de go-live** (revisão de segurança da parte 4, sessão própria por decisão do Jhones): sem MFA, quem roubar a senha de um admin lê dado de saúde de todas as clínicas pelo acesso de suporte. Plano: TOTP do Supabase Auth, com cadastro por QR code, desafio no login e um `requireSupportContext()` que exige aal2
 - [ ] **DNS de `nextech.ia.br` sem `www`** — não resolve. Precisa de registro `A` para `76.76.21.21` ou o ALIAS que a Vercel indicar; CNAME não funciona em domínio raiz
 - [ ] **Proteção de deployment do `staging`** — hoje exige login da Vercel (302 para SSO). Desativar em Settings → Deployment Protection, se quiser acesso direto
 - [ ] **Credenciais da Meta** — iniciar o processo, que leva tempo e não trava código
@@ -239,7 +260,8 @@ Spec `docs/specs/demo-account-v1.md`; plano `docs/superpowers/plans/2026-09-27-c
   - ~~a triagem de urgência, o opt-out e a varredura das respostas `pending`~~: entraram na parte 3 da 3b;
   - ~~a qualificação~~: entrou na parte 3 da 3b;
   - **conferir o `OPENROUTER_MODEL` de produção:** a resposta exige endpoint com ZDR e saída estruturada ao mesmo tempo. Sem nenhum, todo pedido falha fechado e toda conversa vai para a equipe. Em 2026-09-27, o `google/gemini-2.5-flash` tinha 4 endpoints assim, todos do Google Vertex. Observação da revisão de segurança da qualificação;
-  - a parte 4 (tela de Conversas): sem ela, desfazer a urgência e ver o alerta só é possível direto no banco. Uma conversa urgente, inclusive por falso positivo, fica com a IA calada até alguém desfazer;
+  - ~~a parte 4 (tela de Conversas)~~: entrou em 2026-10-11. A equipe desfaz a urgência pelo painel ("Marcar como resolvida"), e a urgente fica no topo da fila;
+  - a correção da posse do WhatsApp e o MFA no painel interno (itens acima);
   - a triagem de áudio, que vem com a transcrição (parte 5). Até lá, áudio com relato de urgência não escala;
   - o limite de atendimentos do plano (fase 7). Até lá, a IA responde sem conferir o limite
 - [ ] **Envs da IA e da Meta na Vercel**, nos três ambientes: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` e `WHATSAPP_API_VERSION`, e o ZDR do grupo Google na conta do OpenRouter. Passo a passo em `docs/infra-setup.md`
@@ -272,6 +294,9 @@ Spec `docs/specs/demo-account-v1.md`; plano `docs/superpowers/plans/2026-09-27-c
   Integrações, as fases 3b, 5 e 6
 - [ ] **Clínicas "Completa Ltda" no banco**: duas, sem responsável, parecem resíduo
   de teste antigo. Confirmar e apagar
+- [ ] **"Clínica a (conversas)" no banco** (`4664b646-…`, de 2026-09-27): resíduo de um
+  teste de banco, com o owner `teste-conv-a-…@exemplo.test` (nunca entrou) e um paciente
+  fictício. Achado na limpeza da revisão visual da parte 4. Confirmar e apagar
 
 ### Dívida técnica conhecida
 
@@ -305,7 +330,12 @@ Spec `docs/specs/demo-account-v1.md`; plano `docs/superpowers/plans/2026-09-27-c
 - [ ] **Opt-out antes das sequências (fase 4)** — hoje só a mensagem inteira conta (`parar`, `pare`, `sair`, `stop`, `descadastrar`). Antes da primeira sequência: frases inteiras comuns ("não quero mais receber", "parem de mandar mensagem") e opt-out manual pela equipe na tela de Conversas. Observação O4 da revisão de segurança da parte 3, decisão do Jhones
 - [ ] **Tabela `projetoAtivo`** — existe no banco, nenhum código a referencia. Resíduo ou uso externo? Mantida na baseline com nota
 - [ ] **Convite mostra senha na tela** — o `(admin)` exibe a senha provisória porque o Resend não está configurado. Vira convite por e-mail quando estiver
-- [ ] **`admin_audit_log` precisa de justificativa** — a fase 3c decidiu que ver conversa de paciente exige motivo registrado. **Desenho pronto (redesign, parte 4):** não precisa de migration. A ação vai na coluna `action`, que é texto (`conversation.list` e `conversation.view`), e a justificativa no `metadata`, só com o motivo de uma lista fechada e o número do chamado, sem texto livre. A regra está em `lib/admin/acesso-de-suporte.ts`, com teste; a gravação entra com a fase 3b
+- [x] ~~**`admin_audit_log` precisa de justificativa**~~ — entrou na parte 4 da 3b (2026-10-11): `conversation.list`, `conversation.list_view` e `conversation.view`, com o motivo e o número do chamado no `metadata`, gravados antes de o conteúdo aparecer
+- [ ] **`findPatientByPhone` busca o telefone num GET do PostgREST** (`lib/patients/queries.ts:55`, no caminho do webhook): o telefone do paciente vai para o log do Supabase a cada mensagem recebida (`lgpd-security`, regra 1). Preexistente; a saída é uma RPC por POST, como a busca de Conversas. Revisão de segurança da parte 4
+- [ ] **A clínica não vê quando o Nextech abriu as conversas dela** — a clínica é a controladora, e o Nextech, o operador. Expor os registros `conversation.*` do suporte ao owner numa fase futura. Revisão de segurança da parte 4
+- [ ] **`conversation_events.actor_user_id` com `on delete restrict`** — impede apagar a conta de um membro da equipe que já agiu numa conversa. Documentar a anonimização do autor, como em `admin_audit_log`. Revisão de segurança da parte 4
+- [ ] **Clique dos botões de Conversas sem teste de DOM** — coberto por `data-acao` e `pedirAcao`, e no navegador pela revisão visual. Um teste de clique pediria `jsdom` e `@testing-library/react` como dependências de desenvolvimento. Revisão de QA da parte 4
+- [ ] **O resultado da busca de Conversas não se atualiza sozinho** — a fila se atualiza pelo tempo real, mas a lista buscada só ao buscar de novo. Revisão de QA da parte 4
 
 ---
 

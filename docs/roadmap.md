@@ -20,15 +20,17 @@ Divisão decidida no documento de arquitetura (`docs/superpowers/specs/2026-09-1
 
 Ao fim de 3a: a clínica existe, tem perfil e equipe, e um agente configurado — que ainda não conversa. **Fase concluída em 2026-09-16** (PR #6), com 371 testes.
 
-### Fase 3b — Motor de conversa 🟡 (partes 1, 2 e 3 de 5)
+### Fase 3b — Motor de conversa 🟡 (partes 1 a 4 de 5)
 Spec escrita em `docs/specs/conversation-engine-v1.md`. Dividida em cinco partes, por dependência (decisão do Jhones, 2026-09-27):
 1. ✅ **Dados e recepção** (2026-09-27): conversas, mensagens cifradas, sessões de atendimento e eventos de conta, com RLS por clínica; webhook da Meta com assinatura, eco da coexistência e reenvio idempotente, contra mock. Plano em `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-1.md`.
 2. ✅ **Decisão e resposta da IA** (2026-09-27): retomada em 24h, janela e agente ativo; agrupamento de 10 s, OpenRouter com retenção zero, envio, contagem e fechamento por contagem, colunas de custo, status de entrega e prova de posse do número na conexão. Plano em `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-2.md`.
 3. ✅ **Urgência, opt-out e qualificação**, com o cron de timeout da sessão. **Pré-requisito do go-live.**
    - ✅ Urgência, opt-out e manutenção (2026-09-27): triagem na recepção com o protocolo da própria clínica, escalada numa transação, opt-out que vale com o agente pausado, e o pg_cron fechando sessões vencidas e varrendo respostas órfãs a cada 5 min. Plano em `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3.md`.
    - ✅ Qualificação (2026-09-27): a mesma chamada ao OpenRouter devolve a resposta e a intenção de agendar por saída estruturada (`require_parameters`, com o ZDR fixo). `qualified_at` é gravado uma vez por conversa e alimenta o funil. Plano em `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3-qualificacao.md`.
-4. ⬜ **Tela real de Conversas**, com Realtime, aviso de desconexão e acesso de suporte.
+4. ✅ **Tela real de Conversas** (2026-10-11): fila e conversa decifradas no servidor, só para owner e staff; tempo real por Broadcast privado da clínica, sem dado no aviso; assumir, devolver para a IA e resolver a urgência, com trilha em `conversation_events`; busca por POST, sem o termo na URL; aviso de desconexão do WhatsApp; e o acesso de suporte do painel interno, com justificativa, 30 min e trilha antes do conteúdo. Plano em `docs/superpowers/plans/2026-10-11-motor-de-conversa-parte-4-tela-de-conversas.md`.
 5. ⬜ **Preview do agente e áudio.**
+
+**Antes da parte 5, nesta ordem:** a correção da posse do WhatsApp (bloqueio de go-live que a tela de Conversas agrava) e o MFA no painel interno. Ver `docs/status.md`.
 
 Escopo completo da fase:
 - Webhook nativo de WhatsApp
@@ -180,7 +182,7 @@ Plano: `docs/superpowers/plans/2026-09-26-redesign-do-painel-parte-4.md`, execut
 - a justificativa é por clínica e libera a lista por 30 min;
 - ver a lista (`conversation.list`) e abrir cada conversa (`conversation.view`) viram registros separados, com a mesma justificativa;
 - a justificativa é um motivo de lista fechada mais o número do chamado, só com dígitos. Sem texto livre, a trilha nunca guarda nome de paciente;
-- na fase 3b, `AcaoDeSuporte` se junta ao `AdminAction` de `lib/admin/audit.ts`, e o item "Conversas" (`/admin/conversations`) vira a escolha da clínica, com a clínica em `/admin/clinics/[id]/conversations`.
+- na fase 3b, `AcaoDeSuporte` se junta ao `AdminAction` de `lib/admin/audit.ts`, e o item "Conversas" (`/admin/conversations`) vira a escolha da clínica. *Feito na parte 4 da 3b (2026-10-11):* a clínica ficou em `/admin/conversations/[clinica]` e a conversa em `/admin/conversations/[clinica]/[conversa]`; cada leitura da lista também grava `conversation.list_view`, que não renova o acesso.
 
 **Regras puras** em `lib/admin/`, ao lado do `audit.ts` real, todas com teste: `consumo.ts`, `conexoes.ts`, `saude.ts`, `acesso-de-suporte.ts` e `auditoria.ts`.
 
