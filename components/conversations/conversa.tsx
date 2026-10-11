@@ -299,12 +299,12 @@ export function Conversa({
         )}
 
         <div className="min-h-0 flex-1 overflow-y-auto bg-surface-0/30 px-4 py-5">
-          <div className="grid gap-5">
+          <div className="grid grid-cols-1 gap-5">
             {conversa.historicoCortado && (
               <p className="text-center text-xs text-ink-3">Mensagens anteriores não aparecem aqui.</p>
             )}
             {dias.map((dia) => (
-              <section key={dia.chave} aria-label={rotuloDoDia(dia.chave, agora)} className="grid gap-2.5">
+              <section key={dia.chave} aria-label={rotuloDoDia(dia.chave, agora)} className="grid grid-cols-1 gap-2.5">
                 <p className="text-center text-xs font-medium text-ink-3">{rotuloDoDia(dia.chave, agora)}</p>
                 {dia.itens.map((item) => (
                   <Item key={item.id} item={item} />
@@ -581,9 +581,9 @@ function RodapeReal({
           </Botao>
         </div>
       ) : (
-        <p className={caixa}>
-          <Smartphone aria-hidden="true" className="size-4 shrink-0 text-ink-3" />
-          Responda pelo WhatsApp Business no celular da clínica: a mensagem aparece aqui.
+        <p className={cn(caixa, "flex-nowrap items-start")}>
+          <Smartphone aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-ink-3" />
+          <span>Responda pelo WhatsApp Business no celular da clínica: a mensagem aparece aqui.</span>
         </p>
       )}
     </div>

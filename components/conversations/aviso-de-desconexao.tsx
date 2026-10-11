@@ -40,11 +40,12 @@ export function AvisoDeDesconexao({
         ))}
       </div>
       {podeReconectar ? (
-        <Link href={agentesHref} className="font-medium underline underline-offset-4">
+        // No celular, o caminho desce para a linha de baixo, alinhado ao texto.
+        <Link href={agentesHref} className="basis-full pl-8 font-medium underline underline-offset-4 sm:basis-auto sm:pl-0">
           Reconectar em Agentes
         </Link>
       ) : (
-        <p className="font-medium">Avise o responsável pela conta da clínica.</p>
+        <p className="basis-full pl-8 font-medium sm:basis-auto sm:pl-0">Avise o responsável pela conta da clínica.</p>
       )}
     </div>
   )
