@@ -70,15 +70,21 @@ describe("filtrarTrilha", () => {
     registro({ id: "b", acao: "conversation.list", instante: "2026-09-28T14:20:00-03:00" }),
     registro({ id: "c", acao: "conversation.view", instante: "2026-09-28T14:23:00-03:00", autor: "Rafael Nunes" }),
     registro({ id: "d", acao: "clinic.list", instante: "2026-09-28T09:00:00-03:00", clinica: null }),
+    registro({ id: "e", acao: "conversation.list_view", instante: "2026-09-28T14:21:00-03:00" }),
   ]
 
   it("do mais recente para o mais antigo", () => {
-    expect(filtrarTrilha(TRILHA, { tipo: "todos" }).map((r) => r.id)).toEqual(["c", "b", "d", "a"])
+    expect(filtrarTrilha(TRILHA, { tipo: "todos" }).map((r) => r.id)).toEqual(["c", "e", "b", "d", "a"])
   })
 
-  it("separa os acessos de suporte do resto", () => {
-    expect(filtrarTrilha(TRILHA, { tipo: "suporte" }).map((r) => r.id)).toEqual(["c", "b"])
+  it("separa os acessos de suporte do resto, inclusive a releitura da lista", () => {
+    expect(filtrarTrilha(TRILHA, { tipo: "suporte" }).map((r) => r.id)).toEqual(["c", "e", "b"])
     expect(filtrarTrilha(TRILHA, { tipo: "clinicas" }).map((r) => r.id)).toEqual(["d", "a"])
+  })
+
+  it("o recorte concorda com a descrição de cada registro", () => {
+    const suporte = new Set(filtrarTrilha(TRILHA, { tipo: "suporte" }).map((r) => r.id))
+    for (const r of TRILHA) expect(suporte.has(r.id)).toBe(descreverRegistro(r).suporte)
   })
 
   it("filtra por clínica e por pessoa", () => {

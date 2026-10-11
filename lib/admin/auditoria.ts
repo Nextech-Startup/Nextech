@@ -144,15 +144,14 @@ export function lerCursor(bruto: string | string[] | undefined): string | undefi
 
 export type TipoDeRegistro = "todos" | "suporte" | "clinicas"
 
-const ehSuporte = (a: string) => a === "conversation.list" || a === "conversation.view"
-
 /** A trilha do mais recente para o mais antigo, com os recortes da tela. */
 export function filtrarTrilha(
   registros: readonly RegistroDaTrilha[],
   filtro: { tipo: TipoDeRegistro; clinica?: string; autor?: string },
 ): RegistroDaTrilha[] {
   return registros
-    .filter((r) => filtro.tipo === "todos" || (filtro.tipo === "suporte") === ehSuporte(r.acao))
+    // Suporte é o que a descrição marca como suporte: uma regra só, que cobre toda AcaoDeSuporte.
+    .filter((r) => filtro.tipo === "todos" || (filtro.tipo === "suporte") === descreverRegistro(r).suporte)
     .filter((r) => filtro.clinica === undefined || r.clinica === filtro.clinica)
     .filter((r) => filtro.autor === undefined || r.autor === filtro.autor)
     .sort((a, b) => new Date(b.instante).getTime() - new Date(a.instante).getTime())

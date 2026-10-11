@@ -16,9 +16,11 @@ import type { Autor, ConversaAberta, ConversaResumo } from "./tipos-da-tela"
 
 /**
  * Leitura da tela de Conversas, com o client que a chama: o da sessão (a
- * clínica, com RLS) ou o `service_role` do suporte. Toda consulta leva o
- * filtro de `clinic_id`: com o `service_role`, é ele que isola; com a
- * sessão, soma à RLS.
+ * clínica, com RLS) ou, só em `carregarConversa`, o `service_role` do
+ * suporte. A fila e a busca passam por RPCs sem grant ao `service_role`
+ * (`conversation_previews` e `search_conversations`) e falham fechadas com
+ * ele. Toda consulta leva o filtro de `clinic_id`: com o `service_role`, é
+ * ele que isola; com a sessão, soma à RLS.
  *
  * O conteúdo é decifrado aqui, no servidor, e nunca vai para log: a falha
  * de decifra loga só o tipo e o código do erro.

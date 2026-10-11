@@ -10,6 +10,11 @@ const nextConfig = {
     minimumCacheTTL: 31536000,
     qualities: [75, 85],
   },
+  logging: {
+    // O `next dev` imprime os argumentos de cada server action, e a busca de
+    // Conversas leva nome ou telefone de paciente (lgpd-security, regra 1).
+    serverFunctions: false,
+  },
   // Falha o build em erro de tipo: a checagem já passa limpa.
   typescript: {
     ignoreBuildErrors: false,

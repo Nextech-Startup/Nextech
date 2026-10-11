@@ -79,4 +79,15 @@ describe("buscar (server action da busca da fila)", () => {
     expect(registrado).not.toContain("Maria")
     expect(registrado).not.toContain("99999")
   })
+
+  it("o papel sem a tela (profissional chamando a action direto) não recebe conversa nenhuma", async () => {
+    const { SemAcessoAsConversas } = await vi.importActual<typeof import("@/lib/conversations/queries")>(
+      "@/lib/conversations/queries",
+    )
+    motor.buscarConversas.mockRejectedValue(new SemAcessoAsConversas())
+    const log = vi.spyOn(console, "error").mockImplementation(() => {})
+    expect(await buscar("Maria")).toEqual({ conversas: [], erro: "Não foi possível buscar. Tente de novo." })
+    expect(JSON.stringify(log.mock.calls)).toContain("SemAcessoAsConversas")
+    expect(JSON.stringify(log.mock.calls)).not.toContain("Maria")
+  })
 })
