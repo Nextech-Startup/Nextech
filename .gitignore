@@ -33,3 +33,12 @@ next-env.d.ts
 # Só configuração pessoal fica de fora.
 /.agents/
 /.claude/settings.local.json
+
+# Synkra AIOS v4.4.6 (instalado em 2026-10-11): o framework fica local, fora do
+# git. Dos agentes do Claude Code, só entram os revisados (pm e po); os outros
+# ficam locais até alguém ler o arquivo inteiro (regra 7 do CLAUDE.md).
+.aios-core/
+.aios/
+.claude/commands/AIOS/agents/*
+!.claude/commands/AIOS/agents/pm.md
+!.claude/commands/AIOS/agents/po.md
