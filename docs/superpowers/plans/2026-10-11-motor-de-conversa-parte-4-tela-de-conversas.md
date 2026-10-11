@@ -2,7 +2,92 @@
 
 > **Para quem executa:** SUB-SKILL OBRIGATÓRIA: `superpowers:executing-plans`, tarefa por tarefa, sem subagentes. Carregue `supabase-postgres-best-practices` antes das tarefas 2 e 3, e `frontend-design` com `ui-ux` antes das tarefas 4, 5 e 6. Os passos usam checkbox (`- [ ]`).
 
-## Status da execução: ⬜ não iniciado
+## Status da execução: 🟡 tarefas 1 a 6 feitas e revisadas; falta a verificação final e a tarefa 7
+
+Sessão de 2026-10-11. Tudo na `staging` local, **sem push**: o push é o último passo da tarefa 7.
+
+### Feito
+
+- **Commits:**
+  - `d23f285`: este plano;
+  - `2f78db5`, `117fda2`, `c934c1b`, `5e58906` e `9131c76`: tarefas 1 a 5;
+  - `98350c4`: ajustes da revisão visual (tarefa 6);
+  - `d57415a`: achados baixos e observações da revisão de segurança;
+  - `e5745e3`: lacunas da revisão de QA;
+  - `2cb5ca9`: busca da fila por POST (achado médio de segurança, decisão do Jhones).
+- **Banco:** seis migrations, aplicadas uma a uma depois do `--dry-run`. O banco tem 29.
+  - `20261011120000_conversation_panel.sql`: `conversation_events`, as três RPCs do painel e `conversation_previews`;
+  - `20261011130000_conversations_realtime.sql`: `conversations` na publicação (desfeita pela seguinte);
+  - `20261011140000_conversations_private_broadcast.sql`: Broadcast privado, com trigger e policy em `realtime.messages`;
+  - `20261011150000_conversation_panel_hardening.sql`: evento gravado com `VALUES`, prévia filtrada pela clínica e sem `service_role`, `lock_timeout` de 200 ms no aviso e `actor_email` marcado como PII;
+  - `20261011160000_account_events_broadcast.sql`: o evento de conta da Meta também avisa a tela;
+  - `20261011170000_conversation_search.sql`: `search_conversations`, a busca por POST.
+- **Revisão visual (tarefa 6):**
+  - feita com uma clínica temporária, nos dois temas, em 1440 e 390 px, sem rolagem horizontal;
+  - testados no navegador o tempo real (a mensagem nova aparece em ~3 s sem recarregar), as três ações, o fluxo de suporte e o erro da justificativa;
+  - a clínica, o usuário temporário e a trilha de suporte dela foram apagados, e o banco foi conferido vazio.
+  - **Depois disso a busca mudou** (`BuscaDaFila`): a tela nova da busca ainda não foi vista no navegador.
+- **Revisões:** `security-reviewer` e `qa-reviewer` rodaram uma vez. Achados e destino abaixo. **As conferências das correções ainda não foram pedidas.**
+- **Testes:** cada arquivo afetado foi rodado depois da última mudança e passou.
+  - Unitários e travas: 1131 em 94 arquivos, mais os 695 de `lib`.
+  - Banco: painel 27, leitura 15, tempo real 11, suporte 14, painel e IA 2, webhook 30.
+  - **A suíte inteira ainda não rodou no último commit.** A rodada de `98350c4` deu 1458 testes e saída 0, mas houve edição de código durante ela, então não vale como prova.
+
+### Ajustes feitos durante a execução, além do que o plano descrevia
+
+| Onde | O quê | Por quê |
+|---|---|---|
+| Tempo real | Broadcast privado (`conversas:<clinic_id>`, trigger com `realtime.send` e policy em `realtime.messages`) no lugar do `postgres_changes` | O teste mostrou que o `postgres_changes` manda ao anônimo um envelope vazio com "Error 401" a cada mudança de qualquer clínica. Decisão do Jhones |
+| Suporte | Folga de 1 min no acesso vigente (`FOLGA_DO_RELOGIO_MS`) | O relógio do banco está ~1 s à frente da aplicação: o acesso recém-gravado parecia do futuro e era recusado |
+| Suporte | A trava do acesso vigente vai para a lib (`listarConversasParaSuporte` e `abrirConversaParaSuporte` recebem `agora` e conferem sozinhas) | Revisão de QA: a trava só existia nas páginas, sem teste |
+| Suporte | Cada leitura da lista grava `conversation.list_view`, que não renova o acesso; o telefone sai mascarado do servidor (`mascararTelefone`) | Revisão de segurança (regra 4 e minimização) |
+| Tela | A ficha do paciente some fora da demonstração | Pacientes ainda é "em breve": o link dava 404 |
+| Tela | Trilhas do grid com mínimo 0 na linha do tempo; faixa de desconexão com o link embaixo no celular | Revisão visual: e-mail longo cortava as bolhas |
+| Tempo real | A tela relê ao entrar e ao voltar ao canal; o evento de conta da Meta também avisa | Revisão de QA: o aviso perdido enquanto caído não chegava, e a faixa de desconexão só aparecia ao recarregar |
+| Busca | Por POST: estado da tela, server action `buscar` e RPC `search_conversations`; a página real não lê `?q=` | Revisão de segurança: o termo ia para o log do Supabase e da Vercel e para o histórico. Decisão do Jhones |
+| Tela | Botões com `data-acao` e o despacho em `pedirAcao`, testável sem DOM | Revisão de QA: o projeto não tem DOM nos testes |
+
+### Achados das revisões que ficaram para depois (registrar em `docs/status.md` na tarefa 7)
+
+- **MFA (aal2) no painel interno, bloqueio de go-live:** sessão própria, decisão do Jhones. Sem MFA, quem roubar a senha de um admin lê dado de saúde de todas as clínicas pelo suporte. Plano: TOTP do Supabase Auth, com cadastro por QR code, desafio no login e um `requireSupportContext()` que exige aal2.
+- **A tela de Conversas agrava o achado alto da posse do WhatsApp:** quem desviar o número de outra clínica passa a ler as mensagens decifradas e ao vivo. A correção da posse precisa vir antes de qualquer número real.
+- **Preexistente, regra 1:** `lib/patients/queries.ts:55` (`findPatientByPhone`, no caminho do webhook) busca o telefone do paciente num GET do PostgREST. O telefone vai para o log do Supabase a cada mensagem recebida. Saída: RPC por POST, como a busca.
+- **Transparência:** a clínica (controladora) não vê quando o Nextech (operador) abriu as conversas dela. Expor `conversation.*` ao owner numa fase futura.
+- **`conversation_events.actor_user_id` com `on delete restrict`:** impede apagar a conta de um membro da equipe que já agiu. Documentar a anonimização do autor, como em `admin_audit_log`.
+- **Clique dos botões sem teste de DOM:** coberto por `data-acao` e `pedirAcao`, e no navegador pela revisão visual. Um teste de clique pediria `jsdom` e `@testing-library/react` como dependências de desenvolvimento.
+- **Resultado da busca não se atualiza sozinho** com o tempo real: a fila sim, mas a lista buscada só ao buscar de novo.
+
+### O que falta, em ordem (próxima sessão)
+
+1. **Revisão visual da busca nova** (tarefa 6, só a busca):
+   - clínica temporária com dado de teste, como na tarefa 6;
+   - na tela real, buscar por nome e pelos 4 últimos dígitos e conferir que a URL não ganha `?q=`; limpar; trocar de recorte com a busca ativa; abrir uma conversa achada;
+   - os dois temas, 1440 e 390 px, sem rolagem horizontal;
+   - apagar tudo no fim e conferir no banco.
+2. **Verificação final:**
+   - suíte inteira no último commit, sem editar nada enquanto ela roda;
+   - `npx tsc --noEmit` e `npm run build`.
+3. **Conferência das correções:**
+   - pedir ao `security-reviewer` a conferência das correções da revisão dele: `d57415a` e `2cb5ca9`;
+   - pedir ao `qa-reviewer` a conferência das correções da revisão dele: `e5745e3` e `2cb5ca9`;
+   - tratar os achados e pedir a conferência dessas correções também.
+4. **Tarefa 7:** documentação, memória e push.
+
+### O que a próxima sessão precisa saber
+
+- **Vitest:**
+  - **função devolvida pelo `beforeEach` vira limpeza.** `beforeEach(() => mock.mockReset())` devolve o mock, e o Vitest o chama depois do caso; se o mock lança, o caso falha sem motivo aparente. Use corpo em bloco;
+  - **a suíte lê os arquivos do disco enquanto roda:** não edite código com ela em andamento;
+  - `console.log` de dentro do teste pode não aparecer na saída. Para depurar, grave em arquivo.
+- **Script de dado temporário fora do repositório:** rode com `NODE_PATH="<repo>/node_modules" npx tsx <script>`, da raiz do projeto, sem `await` no topo (o tsx compila para CJS), importando `lib/conversations/conteudo.ts` pelo caminho absoluto. Depois que o `apagar` roda, confira no banco que não sobrou clínica, usuário (`teste-*@exemplo.test`) nem trilha `conversation.*`.
+- **Login do owner temporário no script de captura:** acrescente a credencial no `CREDS` do `shot.mjs` a partir do JSON do script.
+- **O 404 de `/_vercel/insights/script.js`** no `next start` local é o Vercel Analytics, que só existe na Vercel.
+- **Relógio do banco ~1 s à frente** do da máquina e da aplicação: comparação entre `created_at` do banco e o "agora" da aplicação precisa de folga.
+- **Próximas sessões, nesta ordem:**
+  1. terminar esta parte (o que falta, acima);
+  2. a correção da posse do WhatsApp (pendência alta de `docs/status.md`);
+  3. MFA no painel interno;
+  4. a parte 5 da 3b (áudio e preview).
 
 **Objetivo:** a clínica comum passa a ter a tela real de Conversas, com a fila e a conversa decifradas no servidor, atualização em tempo real, as ações de assumir, devolver e resolver urgência, e o aviso de desconexão do WhatsApp. A equipe Nextech ganha o acesso de suporte com justificativa e trilha. A conta de demonstração continua com a fixture.
 
@@ -702,9 +787,9 @@ describe("agentesDesconectados", () => {
 })
 ```
 
-- [ ] **Passo 1:** testes. **Passo 2:** rodar (FALHA).
-- [ ] **Passo 3:** implementar. **Passo 4:** rodar (PASSA) os cinco arquivos de teste, mais `components/conversations/*.test.*` e `npx tsc --noEmit`.
-- [ ] **Passo 5:** commit `feat(conversations): mapeamento puro da tela real de Conversas`.
+- [x] **Passo 1:** testes. **Passo 2:** rodar (FALHA).
+- [x] **Passo 3:** implementar. **Passo 4:** rodar (PASSA) os cinco arquivos de teste, mais `components/conversations/*.test.*` e `npx tsc --noEmit`.
+- [x] **Passo 5:** commit `feat(conversations): mapeamento puro da tela real de Conversas`.
 
 ---
 
@@ -806,9 +891,9 @@ Carregar `supabase-postgres-best-practices` antes.
      - com o próprio `clinicId` e o id da conversa de A, também recebe `null`.
   8. `carregarAvisosDeDesconexao`: o agente com `ACCOUNT_OFFBOARDED` (inserido pelo `service_role`) aparece; depois de um `ACCOUNT_RECONNECTED` posterior, some.
 
-- [ ] **Passo 1:** testes. **Passo 2:** `supabase db push --dry-run` (só a migration nova), conferir, aplicar com `echo y |`.
-- [ ] **Passo 3:** implementar `leitura.ts`, `queries.ts` e `mutations.ts`. **Passo 4:** rodar (PASSA) `tests/rls/conversation-panel.test.ts`, depois `tests/conversations/leitura.test.ts`, um de cada vez, e `tests/rls/conversations.test.ts` (não pode ter regredido).
-- [ ] **Passo 5:** commit `feat(conversations): eventos, ações e leitura do painel de Conversas`, com a migration.
+- [x] **Passo 1:** testes. **Passo 2:** `supabase db push --dry-run` (só a migration nova), conferir, aplicar com `echo y |`.
+- [x] **Passo 3:** implementar `leitura.ts`, `queries.ts` e `mutations.ts`. **Passo 4:** rodar (PASSA) `tests/rls/conversation-panel.test.ts`, depois `tests/conversations/leitura.test.ts`, um de cada vez, e `tests/rls/conversations.test.ts` (não pode ter regredido).
+- [x] **Passo 5:** commit `feat(conversations): eventos, ações e leitura do painel de Conversas`, com a migration.
 
 ---
 
@@ -926,9 +1011,9 @@ describe("agruparChamadas", () => {
   4. O owner de B, assinando sem filtro, recebe o evento da própria conversa e nenhum de A.
 - No `afterAll`, `removeAllChannels()` nos clients, antes de apagar clínicas e usuários.
 
-- [ ] **Passo 1:** testes. **Passo 2:** `--dry-run`, conferir e aplicar a migration.
-- [ ] **Passo 3:** implementar. **Passo 4:** rodar (PASSA) `lib/conversations/ao-vivo.test.ts`, `tests/architecture/boundaries.test.ts` e, sozinho, `tests/rls/conversas-realtime.test.ts`.
-- [ ] **Passo 5:** commit `feat(conversations): Conversas em tempo real, isoladas por clínica`, com a migration.
+- [x] **Passo 1:** testes. **Passo 2:** `--dry-run`, conferir e aplicar a migration.
+- [x] **Passo 3:** implementar. **Passo 4:** rodar (PASSA) `lib/conversations/ao-vivo.test.ts`, `tests/architecture/boundaries.test.ts` e, sozinho, `tests/rls/conversas-realtime.test.ts`.
+- [x] **Passo 5:** commit `feat(conversations): Conversas em tempo real, isoladas por clínica`, com a migration.
 
 ---
 
@@ -1018,9 +1103,9 @@ Carregar `frontend-design` e `ui-ux` antes.
   - modo `prototipo`: continua com "Nota interna";
   - `AvisoDeDesconexao`: o owner vê o link, e o staff vê "Avise o responsável".
 
-- [ ] **Passo 1:** testes. **Passo 2:** rodar (FALHA).
-- [ ] **Passo 3:** implementar. **Passo 4:** rodar (PASSA) `components/conversations`, `tests/architecture`, `tests/demo/rotas.test.ts`, `lib/navigation` e `npx tsc --noEmit`.
-- [ ] **Passo 5:** commit `feat(conversations): tela real de Conversas na clínica`.
+- [x] **Passo 1:** testes. **Passo 2:** rodar (FALHA).
+- [x] **Passo 3:** implementar. **Passo 4:** rodar (PASSA) `components/conversations`, `tests/architecture`, `tests/demo/rotas.test.ts`, `lib/navigation` e `npx tsc --noEmit`.
+- [x] **Passo 5:** commit `feat(conversations): tela real de Conversas na clínica`.
 
 ---
 
@@ -1283,9 +1368,9 @@ describe("acessosDaTrilha", () => {
 - `erro` aparece em `role="alert"`;
 - o estado `urgente` mostra "Urgente".
 
-- [ ] **Passo 1:** testes. **Passo 2:** rodar (FALHA).
-- [ ] **Passo 3:** implementar. **Passo 4:** rodar (PASSA) `lib/admin`, `components/admin`, `tests/architecture`, `lib/navigation` e, sozinho, `tests/admin/suporte.test.ts`.
-- [ ] **Passo 5:** commit `feat(admin): acesso de suporte às conversas, com justificativa e trilha`.
+- [x] **Passo 1:** testes. **Passo 2:** rodar (FALHA).
+- [x] **Passo 3:** implementar. **Passo 4:** rodar (PASSA) `lib/admin`, `components/admin`, `tests/architecture`, `lib/navigation` e, sozinho, `tests/admin/suporte.test.ts`.
+- [x] **Passo 5:** commit `feat(admin): acesso de suporte às conversas, com justificativa e trilha`.
 
 ---
 
@@ -1306,7 +1391,7 @@ Carregar `frontend-design` e `ui-ux` antes.
 - **Ao vivo:** com a tela aberta, uma mensagem nova inserida pelo `service_role` aparece sem recarregar. Assumir e devolver pela tela funcionam.
 - **Servidor:** `npm run dev`. Com o 500 "Jest worker", usar `next start -p 3100` depois do build, conferindo antes se não há um `next start` antigo na 3100.
 - **Limpeza:** apagar a trilha do suporte gerada na clínica temporária, a clínica e o usuário temporário. Conferir no banco que não sobrou nada.
-- [ ] Corrigir o que a captura mostrar, rodar os testes afetados e fazer o commit `fix(conversations): ajustes da revisão visual`, se houver.
+- [x] Corrigir o que a captura mostrar, rodar os testes afetados e fazer o commit `fix(conversations): ajustes da revisão visual`, se houver.
 
 ---
 
@@ -1314,12 +1399,12 @@ Carregar `frontend-design` e `ui-ux` antes.
 
 - [ ] `npx vitest run` inteiro em segundo plano, com timeout longo, gravando num arquivo do scratchpad com o commit no topo e `echo exit=$?` no fim. Ler o resultado.
 - [ ] `npx tsc --noEmit` e `npm run build`, com o código de saída.
-- [ ] Revisão do `qa-reviewer` e do `security-reviewer` sobre o diff da parte. Tratar os achados, rodar de novo e pedir a conferência das correções, inclusive das correções da própria conferência.
+- [ ] Revisão do `qa-reviewer` e do `security-reviewer` sobre o diff da parte. Tratar os achados, rodar de novo e pedir a conferência das correções, inclusive das correções da própria conferência. *(Revisões feitas e achados tratados em `d57415a`, `e5745e3` e `2cb5ca9`; faltam as conferências.)*
 
 ### Tarefa 7: Documentação e fechamento
 
 - [ ] **Este plano:** status da execução, commits, ajustes e "O que a próxima sessão precisa saber" (a próxima sessão é a correção da posse do WhatsApp).
 - [ ] **Spec `conversation-engine-v1.md`:** a parte 4 em "Implementação" e o critério de aceite atualizado onde a tela entra (eco, retomada e urgência agora com ação pelo painel).
-- [ ] **`docs/roadmap.md` e `docs/status.md`:** a parte 4 concluída; a próxima sessão; a pendência de go-live "parte 4" riscada; o contador de testes e de migrations.
-- [ ] **Memória:** arquitetura (parte 4, Realtime só com estado, RPC de linha única) e ambiente Supabase (25 migrations, Realtime ligado em `conversations`).
+- [ ] **`docs/roadmap.md` e `docs/status.md`:** a parte 4 concluída; a próxima sessão; a pendência de go-live "parte 4" riscada; o contador de testes e de migrations; e os achados que ficaram para depois (seção acima), com o MFA e a posse como bloqueios de go-live.
+- [ ] **Memória:** arquitetura (parte 4: Broadcast privado por clínica sem dado, RPC de linha única, busca por POST, trava do suporte na lib) e ambiente Supabase (29 migrations, relógio do banco ~1 s adiantado). E o aprendizado do Vitest (`beforeEach` que devolve função).
 - [ ] `git checkout -- CLAUDE.md`, commit `docs: fecha a parte 4 da 3b e aponta a correção da posse como próxima sessão`, `git status` limpo e `git push origin staging`.
