@@ -24,13 +24,18 @@ export function deslocarDatas<T>(valor: T, dias: number): T {
 }
 
 function deslocar(valor: unknown, dias: number): unknown {
+  return mapearDatas(valor, (partes) => somarDias(partes[1], dias) + (partes[2] ?? ""))
+}
+
+/** Troca toda data e todo instante de um valor (objeto, lista ou string), e preserva o resto. */
+function mapearDatas(valor: unknown, trocar: (partes: RegExpExecArray, valor: string) => string): unknown {
   if (typeof valor === "string") {
     const partes = DATA_OU_INSTANTE.exec(valor)
-    return partes ? somarDias(partes[1], dias) + (partes[2] ?? "") : valor
+    return partes ? trocar(partes, valor) : valor
   }
-  if (Array.isArray(valor)) return valor.map((v) => deslocar(v, dias))
+  if (Array.isArray(valor)) return valor.map((v) => mapearDatas(v, trocar))
   if (ehObjetoSimples(valor)) {
-    return Object.fromEntries(Object.entries(valor).map(([k, v]) => [k, deslocar(v, dias)]))
+    return Object.fromEntries(Object.entries(valor).map(([k, v]) => [k, mapearDatas(v, trocar)]))
   }
   return valor
 }
@@ -67,5 +72,32 @@ export function relogioDaDemonstracao(
     dias,
     agora: deslocarDatas(agoraFixo, dias),
     deslocar: (valor) => deslocarDatas(valor, dias),
+  }
+}
+
+/**
+ * O relógio da tela de Conversas da demonstração (evolution-demo-v1, decisão
+ * do Jhones de 2026-10-11). Lá, a conversa real do canal de demonstração
+ * divide a fila com as de exemplo, e o relógio de dias (que mantém a hora
+ * das fixtures) deixaria as de exemplo "no futuro" antes das 14:32, acima da
+ * real. Aqui, o agora das fixtures vira o agora real: os instantes andam o
+ * mesmo intervalo exato, e "há 5 min" continua valendo para as duas.
+ *
+ * Datas sem hora andam em dias, como no relógio de dias. O instante sai em
+ * ISO (UTC), que a leitura por `lib/formatters` trata como qualquer outro.
+ * Só nesta tela: na ficha do paciente, a mesma conversa segue no relógio de
+ * dias, com a hora das fixtures.
+ */
+export function relogioDoMinuto(agoraFixo: string, agoraReal: Date | string = new Date()): RelogioDaDemonstracao {
+  const real = new Date(agoraReal)
+  const intervalo = real.getTime() - new Date(agoraFixo).getTime()
+  if (!Number.isFinite(intervalo)) throw new RangeError("Data inválida")
+  const dias = diasEntre(chaveDoDia(agoraFixo), chaveDoDia(real))
+  const trocar = (partes: RegExpExecArray, valor: string) =>
+    partes[2] ? new Date(Date.parse(valor) + intervalo).toISOString() : somarDias(partes[1], dias)
+  return {
+    dias,
+    agora: real.toISOString(),
+    deslocar: (valor) => mapearDatas(valor, trocar) as typeof valor,
   }
 }

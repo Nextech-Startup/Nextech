@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { chaveDoDia, formatarHora } from "@/lib/formatters/data"
-import { deslocarDatas, girarDiasDaSemana, relogioDaDemonstracao } from "./relogio"
+import { deslocarDatas, girarDiasDaSemana, relogioDaDemonstracao, relogioDoMinuto } from "./relogio"
 
 const AGORA = "2026-09-28T14:32:00-03:00"
 
@@ -100,5 +100,43 @@ describe("girarDiasDaSemana", () => {
   it("deslocamento negativo, e de semanas inteiras", () => {
     expect(girarDiasDaSemana([1, 2, 3, 4, 5], -8)).toEqual([0, 1, 2, 3, 4])
     expect(girarDiasDaSemana([1, 2, 3, 4, 5], 14)).toEqual([1, 2, 3, 4, 5])
+  })
+})
+
+describe("relogioDoMinuto (Conversas da demonstração, evolution-demo-v1)", () => {
+  const FIXO = "2026-09-28T14:32:00-03:00"
+
+  it("o agora das fixtures vira o agora real, também antes das 14:32", () => {
+    const r = relogioDoMinuto(FIXO, "2026-10-11T10:05:30-03:00")
+    expect(r.agora).toBe("2026-10-11T13:05:30.000Z")
+    expect(r.deslocar(FIXO)).toBe(r.agora)
+  })
+
+  it("os instantes andam o mesmo intervalo: o que era há 5 min continua há 5 min", () => {
+    const r = relogioDoMinuto(FIXO, "2026-10-11T10:05:30-03:00")
+    const antes = r.deslocar("2026-09-28T14:27:00-03:00")
+    expect(new Date(r.agora).getTime() - new Date(antes).getTime()).toBe(5 * 60_000)
+    expect(formatarHora(antes)).toBe("10:00")
+  })
+
+  it("um instante de ontem nas fixtures continua ontem", () => {
+    const r = relogioDoMinuto(FIXO, "2026-10-11T10:05:30-03:00")
+    expect(chaveDoDia(r.deslocar("2026-09-27T18:00:00-03:00"))).toBe("2026-10-10")
+  })
+
+  it("data sem hora anda em dias, e o resto fica como está", () => {
+    const r = relogioDoMinuto(FIXO, "2026-10-11T10:05:30-03:00")
+    expect(r.dias).toBe(13)
+    expect(r.deslocar({ desde: "2026-09-01", nome: "Mariana", n: 3, nada: null, lista: ["2026-09-28"] })).toEqual({
+      desde: "2026-09-14",
+      nome: "Mariana",
+      n: 3,
+      nada: null,
+      lista: ["2026-10-11"],
+    })
+  })
+
+  it("data inválida é erro", () => {
+    expect(() => relogioDoMinuto(FIXO, "ontem")).toThrow(RangeError)
   })
 })

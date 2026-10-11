@@ -4,14 +4,17 @@ import type { ClinicRole } from "@/lib/auth/context"
 import { podeAcessar } from "@/lib/navigation/acesso"
 import { contarSegmentos, filtrarPacientes, lerSegmento } from "@/components/patients/segmentos"
 import { PermissaoNegada } from "@/components/patterns/permissao-negada"
+import { AoVivo } from "@/components/conversations/ao-vivo"
 import { AvisoDeDesconexao } from "@/components/conversations/aviso-de-desconexao"
 import { CaixaDeConversas } from "@/components/conversations/caixa-de-conversas"
+import { contarPorEstado, filtrarConversas } from "@/components/conversations/estado"
 import { TelaDeVisaoGeral } from "@/components/overview/tela-de-visao-geral"
 import { ListaDeAgentesEmOperacao } from "@/components/agents/lista-em-operacao"
 import { OperacaoDoAgente } from "@/components/agents/operacao-do-agente"
 import { ListaDeAgentes } from "@/app/(dashboard)/dashboard/agents/lista"
 import { FormularioDeAgente } from "@/app/(dashboard)/dashboard/agents/formulario"
-import { deslocarDatas, girarDiasDaSemana } from "@/lib/demo/relogio"
+import { deslocarDatas, girarDiasDaSemana, relogioDoMinuto } from "@/lib/demo/relogio"
+import { AGORA } from "@/app/_fixtures/agora"
 import { AGENTES, DETALHES_DOS_AGENTES } from "@/app/_fixtures/agentes"
 import { COMPROMISSOS, EXPEDIENTE } from "@/app/_fixtures/agenda"
 import { COBRANCA } from "@/app/_fixtures/cobranca"
@@ -129,6 +132,8 @@ type Rota = {
   id?: string
   /** Props do componente que precisam chegar deslocadas, com o valor esperado a 9 dias. */
   confere?: Record<string, unknown>
+  /** O `agora` que a tela recebe, quando não é o das fixtures a 9 dias. */
+  agora?: string
 }
 
 // 07/10/2026 é 9 dias depois do AGORA das fixtures (28/09).
@@ -136,6 +141,9 @@ const HOJE = "2026-10-07T09:00:00-03:00"
 const DIAS = 9
 const AGORA_DESLOCADO = "2026-10-07T14:32:00-03:00"
 const d = <T,>(v: T) => deslocarDatas(v, DIAS)
+// Conversas da demonstração anda até o minuto real (evolution-demo-v1).
+const m = <T,>(v: T) => relogioDoMinuto(AGORA, HOJE).deslocar(v)
+const AGORA_REAL = new Date(HOJE).toISOString()
 const comEmailDaSessao = (membros: typeof MEMBROS, email: string) =>
   membros.map((m) => (m.voce ? { ...m, email } : m))
 
@@ -218,7 +226,8 @@ const EXISTENTES: Rota[] = [
     menu: "/dashboard/conversations",
     carregar: () => import("@/app/(dashboard)/dashboard/conversations/page"),
     busca: { c: conversa.id },
-    confere: { aberta: d(conversa) },
+    confere: { aberta: m(conversa) },
+    agora: AGORA_REAL,
   },
   {
     rota: "/dashboard",
@@ -376,7 +385,7 @@ describe("na conta de demonstração", () => {
       expect(isValidElement(tela)).toBe(true)
       expect(tela.type).not.toBe(PermissaoNegada)
       const recebidas = tela.props as Record<string, unknown>
-      if ("agora" in recebidas) expect(recebidas.agora).toBe(AGORA_DESLOCADO)
+      if ("agora" in recebidas) expect(recebidas.agora).toBe(r.agora ?? AGORA_DESLOCADO)
       for (const [prop, esperado] of Object.entries(r.confere ?? {})) {
         expect(recebidas[prop], prop).toEqual(esperado)
       }
@@ -425,5 +434,71 @@ describe("na conta de demonstração", () => {
   it("ficha e agente inexistentes respondem 404", async () => {
     await expect(abrir({ ...rota("/dashboard/patients/[id]"), id: "nao-existe" })).rejects.toThrow("NOT_FOUND")
     await expect(abrir({ ...rota("/dashboard/agents/[id]"), id: "nao-existe" })).rejects.toThrow("NOT_FOUND")
+  })
+
+  // A conversa real do canal de demonstração entra na fila de exemplo.
+  describe("Conversas com o canal de demonstração (evolution-demo-v1)", () => {
+    type Props = {
+      conversas: unknown[]
+      contagens: unknown
+      filtro: { busca: string }
+      aberta: unknown
+      modo?: { tipo: string }
+      caminhoDaFicha?: string
+      buscar?: unknown
+      aoVivo?: ReactElement
+    }
+    const conversas = async (busca: Record<string, string> = {}) =>
+      (await abrir({ ...rota("/dashboard/conversations"), busca })).props as Props
+
+    it("a fila junta a real e as de exemplo, na ordem de sempre e com a contagem das duas", async () => {
+      const props = await conversas()
+      const todas = [...conversasReais.fila, ...m(CONVERSAS)]
+      expect(props.conversas).toEqual(filtrarConversas(todas, { estado: "todas", busca: "" }))
+      expect(props.conversas).toContainEqual(conversasReais.fila[0])
+      expect(props.conversas).toHaveLength(CONVERSAS.length + 1)
+      expect(props.contagens).toEqual(contarPorEstado(todas))
+    })
+
+    it("a real abre pela leitura real, com as ações reais e sem a ficha", async () => {
+      const props = await conversas({ c: conversasReais.aberta.id })
+      expect(props.aberta).toEqual(conversasReais.aberta)
+      expect(props.modo?.tipo).toBe("clinica")
+      expect(props.caminhoDaFicha).toBeUndefined()
+    })
+
+    it("a de exemplo abre com o protótipo e a ficha", async () => {
+      const props = await conversas({ c: conversa.id })
+      expect(props.aberta).toEqual(m(conversa))
+      expect(props.modo).toBeUndefined()
+      expect(props.caminhoDaFicha).toBe("/dashboard/patients")
+    })
+
+    it("um uuid que não é da clínica não abre nada", async () => {
+      const props = await conversas({ c: "00000000-0000-4000-8000-000000000099" })
+      expect(props.aberta).toBeNull()
+    })
+
+    it("o ?q= não é lido: a busca é por POST, também na demonstração", async () => {
+      const props = await conversas({ q: conversa.paciente.nome ?? "Maria" })
+      expect(props.filtro.busca).toBe("")
+      expect(props.conversas).toHaveLength(CONVERSAS.length + 1)
+      expect(typeof props.buscar).toBe("function")
+    })
+
+    it("as de exemplo andam até o minuto real: a mais recente delas fica no agora real", async () => {
+      const props = (await conversas()) as Props & { agora: string }
+      expect(props.agora).toBe(AGORA_REAL)
+      const ultimas = m(CONVERSAS).map((c) => new Date(c.ultima.em).getTime())
+      expect(Math.max(...ultimas)).toBeLessThanOrEqual(new Date(AGORA_REAL).getTime())
+      // A conversa real das 08:00 de hoje é anterior ao agora real (09:00), e não ao das fixtures.
+      expect(new Date(conversasReais.fila[0].ultima.em).getTime()).toBeLessThan(new Date(props.agora).getTime())
+    })
+
+    it("o tempo real assina o canal da clínica de demonstração", async () => {
+      const props = await conversas()
+      expect(props.aoVivo?.type).toBe(AoVivo)
+      expect(props.aoVivo?.props).toEqual({ clinicId: "clinica-1" })
+    })
   })
 })

@@ -26,10 +26,13 @@ const SEGMENTOS: { valor: FiltroDeEstado; rotulo: string }[] = [
  * No celular cabe uma coisa por vez: sem `?c` mostra a fila; com `?c`,
  * só a conversa, com o caminho de volta.
  *
- * A tela real passa `modo` (as ações do servidor), `aoVivo` (o indicador do
- * tempo real, no cabeçalho), `aviso` (a desconexão do WhatsApp, acima da
- * caixa) e `buscar` (a busca por POST, que nunca põe o termo na URL). Sem
- * eles, é o protótipo da demonstração, com a busca em `?q=` sobre fixture.
+ * A tela de Conversas passa `buscar` (a busca por POST, que nunca põe o
+ * termo na URL) e `aoVivo` (o indicador do tempo real, no cabeçalho), também
+ * na demonstração, que tem a conversa real do canal (evolution-demo-v1). A
+ * página escolhe o `modo` pela conversa aberta: as ações do servidor na
+ * real, o protótipo na de exemplo. `aviso` é a desconexão do WhatsApp,
+ * acima da caixa. Sem `buscar`, é o protótipo do design system, com a busca
+ * em `?q=` sobre fixture.
  */
 export function CaixaDeConversas({
   conversas,

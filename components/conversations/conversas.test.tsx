@@ -408,4 +408,21 @@ describe("o que a lista mostra com a busca", () => {
     const v = vistaDaBusca(busca({ conversas: [urgente], erro: null }), "todas", CAMINHO)
     expect(v).toMatchObject({ tipo: "achadas", hrefDa: { u1: `${CAMINHO}?c=u1` } })
   })
+
+  it("na demonstração, a real e a de exemplo saem numa lista só, urgente primeiro, sem o termo no link", () => {
+    // A real (uuid, do canal de demonstração) chega antes na resposta da action.
+    const real = {
+      id: "00000000-0000-4000-8000-000000000001",
+      paciente: { nome: "Investidor", telefone: "+5581900000102" },
+      urgente: false,
+      atendidaPor: "ai",
+      ultima: { autor: "ai", previa: "Olá", em: d("14:30") },
+    } as ConversaResumo
+    const v = vistaDaBusca(busca({ conversas: [real, urgente], erro: null }), "todas", CAMINHO)
+    expect(v).toEqual({
+      tipo: "achadas",
+      conversas: [urgente, real],
+      hrefDa: { u1: `${CAMINHO}?c=u1`, [real.id]: `${CAMINHO}?c=${real.id}` },
+    })
+  })
 })

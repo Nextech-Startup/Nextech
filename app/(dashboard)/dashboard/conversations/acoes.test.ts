@@ -3,7 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 const motor = vi.hoisted(() => ({ agirNaConversa: vi.fn(), buscarConversas: vi.fn() }))
 vi.mock("@/lib/conversations/mutations", () => ({ agirNaConversa: motor.agirNaConversa }))
 vi.mock("@/lib/conversations/queries", () => ({ buscarConversas: motor.buscarConversas }))
+const contexto = vi.hoisted(() => ({ isDemo: false }))
+vi.mock("@/lib/auth/context", () => ({ requireClinicContext: async () => ({ isDemo: contexto.isDemo }) }))
 
+import { filtrarConversas } from "@/components/conversations/estado"
+import { relogioDoMinuto } from "@/lib/demo/relogio"
+import { AGORA } from "@/app/_fixtures/agora"
+import { CONVERSAS } from "@/app/_fixtures/conversas"
 import { agir, buscar } from "./acoes"
 
 const ID = "00000000-0000-4000-8000-000000000001"
@@ -51,8 +57,12 @@ describe("agir (server action da tela de Conversas)", () => {
 describe("buscar (server action da busca da fila)", () => {
   beforeEach(() => {
     motor.buscarConversas.mockReset()
+    contexto.isDemo = false
   })
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.useRealTimers()
+  })
 
   it.each([
     ["termo que não é texto", 42],
@@ -89,5 +99,42 @@ describe("buscar (server action da busca da fila)", () => {
     expect(await buscar("Maria")).toEqual({ conversas: [], erro: "Não foi possível buscar. Tente de novo." })
     expect(JSON.stringify(log.mock.calls)).toContain("SemAcessoAsConversas")
     expect(JSON.stringify(log.mock.calls)).not.toContain("Maria")
+  })
+
+  describe("na conta de demonstração (evolution-demo-v1)", () => {
+    // O primeiro nome de um paciente de exemplo: casa com parte das fixtures, não com todas.
+    const termo = (CONVERSAS.find((c) => c.paciente.nome)?.paciente.nome ?? "").split(" ")[0]
+    const real = { id: "00000000-0000-4000-8000-000000000001" }
+
+    beforeEach(() => {
+      contexto.isDemo = true
+      vi.useFakeTimers({ toFake: ["Date"] })
+      vi.setSystemTime(new Date("2026-10-11T15:00:00-03:00"))
+    })
+
+    it("devolve a conversa real e as de exemplo que casam com o termo", async () => {
+      motor.buscarConversas.mockResolvedValue([real])
+      const exemplos = filtrarConversas(relogioDoMinuto(AGORA).deslocar(CONVERSAS), { estado: "todas", busca: termo })
+      expect(exemplos.length).toBeGreaterThan(0)
+      expect(exemplos.length).toBeLessThan(CONVERSAS.length)
+
+      expect(await buscar(termo)).toEqual({ conversas: [real, ...exemplos], erro: null })
+      expect(motor.buscarConversas).toHaveBeenCalledWith(termo)
+    })
+
+    it("o papel sem a tela também não recebe as de exemplo", async () => {
+      const { SemAcessoAsConversas } = await vi.importActual<typeof import("@/lib/conversations/queries")>(
+        "@/lib/conversations/queries",
+      )
+      motor.buscarConversas.mockRejectedValue(new SemAcessoAsConversas())
+      vi.spyOn(console, "error").mockImplementation(() => {})
+      expect(await buscar(termo)).toEqual({ conversas: [], erro: "Não foi possível buscar. Tente de novo." })
+    })
+  })
+
+  it("fora da demonstração, a busca nunca traz fixture", async () => {
+    const termo = (CONVERSAS.find((c) => c.paciente.nome)?.paciente.nome ?? "").split(" ")[0]
+    motor.buscarConversas.mockResolvedValue([])
+    expect(await buscar(termo)).toEqual({ conversas: [], erro: null })
   })
 })

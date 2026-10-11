@@ -275,15 +275,15 @@ export function lerConfigDaEvolution(env: NodeJS.ProcessEnv): ConfigDaEvolution 
 
 **Arquivos:** mudar `app/(dashboard)/dashboard/conversations/page.tsx`, `app/(dashboard)/dashboard/conversations/acoes.ts` (e `acoes.test.ts`) e `components/conversations/caixa-de-conversas.tsx`; testes em `tests/demo/rotas.test.ts` e `components/conversations/conversas.test.tsx`.
 
-- [ ] Página, no ramo `isDemo`:
+- [x] Página, no ramo `isDemo`:
   - fila = `[...await listarConversas(), ...relogio.deslocar(CONVERSAS)]`, filtrada e contada como hoje;
   - `pedida` uuid abre por `abrirConversa`, com `modo: { tipo: "clinica", agir }` e sem `caminhoDaFicha`;
   - `pedida` de fixture abre como hoje;
   - `aoVivo={<AoVivo clinicId={clinicId} />}` e `buscar={buscar}` também na demonstração;
   - nenhuma leitura de `params.q`.
-- [ ] `acoes.ts`: `buscar` lê `isDemo` pelo `requireClinicContext()`. Na demonstração, junta `buscarConversas(t)` com as fixtures que casam (`filtrarConversas(relogio.deslocar(CONVERSAS), { estado: "todas", busca: t })`).
-- [ ] `CaixaDeConversas`: com `buscar`, sempre `BuscaDaFila`; o protótipo da busca em URL (`Busca` com `?q=`) sai da tela de Conversas.
-- [ ] Testes:
+- [x] `acoes.ts`: `buscar` lê `isDemo` pelo `requireClinicContext()`. Na demonstração, junta `buscarConversas(t)` com as fixtures que casam (`filtrarConversas(relogio.deslocar(CONVERSAS), { estado: "todas", busca: t })`).
+- [x] `CaixaDeConversas`: com `buscar`, sempre `BuscaDaFila`; o protótipo da busca em URL (`Busca` com `?q=`) sai da tela de Conversas.
+- [x] Testes:
   - a demonstração junta a real e a de exemplo, na ordem certa e com a contagem certa;
   - a real abre com as ações reais e sem ficha;
   - a de exemplo abre com o protótipo;
@@ -291,7 +291,7 @@ export function lerConfigDaEvolution(env: NodeJS.ProcessEnv): ConfigDaEvolution 
   - a busca da demonstração devolve a real e a de exemplo;
   - fora da demonstração, a busca não traz fixture;
   - o isolamento segue coberto (a leitura real é a da tarefa 4 da parte 4; rodar `tests/conversations/leitura.test.ts` sozinho).
-- [ ] Commit: `feat(demo): Conversas da demonstração com a conversa real do canal`.
+- [x] Commit: `feat(demo): Conversas da demonstração com a conversa real do canal`.
 
 ### Tarefa 9: Scripts de conexão e limpeza
 
@@ -426,3 +426,8 @@ Fica só a sessão do chip (chaves de cifra por contato, como em qualquer aparel
   - Log com o rótulo `[evolution-webhook]`; a resposta da IA e o protocolo seguem logando com `[whatsapp-webhook]`. O `tests/whatsapp/log.ts` aceita os dois rótulos e a chave `motivo`.
   - **Áudio:** o histórico do modelo troca a mensagem sem texto pelo marcador `[áudio, que ainda não pode ser ouvido]` (`lib/agent-config/prompt.ts`). A IA sabe que não ouviu, e responde a partir disso. O teste da rota fixa que esse é o conteúdo que chega ao modelo. Não precisou ir ao Jhones.
   - O teste de ponta a ponta roda as tarefas do `after()` com o `dormir` mockado (sem os 10 s do agrupamento) e a rede interceptada por URL. Duas mutações conferidas (sem o `resposta-pendente` e sem o teto): os casos correspondentes ficam vermelhos.
+- **Tarefa 8.**
+  - **Relógio (decisão do Jhones, 2026-10-11):** o relógio de dias mantém a hora das fixtures (o agora delas é hoje às 14:32), e a conversa real usa o relógio de verdade. Antes das 14:32, as de exemplo ficariam "no futuro", acima da conversa do investidor. Escolha: só na tela de Conversas da demonstração (página e busca), as de exemplo andam até o minuto real (`relogioDoMinuto` em `lib/demo/relogio.ts`): os instantes andam o intervalo exato, as datas sem hora andam em dias, e o `agora` da tela é o real. A ficha do paciente segue no relógio de dias.
+  - A `CaixaDeConversas` não precisou mudar de comportamento: o `modo` já vinha da página, e com `buscar` ela já usava a `BuscaDaFila`. A busca em `?q=` ficou só no protótipo do painel interno (`/admin/design-system/telas/conversas`), que é só fixture. Mudou o comentário.
+  - Id de conversa que não abre: na demonstração, um uuid desconhecido dá `null` ("Escolha uma conversa na fila"), como na tela real; antes, um id de fixture desconhecido caía na primeira da fila.
+  - Testes: `tests/demo/rotas.test.ts` (fila junta, contagem, real com ações e sem ficha, exemplo com protótipo e ficha, uuid alheio, `?q=` não lido, relógio no minuto, `AoVivo` com o `clinicId`), `acoes.test.ts` (a busca da demonstração junta as duas; fora dela, nunca fixture; o papel sem a tela não recebe nem as de exemplo), `conversas.test.tsx` (a vista da busca ordena a real e a de exemplo juntas, sem o termo no link) e `lib/demo/relogio.test.ts`. `tests/conversations/leitura.test.ts` sozinho: 15 casos.

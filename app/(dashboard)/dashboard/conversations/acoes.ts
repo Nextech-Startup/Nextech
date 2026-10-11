@@ -1,11 +1,16 @@
 "use server"
 
 import { z } from "zod"
+import { filtrarConversas } from "@/components/conversations/estado"
+import { requireClinicContext } from "@/lib/auth/context"
 import { ehAcaoDoPainel, mensagemDaAcao } from "@/lib/conversations/acoes-do-painel"
 import { agirNaConversa } from "@/lib/conversations/mutations"
 import { buscarConversas } from "@/lib/conversations/queries"
 import type { ConversaResumo } from "@/lib/conversations/tipos-da-tela"
+import { relogioDoMinuto } from "@/lib/demo/relogio"
 import { erroParaLog } from "@/lib/security/erro-para-log"
+import { AGORA } from "@/app/_fixtures/agora"
+import { CONVERSAS } from "@/app/_fixtures/conversas"
 
 const ID = z.string().uuid()
 const TERMO = z.string().max(80)
@@ -31,13 +36,21 @@ export async function agir(acao: unknown, conversaId: unknown): Promise<{ erro: 
  * A busca da fila por nome ou telefone. O termo chega no corpo deste POST e
  * segue no corpo do POST da RPC: nunca numa URL, nunca no log, nem no caminho
  * de erro (lgpd-security, regra 1).
+ *
+ * Na conta de demonstração, a fila junta a conversa real do canal
+ * (evolution-demo-v1) com as de exemplo, e a busca procura nas duas. Fora
+ * dela, nunca há fixture. A ordem fica com a tela (vistaDaBusca).
  */
 export async function buscar(termo: unknown): Promise<{ conversas: ConversaResumo[]; erro: string | null }> {
   const t = TERMO.safeParse(termo)
   if (!t.success) return { conversas: [], erro: "Busque por um nome ou por parte do telefone." }
 
   try {
-    return { conversas: await buscarConversas(t.data), erro: null }
+    const { isDemo } = await requireClinicContext()
+    const reais = await buscarConversas(t.data)
+    if (!isDemo) return { conversas: reais, erro: null }
+    const exemplos = relogioDoMinuto(AGORA).deslocar(CONVERSAS)
+    return { conversas: [...reais, ...filtrarConversas(exemplos, { estado: "todas", busca: t.data })], erro: null }
   } catch (erro) {
     console.error("Falha na busca de conversas", erroParaLog(erro))
     return { conversas: [], erro: "Não foi possível buscar. Tente de novo." }
