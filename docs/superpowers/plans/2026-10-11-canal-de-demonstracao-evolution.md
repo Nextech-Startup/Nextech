@@ -230,10 +230,10 @@ export function inicioDoDiaEmSaoPaulo(agora: string): string
 export async function dentroDoTeto(clinicId: string, teto: number, agora: string): Promise<boolean>
 export async function passarParaEquipePorTeto(clinicId: string, conversationId: string, agora: string): Promise<void>
 ```
-- [ ] Testes:
+- [x] Testes:
   - unitários de `inicioDoDiaEmSaoPaulo` (antes e depois da meia-noite local, e virada de UTC);
   - banco, com clínica temporária: abaixo do teto dá `true`; no teto dá `false`; resposta de ontem não conta; resposta de outra clínica não conta; `passarParaEquipePorTeto` muda só a conversa da clínica dada.
-- [ ] Commit: `feat(conversations): teto diário de respostas da IA no canal de demonstração`.
+- [x] Commit: `feat(conversations): teto diário de respostas da IA no canal de demonstração`.
 
 ### Tarefa 7: A rota do canal
 
@@ -419,3 +419,4 @@ Fica só a sessão do chip (chaves de cifra por contato, como em qualquer aparel
 - **Tarefa 3.** O NX004 original é testado em `tests/rls/demo.test.ts`; o `conta-demo.test.ts` testa o script de preparo. Rodei os dois, um de cada vez (10 e 11 casos). As clínicas temporárias do teste novo são HealthTech, como a real: no Starter, o limite de 1 agente recusa o segundo antes da trava. A função ganhou um `coalesce` no `like`: com o identificador nulo, a comparação daria `null` e deixaria publicar sem número na demonstração (caso coberto no teste).
 - **Tarefa 4.** `MotivoIgnorado` ganhou `sem-conteudo` (reação, edição, apagamento, voto): não são formato errado, e o log do ensaio fica legível. A lista de permitidos compara por `chaveDoNumero` (nota 8 da Evolution), e `@lid` sem `remoteJidAlt` é `formato`. A checagem da lista vem antes da leitura do conteúdo.
 - **Tarefa 5.** O `EvolutionError` usa `code` (e não `codigo`, como a interface do plano dizia), igual ao `MetaError`: é a propriedade que o `erroParaLog` leva ao log e o `fail_ai_reply` grava. O `status` aceita `null` (sem resposta da Evolution, `rede`). O `resposta-sem-id` leva o status real da resposta (201), não 200. O envio pela Evolution também ganhou casos no `dependencias.test.ts` (o caminho de produção do `enviar`).
+- **Tarefa 6.** `passarParaEquipePorTeto(clinicId, conversationId)` chama a `fail_ai_reply` sem reserva (`p_message_id` nulo), em vez de um `update` próprio: é o mesmo handoff da falha da IA (`handled_by = 'human'`, `ai_failed_at = now()` do banco, filtrado por clínica), e o alerta do painel vem junto. Por isso o parâmetro `agora` saiu. O teto conta toda mensagem `ai` criada no dia (também a reservada e a que falhou: o modelo já foi chamado). Os testes unitários do fuso ficaram em `lib/conversations/teto.test.ts`, e os de banco em `tests/conversations/teto.test.ts`.
