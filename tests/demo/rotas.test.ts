@@ -4,6 +4,7 @@ import type { ClinicRole } from "@/lib/auth/context"
 import { podeAcessar } from "@/lib/navigation/acesso"
 import { contarSegmentos, filtrarPacientes, lerSegmento } from "@/components/patients/segmentos"
 import { PermissaoNegada } from "@/components/patterns/permissao-negada"
+import { CaixaDeConversas } from "@/components/conversations/caixa-de-conversas"
 import { TelaDeVisaoGeral } from "@/components/overview/tela-de-visao-geral"
 import { ListaDeAgentesEmOperacao } from "@/components/agents/lista-em-operacao"
 import { OperacaoDoAgente } from "@/components/agents/operacao-do-agente"
@@ -64,6 +65,38 @@ vi.mock("@/lib/clinic-profile/queries", () => ({
   listProcedures: async () => [],
 }))
 
+// A tela real de Conversas lê daqui: um paciente que não existe nas fixtures.
+const conversasReais = vi.hoisted(() => {
+  const paciente = {
+    id: "paciente-real",
+    nome: "Paciente Real",
+    telefone: "+5581900000099",
+    convenio: null,
+    consentimentoEm: null,
+    optOut: false,
+    desde: "2026-10-01T10:00:00-03:00",
+    sequenciaAtiva: null,
+    proximaConsulta: null,
+  }
+  const resumo = {
+    id: "00000000-0000-4000-8000-000000000001",
+    paciente,
+    agente: "Recepção real",
+    atendidaPor: "ai" as const,
+    urgente: false,
+    ultimaDoPaciente: "2026-10-07T08:00:00-03:00",
+    ultima: { autor: "patient" as const, previa: "Oi", em: "2026-10-07T08:00:00-03:00" },
+    naoLidas: 0,
+  }
+  return { fila: [resumo], aberta: { ...resumo, humanoAssumiuEm: null, itens: [] } }
+})
+
+vi.mock("@/lib/conversations/queries", () => ({
+  listarConversas: async () => conversasReais.fila,
+  abrirConversa: async (id: string) => (id === conversasReais.aberta.id ? conversasReais.aberta : null),
+  avisosDeDesconexao: async () => [],
+}))
+
 vi.mock("next/navigation", async (original) => ({
   ...(await original<typeof import("next/navigation")>()),
   notFound: () => {
@@ -103,13 +136,6 @@ const agente = DETALHES_DOS_AGENTES[0]
 const paciente = PACIENTES[0].id
 
 const NOVAS: Rota[] = [
-  {
-    rota: "/dashboard/conversations",
-    menu: "/dashboard/conversations",
-    carregar: () => import("@/app/(dashboard)/dashboard/conversations/page"),
-    busca: { c: conversa.id },
-    confere: { aberta: d(conversa) },
-  },
   {
     rota: "/dashboard/schedule",
     menu: "/dashboard/schedule",
@@ -178,6 +204,13 @@ const NOVAS: Rota[] = [
 
 const EXISTENTES: Rota[] = [
   {
+    rota: "/dashboard/conversations",
+    menu: "/dashboard/conversations",
+    carregar: () => import("@/app/(dashboard)/dashboard/conversations/page"),
+    busca: { c: conversa.id },
+    confere: { aberta: d(conversa) },
+  },
+  {
     rota: "/dashboard",
     menu: "/dashboard",
     carregar: () => import("@/app/(dashboard)/dashboard/page"),
@@ -239,6 +272,23 @@ describe("numa clínica comum", () => {
     const tela = await abrir(rota("/dashboard"))
     expect(tela.type).not.toBe(TelaDeVisaoGeral)
     expect(tela.type).toBe("div")
+  })
+
+  it.each(["owner", "staff"] as const)("Conversas mostra a tela real, nunca a fixture (%s)", async (role) => {
+    contexto.role = role
+    const tela = await abrir({ ...rota("/dashboard/conversations"), busca: {} })
+    expect(tela.type).toBe(CaixaDeConversas)
+    const props = tela.props as Record<string, unknown>
+    expect((props.modo as { tipo: string }).tipo).toBe("clinica")
+    expect(props.conversas).toEqual(conversasReais.fila)
+    expect(props.aberta).toEqual(conversasReais.aberta)
+  })
+
+  it("o profissional vê a permissão negada de Conversas, sem o caminho da demonstração", async () => {
+    contexto.role = "professional"
+    const tela = await abrir(rota("/dashboard/conversations"))
+    expect(tela.type).toBe(PermissaoNegada)
+    expect((tela.props as { demo?: boolean }).demo).toBe(false)
   })
 
   it("Agentes mostra a lista real", async () => {

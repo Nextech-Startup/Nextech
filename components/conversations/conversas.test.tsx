@@ -1,9 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server"
-import { describe, expect, it } from "vitest"
-import { Conversa } from "./conversa"
+import { describe, expect, it, vi } from "vitest"
+import { AvisoDeDesconexao } from "./aviso-de-desconexao"
+import { Conversa, type ModoDaConversa } from "./conversa"
 import { ListaDeConversas } from "./lista-de-conversas"
 import { ordenarConversas } from "./estado"
 import type { ConversaAberta, ItemDaConversa } from "./tipos"
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }))
 
 const AGORA = "2026-09-28T14:32:00-03:00"
 const d = (hhmm: string, dia = "28") => `2026-09-${dia}T${hhmm}:00-03:00`
@@ -22,8 +25,11 @@ function aberta(p: Partial<ConversaAberta> & { id: string }): ConversaAberta {
   }
 }
 
-const render = (c: ConversaAberta) =>
-  renderToStaticMarkup(<Conversa conversa={c} agora={AGORA} voltarHref="/v" fichaHref="/f" />)
+const render = (c: ConversaAberta, modo?: ModoDaConversa) =>
+  renderToStaticMarkup(<Conversa conversa={c} agora={AGORA} voltarHref="/v" fichaHref="/f" modo={modo} />)
+
+const CLINICA: ModoDaConversa = { tipo: "clinica", agir: async () => ({ erro: null }) }
+const SUPORTE: ModoDaConversa = { tipo: "suporte" }
 
 describe("lista de conversas", () => {
   const cs = ordenarConversas([
@@ -105,5 +111,106 @@ describe("retomada da IA", () => {
   it("passadas 24h, diz que a próxima mensagem já volta para a IA", () => {
     const html = render(aberta({ id: "1", atendidaPor: "human", humanoAssumiuEm: d("08:40", "27") }))
     expect(html).toContain("a próxima mensagem do paciente volta para a IA")
+  })
+})
+
+describe("tela real da clínica", () => {
+  it("com a IA atendendo, oferece assumir e não tem campo de texto", () => {
+    const html = render(aberta({ id: "1" }), CLINICA)
+    expect(html).toContain("Assumir conversa")
+    expect(html).not.toContain("<textarea")
+    expect(html).not.toContain("Nota interna")
+  })
+
+  it("com a equipe atendendo, diz como responder pelo celular e oferece devolver", () => {
+    const html = render(aberta({ id: "1", atendidaPor: "human", humanoAssumiuEm: d("14:10") }), CLINICA)
+    expect(html).toContain("Responda pelo WhatsApp Business no celular da clínica")
+    expect(html).toContain("Devolver para a IA")
+    expect(html).toContain("a IA responde a partir da próxima mensagem do paciente")
+    expect(html).not.toContain("<textarea")
+  })
+
+  it("com a janela fechada, explica que texto livre não chega, sem botão de template", () => {
+    const html = render(aberta({ id: "1", atendidaPor: "human", ultimaDoPaciente: d("08:00", "26") }), CLINICA)
+    expect(html).toContain("Texto livre não chega mais ao paciente")
+    expect(html).not.toContain("Enviar template")
+  })
+
+  it("urgente oferece marcar como resolvida", () => {
+    expect(render(aberta({ id: "1", urgente: true, atendidaPor: "human" }), CLINICA)).toContain("Marcar como resolvida")
+  })
+
+  it("a resposta que não chegou fica marcada e não decide o estado", () => {
+    const html = render(
+      aberta({
+        id: "1",
+        atendidaPor: "human",
+        itens: [
+          { tipo: "mensagem", id: "1", autor: "patient", texto: "Tem horário?", em: d("14:00") },
+          { tipo: "mensagem", id: "2", autor: "ai", texto: "Temos às 15h", em: d("14:01"), entrega: "nao-entregue" },
+        ],
+      }),
+      CLINICA,
+    )
+    expect(html).toContain("Não chegou ao paciente")
+    expect(html).toContain(">Aguardando<")
+  })
+
+  it("resposta saindo mostra que está enviando", () => {
+    const html = render(
+      aberta({ id: "1", itens: [{ tipo: "mensagem", id: "2", autor: "ai", texto: "Oi", em: d("14:01"), entrega: "enviando" }] }),
+      CLINICA,
+    )
+    expect(html).toContain("Enviando…")
+  })
+
+  it("mídia sem legenda aparece pelo tipo", () => {
+    const html = render(
+      aberta({ id: "1", itens: [{ tipo: "mensagem", id: "1", autor: "patient", texto: "Áudio", midia: "audio", em: d("14:00") }] }),
+      CLINICA,
+    )
+    expect(html).toContain("Áudio")
+  })
+
+  it("histórico cortado avisa que há mensagens anteriores", () => {
+    expect(render(aberta({ id: "1", historicoCortado: true }), CLINICA)).toContain("Mensagens anteriores não aparecem aqui.")
+  })
+})
+
+describe("suporte", () => {
+  it("é só leitura: nenhum botão de ação e o aviso da auditoria", () => {
+    const html = render(aberta({ id: "1", urgente: true, atendidaPor: "human" }), SUPORTE)
+    for (const acao of ["Assumir conversa", "Devolver para a IA", "Marcar como resolvida", "Salvar nota"]) {
+      expect(html).not.toContain(acao)
+    }
+    expect(html).toContain("Somente leitura")
+  })
+})
+
+describe("protótipo", () => {
+  it("continua com o compositor de resposta e a nota interna", () => {
+    const html = render(aberta({ id: "1", atendidaPor: "human", humanoAssumiuEm: d("14:10") }))
+    expect(html).toContain('placeholder="Mensagem para o paciente"')
+    expect(html).toContain("Nota interna")
+  })
+})
+
+describe("aviso de desconexão", () => {
+  const avisos = [{ agenteId: "a1", agente: "Recepção", desde: d("12:32") }]
+
+  it("o owner vê o caminho para reconectar", () => {
+    const html = renderToStaticMarkup(
+      <AvisoDeDesconexao avisos={avisos} agora={AGORA} podeReconectar agentesHref="/dashboard/agents" />,
+    )
+    expect(html).toContain("A Meta desconectou o WhatsApp de Recepção")
+    expect(html).toContain('href="/dashboard/agents"')
+  })
+
+  it("o staff é orientado a avisar o responsável", () => {
+    const html = renderToStaticMarkup(
+      <AvisoDeDesconexao avisos={avisos} agora={AGORA} podeReconectar={false} agentesHref="/dashboard/agents" />,
+    )
+    expect(html).toContain("Avise o responsável pela conta da clínica.")
+    expect(html).not.toContain("href=")
   })
 })

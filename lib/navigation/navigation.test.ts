@@ -132,6 +132,8 @@ describe("itens de tela não construída", () => {
     // ponto — obriga a decidir se ela está mesmo pronta.
     expect(prontos).toEqual([
       "/dashboard",
+      // conversation-engine-v1, parte 4 (2026-10-11).
+      "/dashboard/conversations",
       "/dashboard/agents",
       "/dashboard/settings",
     ])
@@ -304,7 +306,6 @@ describe("conta de demonstração", () => {
       resolveDashboardNav("owner", "/dashboard"),
     )
     expect(itens("owner", false).filter((i) => i.status === "em-breve").map((i) => i.label)).toEqual([
-      "Conversas",
       "Agenda",
       "Pacientes",
       "Sequências",

@@ -13,6 +13,7 @@ export function ChatBubble({
   quem = "ia",
   autor,
   hora,
+  entrega,
   children,
 }: {
   lado: "paciente" | "clinica"
@@ -20,10 +21,13 @@ export function ChatBubble({
   quem?: "ia" | "equipe"
   autor?: ReactNode
   hora?: string
+  /** O que se sabe da entrega do que a clínica enviou: saindo, ou que não chegou. */
+  entrega?: { tom: "neutro" | "perigo"; texto: string }
   children: ReactNode
 }) {
   const daClinica = lado === "clinica"
   const daEquipe = daClinica && quem === "equipe"
+  const falhou = entrega?.tom === "perigo"
   return (
     <div className={cn("flex", daClinica ? "justify-end" : "justify-start")}>
       <div
@@ -32,6 +36,7 @@ export function ChatBubble({
           !daClinica && "rounded-bl-md border border-hairline bg-surface-1 text-ink-1",
           daClinica && !daEquipe && "rounded-br-md bg-brand/15 text-ink-1",
           daEquipe && "rounded-br-md border border-hairline bg-surface-2 text-ink-1",
+          falhou && "border border-dashed border-danger-border",
         )}
       >
         {autor && (
@@ -45,7 +50,12 @@ export function ChatBubble({
           </p>
         )}
         <div className="whitespace-pre-wrap">{children}</div>
-        {hora && <p className="mt-1 text-right text-[0.6875rem] tabular-nums text-ink-3">{hora}</p>}
+        {(hora || entrega) && (
+          <p className="mt-1 text-right text-[0.6875rem] tabular-nums text-ink-3">
+            {entrega && <span className={cn(falhou && "font-medium text-danger-fg")}>{entrega.texto} </span>}
+            {hora}
+          </p>
+        )}
       </div>
     </div>
   )

@@ -1,10 +1,11 @@
+import type { ReactNode } from "react"
 import Link from "next/link"
 import { Busca } from "@/components/patterns/busca"
 import { FiltroSegmentado } from "@/components/patterns/filtro-segmentado"
 import { PageHeader } from "@/components/patterns/page-header"
 import { Vazio } from "@/components/patterns/vazio"
 import { cn } from "@/lib/utils"
-import { Conversa } from "./conversa"
+import { Conversa, type ModoDaConversa } from "./conversa"
 import type { FiltroDeEstado } from "./estado"
 import { ListaDeConversas } from "./lista-de-conversas"
 import type { ConversaAberta, ConversaResumo } from "./tipos"
@@ -23,6 +24,10 @@ const SEGMENTOS: { valor: FiltroDeEstado; rotulo: string }[] = [
  *
  * No celular cabe uma coisa por vez: sem `?c` mostra a fila; com `?c`,
  * só a conversa, com o caminho de volta.
+ *
+ * A tela real passa `modo` (as ações do servidor), `aoVivo` (o indicador do
+ * tempo real, no cabeçalho) e `aviso` (a desconexão do WhatsApp, acima da
+ * caixa). Sem eles, é o protótipo da demonstração.
  */
 export function CaixaDeConversas({
   conversas,
@@ -33,6 +38,9 @@ export function CaixaDeConversas({
   agora,
   caminho,
   caminhoDaFicha,
+  modo,
+  aoVivo,
+  aviso,
 }: {
   conversas: readonly ConversaResumo[]
   contagens: Record<FiltroDeEstado, number>
@@ -42,6 +50,9 @@ export function CaixaDeConversas({
   agora: string
   caminho: string
   caminhoDaFicha: string
+  modo?: ModoDaConversa
+  aoVivo?: ReactNode
+  aviso?: ReactNode
 }) {
   const status = filtro.estado === "todas" ? undefined : filtro.estado
   const q = filtro.busca || undefined
@@ -60,7 +71,10 @@ export function CaixaDeConversas({
       <PageHeader
         title="Conversas"
         description="Quem está atendendo cada paciente agora, e o que precisa de você."
+        actions={aoVivo}
       />
+
+      {aviso}
 
       <div className="overflow-hidden rounded-card border border-hairline bg-surface-1/40 md:grid md:h-[calc(100dvh-13rem)] md:min-h-[38rem] md:grid-cols-[21rem_minmax(0,1fr)]">
         <div
@@ -91,15 +105,19 @@ export function CaixaDeConversas({
             />
           ) : (
             <div className="p-4">
-              <Vazio
-                acao={
-                  <Link href={caminho} className="text-sm text-ink-1 underline underline-offset-4">
-                    Ver todas
-                  </Link>
-                }
-              >
-                Nenhuma conversa neste filtro.
-              </Vazio>
+              {contagens.todas === 0 && !filtro.busca ? (
+                <Vazio>Nenhuma conversa ainda. Quando um paciente escrever para o WhatsApp da clínica, ela aparece aqui.</Vazio>
+              ) : (
+                <Vazio
+                  acao={
+                    <Link href={caminho} className="text-sm text-ink-1 underline underline-offset-4">
+                      Ver todas
+                    </Link>
+                  }
+                >
+                  Nenhuma conversa neste filtro.
+                </Vazio>
+              )}
             </div>
           )}
         </div>
@@ -112,6 +130,7 @@ export function CaixaDeConversas({
               agora={agora}
               voltarHref={href({ status, q })}
               fichaHref={`${caminhoDaFicha}/${aberta.paciente.id}`}
+              modo={modo}
             />
           ) : (
             <div className="grid h-full place-items-center p-6">

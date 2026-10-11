@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
+import { DASHBOARD_NAV } from "@/lib/navigation/dashboard-nav"
 
 function arquivos(dir: string): string[] {
   if (!existsSync(dir)) return []
@@ -42,6 +43,18 @@ describe("dado fictício", () => {
     const semDemo = comFixture
       .filter((f) => !/\bisDemo\b/.test(readFileSync(f, "utf8")))
     expect(semDemo).toEqual([])
+  })
+
+  // Item pronto mostra dado real a toda clínica: a fixture só pode entrar
+  // pelo desvio da demonstração.
+  it("página de item pronto que importa _fixtures só usa a fixture no ramo da demonstração", () => {
+    const prontas = DASHBOARD_NAV.flatMap((g) => g.items)
+      .filter((i) => i.status === "pronto")
+      .map((i) => `${PAINEL}${i.href}/page.tsx`)
+    const comFixture = prontas.filter((f) => existsSync(f) && importaFixtures(f))
+    expect(comFixture).toContain(`${PAINEL}/dashboard/conversations/page.tsx`)
+    const semDesvio = comFixture.filter((f) => !/if\s*\(\s*isDemo\s*\)/.test(readFileSync(f, "utf8")))
+    expect(semDesvio).toEqual([])
   })
 
   it("página do painel não mostra o aviso de protótipo", () => {

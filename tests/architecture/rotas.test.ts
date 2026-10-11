@@ -21,6 +21,16 @@ function paginasDaRota(href: string): string[] {
 
 const itens = [...DASHBOARD_NAV, MENU_DO_USUARIO, ...ADMIN_NAV].flatMap((g) => g.items)
 
+/**
+ * As páginas que são do próprio item: as filhas que caem na pasta de outro
+ * item do menu (Agenda dentro de `/dashboard`) são daquele outro.
+ */
+function paginasProprias(href: string): string[] {
+  const pasta = dirname(arquivoDaRota(href))
+  const outras = itens.map((i) => dirname(arquivoDaRota(i.href))).filter((p) => p !== pasta && p.startsWith(`${pasta}/`))
+  return paginasDaRota(href).filter((f) => !outras.some((p) => f.startsWith(`${p}/`)))
+}
+
 describe("rotas do menu", () => {
   // O menu mostra "em breve" sem link. A página só pode existir para a conta
   // de demonstração: fora dela, responde 404 antes de ler qualquer coisa, e
@@ -31,6 +41,17 @@ describe("rotas do menu", () => {
       .flatMap((i) => paginasDaRota(i.href))
       .filter((f) => !/if\s*\(\s*!isDemo\s*\)\s*notFound\(\)/.test(readFileSync(f, "utf8")))
     expect(abertas).toEqual([])
+  })
+
+  // O inverso: item pronto é tela real para toda clínica. A demonstração
+  // pode desviar para a fixture (`if (isDemo)`), mas nunca esconder a rota
+  // das outras contas.
+  it("item pronto não responde 404 fora da demonstração", () => {
+    const escondidas = itens
+      .filter((i) => i.status === "pronto")
+      .flatMap((i) => paginasProprias(i.href))
+      .filter((f) => /if\s*\(\s*!isDemo\s*\)\s*notFound\(\)/.test(readFileSync(f, "utf8")))
+    expect(escondidas).toEqual([])
   })
 
   it("item pronto tem página", () => {

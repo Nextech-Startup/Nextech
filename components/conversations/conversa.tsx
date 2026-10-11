@@ -5,13 +5,18 @@
  * (mensagens, notas internas e eventos) e o rodapé onde se assume, responde
  * ou anota.
  *
- * No protótipo, assumir, devolver, resolver, responder e anotar mudam só o
- * estado local — servem para ver a transição. A fase 3b liga estes pontos
- * às server actions do motor de conversa.
+ * Três modos:
+ * - `prototipo` (demonstração e design system): assumir, devolver,
+ *   resolver, responder e anotar mudam só o estado local;
+ * - `clinica` (tela real): assumir, devolver e resolver chamam o servidor,
+ *   e o estado vem só das props, que o refresh do tempo real atualiza. A
+ *   equipe responde pelo WhatsApp Business no celular (coexistência);
+ * - `suporte` (painel interno): só leitura.
  */
 
-import { useState, type FormEvent } from "react"
+import { useState, useTransition, type FormEvent } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   Bot,
   CalendarCheck,
@@ -23,6 +28,7 @@ import {
   PanelRight,
   ShieldCheck,
   Siren,
+  Smartphone,
   UserRound,
   type LucideIcon,
 } from "lucide-react"
@@ -40,7 +46,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import type { AcaoDoPainel } from "@/lib/conversations/acoes-do-painel"
 import { DURACAO_DA_JANELA_MS, janelaDeAtendimento } from "@/lib/conversations/janela"
+import { ROTULO_DA_MIDIA } from "@/lib/conversations/tela"
 import {
   chaveDoDia,
   formatarDataCurta,
@@ -75,6 +83,13 @@ const PILULA: Record<StatusTone, string> = {
 }
 
 const PROTOTIPO = "Protótipo: a ação ainda não existe"
+
+export type ModoDaConversa =
+  | { tipo: "prototipo" }
+  | { tipo: "clinica"; agir: (acao: AcaoDoPainel, conversaId: string) => Promise<{ erro: string | null }> }
+  | { tipo: "suporte" }
+
+const MODO_PROTOTIPO: ModoDaConversa = { tipo: "prototipo" }
 
 function emDoItem(i: ItemDaConversa): string {
   return i.em
@@ -115,18 +130,41 @@ export function Conversa({
   agora,
   voltarHref,
   fichaHref,
+  modo = MODO_PROTOTIPO,
 }: {
   conversa: ConversaAberta
   agora: string
   voltarHref: string
   fichaHref: string
+  modo?: ModoDaConversa
 }) {
-  const [atendidaPor, setAtendidaPor] = useState(conversa.atendidaPor)
-  const [urgente, setUrgente] = useState(conversa.urgente)
-  const [humanoEm, setHumanoEm] = useState(conversa.humanoAssumiuEm)
-  const [itens, setItens] = useState(conversa.itens)
+  const router = useRouter()
+  const [pendente, iniciar] = useTransition()
+  const [erro, setErro] = useState<string | null>(null)
 
-  const ultimaMensagem = [...itens].reverse().find((i) => i.tipo === "mensagem")
+  // Só o protótipo guarda estado: na tela real, a verdade é a do servidor.
+  const [local, setLocal] = useState({
+    atendidaPor: conversa.atendidaPor,
+    urgente: conversa.urgente,
+    humanoEm: conversa.humanoAssumiuEm,
+    itens: conversa.itens,
+  })
+  const prototipo = modo.tipo === "prototipo"
+  const leitura = modo.tipo === "suporte"
+  const { atendidaPor, urgente, humanoEm, itens } = prototipo
+    ? local
+    : {
+        atendidaPor: conversa.atendidaPor,
+        urgente: conversa.urgente,
+        humanoEm: conversa.humanoAssumiuEm,
+        itens: conversa.itens,
+      }
+
+  // A resposta que não chegou ao paciente não decide o estado: contada, a
+  // conversa com falha pareceria respondida pela clínica.
+  const ultimaMensagem = [...itens]
+    .reverse()
+    .find((i) => i.tipo === "mensagem" && i.entrega !== "nao-entregue")
   const estado = estadoDaConversa({
     urgente,
     atendidaPor,
@@ -136,25 +174,43 @@ export function Conversa({
   const nome = nomeDoPaciente(conversa.paciente)
 
   function acrescentar(item: Omit<ItemDaConversa, "id" | "em"> & Partial<ItemDaConversa>) {
-    setItens((atual) => [...atual, { ...item, id: `local-${atual.length}`, em: agora } as ItemDaConversa])
+    setLocal((atual) => ({
+      ...atual,
+      itens: [...atual.itens, { ...item, id: `local-${atual.itens.length}`, em: agora } as ItemDaConversa],
+    }))
+  }
+
+  /** No protótipo, simula; na tela real, pede ao servidor e redesenha com o que ele disser. */
+  function agir(acao: AcaoDoPainel, simular: () => void) {
+    if (modo.tipo === "prototipo") return simular()
+    if (modo.tipo !== "clinica") return
+    setErro(null)
+    iniciar(async () => {
+      const r = await modo.agir(acao, conversa.id)
+      setErro(r.erro)
+      router.refresh()
+    })
   }
 
   function assumir() {
-    setAtendidaPor("human")
-    setHumanoEm(agora)
-    acrescentar({ tipo: "evento", evento: "humano_assumiu" })
+    agir("assumir", () => {
+      setLocal((l) => ({ ...l, atendidaPor: "human", humanoEm: agora }))
+      acrescentar({ tipo: "evento", evento: "humano_assumiu" })
+    })
   }
 
   function devolver() {
-    setAtendidaPor("ai")
-    acrescentar({ tipo: "evento", evento: "devolvida_para_ia" })
+    agir("devolver", () => {
+      setLocal((l) => ({ ...l, atendidaPor: "ai" }))
+      acrescentar({ tipo: "evento", evento: "devolvida_para_ia" })
+    })
   }
 
   function resolverUrgencia() {
-    setUrgente(false)
-    setAtendidaPor("human")
-    setHumanoEm(agora)
-    acrescentar({ tipo: "evento", evento: "urgencia_resolvida" })
+    agir("resolver-urgencia", () => {
+      setLocal((l) => ({ ...l, urgente: false, atendidaPor: "human", humanoEm: agora }))
+      acrescentar({ tipo: "evento", evento: "urgencia_resolvida" })
+    })
   }
 
   // Agrupa por dia local, preservando a ordem de chegada.
@@ -213,18 +269,40 @@ export function Conversa({
         </header>
 
         {estado === "urgente" && (
-          <FaixaDeEstado tom="danger" acao={<Botao variante="secundario" onClick={resolverUrgencia}>Marcar como resolvida</Botao>}>
+          <FaixaDeEstado
+            tom="danger"
+            acao={
+              !leitura && (
+                <Botao variante="secundario" onClick={resolverUrgencia} disabled={pendente}>
+                  Marcar como resolvida
+                </Botao>
+              )
+            }
+          >
             Urgência detectada. A IA parou e só volta quando alguém da equipe resolver.
           </FaixaDeEstado>
         )}
         {(estado === "humano" || estado === "aguardando") && (
-          <FaixaDeEstado tom="info" acao={<Botao variante="secundario" onClick={devolver}>Devolver para a IA</Botao>}>
+          <FaixaDeEstado
+            tom="info"
+            acao={
+              !leitura && (
+                <Botao variante="secundario" onClick={devolver} disabled={pendente}>
+                  Devolver para a IA
+                </Botao>
+              )
+            }
+          >
             A equipe está atendendo. {textoDaRetomada(humanoEm, agora)}
+            {modo.tipo === "clinica" && " Devolvida, a IA responde a partir da próxima mensagem do paciente."}
           </FaixaDeEstado>
         )}
 
         <div className="min-h-0 flex-1 overflow-y-auto bg-surface-0/30 px-4 py-5">
           <div className="grid gap-5">
+            {conversa.historicoCortado && (
+              <p className="text-center text-xs text-ink-3">Mensagens anteriores não aparecem aqui.</p>
+            )}
             {dias.map((dia) => (
               <section key={dia.chave} aria-label={rotuloDoDia(dia.chave, agora)} className="grid gap-2.5">
                 <p className="text-center text-xs font-medium text-ink-3">{rotuloDoDia(dia.chave, agora)}</p>
@@ -236,16 +314,33 @@ export function Conversa({
           </div>
         </div>
 
-        <Rodape
-          iaAtendendo={atendidaPor === "ai" && !urgente}
-          janelaAberta={janela.aberta}
-          textoDaJanela={descreverJanela(janela, agora)}
-          aoAssumir={assumir}
-          aoResponder={(texto) =>
-            acrescentar({ tipo: "mensagem", autor: "human", autorNome: "Você", texto })
-          }
-          aoAnotar={(texto) => acrescentar({ tipo: "nota", autorNome: "Você", texto })}
-        />
+        {erro && (
+          <p role="alert" className="border-t border-danger-border bg-danger-bg px-4 py-2 text-sm text-danger-fg">
+            {erro}
+          </p>
+        )}
+
+        {prototipo ? (
+          <Rodape
+            iaAtendendo={atendidaPor === "ai" && !urgente}
+            janelaAberta={janela.aberta}
+            textoDaJanela={descreverJanela(janela, agora)}
+            aoAssumir={assumir}
+            aoResponder={(texto) =>
+              acrescentar({ tipo: "mensagem", autor: "human", autorNome: "Você", texto })
+            }
+            aoAnotar={(texto) => acrescentar({ tipo: "nota", autorNome: "Você", texto })}
+          />
+        ) : (
+          <RodapeReal
+            leitura={leitura}
+            iaAtendendo={atendidaPor === "ai" && !urgente}
+            janelaAberta={janela.aberta}
+            textoDaJanela={descreverJanela(janela, agora)}
+            pendente={pendente}
+            aoAssumir={assumir}
+          />
+        )}
       </section>
 
       <aside aria-label="Paciente" className="hidden min-h-0 overflow-y-auto border-l border-hairline xl:block">
@@ -261,7 +356,7 @@ function FaixaDeEstado({
   children,
 }: {
   tom: "danger" | "info"
-  acao: React.ReactNode
+  acao?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
@@ -320,6 +415,14 @@ function Item({ item }: { item: ItemDaConversa }) {
     )
   }
 
+  const soRotulo = item.midia !== undefined && item.texto === ROTULO_DA_MIDIA[item.midia]
+  const entrega =
+    item.entrega === "enviando"
+      ? { tom: "neutro" as const, texto: "Enviando…" }
+      : item.entrega === "nao-entregue"
+        ? { tom: "perigo" as const, texto: "Não chegou ao paciente" }
+        : undefined
+
   const conteudo = item.audio ? (
     <>
       <span className="flex items-center gap-2">
@@ -334,6 +437,11 @@ function Item({ item }: { item: ItemDaConversa }) {
         </span>
       )}
     </>
+  ) : soRotulo ? (
+    <span className="flex items-center gap-2 text-ink-3">
+      {item.midia === "audio" && <Mic aria-hidden="true" className="size-4" />}
+      {item.texto}
+    </span>
   ) : (
     item.texto
   )
@@ -352,6 +460,7 @@ function Item({ item }: { item: ItemDaConversa }) {
       lado="clinica"
       quem={daEquipe ? "equipe" : "ia"}
       hora={hora}
+      entrega={entrega}
       autor={
         daEquipe ? (
           <>
@@ -429,6 +538,55 @@ function Rodape({
         />
       </TabsContent>
     </Tabs>
+  )
+}
+
+/**
+ * O rodapé da tela real. Não há campo de texto: a equipe responde pelo
+ * WhatsApp Business no celular (coexistência), e o eco aparece aqui.
+ */
+function RodapeReal({
+  leitura,
+  iaAtendendo,
+  janelaAberta,
+  textoDaJanela,
+  pendente,
+  aoAssumir,
+}: {
+  leitura: boolean
+  iaAtendendo: boolean
+  janelaAberta: boolean
+  textoDaJanela: string
+  pendente: boolean
+  aoAssumir: () => void
+}) {
+  const caixa = "flex flex-wrap items-center gap-3 rounded-xl border border-hairline bg-surface-1 px-4 py-3 text-sm text-ink-2"
+  return (
+    <div className="border-t border-hairline p-4">
+      {leitura ? (
+        <p className="text-sm text-ink-3">Somente leitura: acesso de suporte registrado na auditoria.</p>
+      ) : !janelaAberta ? (
+        <p className={caixa}>
+          A janela de 24h {textoDaJanela}. Texto livre não chega mais ao paciente. O envio de template chega com as
+          sequências.
+        </p>
+      ) : iaAtendendo ? (
+        <div className={cn(caixa, "justify-between")}>
+          <p className="flex items-center gap-2">
+            <Bot aria-hidden="true" className="size-4 text-ink-3" />
+            A IA está respondendo esta conversa.
+          </p>
+          <Botao onClick={aoAssumir} disabled={pendente}>
+            Assumir conversa
+          </Botao>
+        </div>
+      ) : (
+        <p className={caixa}>
+          <Smartphone aria-hidden="true" className="size-4 shrink-0 text-ink-3" />
+          Responda pelo WhatsApp Business no celular da clínica: a mensagem aparece aqui.
+        </p>
+      )}
+    </div>
   )
 }
 

@@ -30,7 +30,7 @@ export const DASHBOARD_NAV: readonly NavGroup[] = [
       {
         label: "Conversas",
         href: "/dashboard/conversations",
-        status: "em-breve",
+        status: "pronto",
         roles: ["owner", "staff"],
       },
       { label: "Agenda", href: "/dashboard/schedule", status: "em-breve" },
