@@ -177,7 +177,7 @@ export const PREFIXO_DO_ID = "evo:"
 ```
 Mapeamento: `phoneNumberId` e `wabaId` = `evolution:<instância>`; `waMessageId` = `evo:<key.id>`; `waIdDoPaciente` = os dígitos do `remoteJid` (antes de `@s.whatsapp.net`); `autor` = `human` se `fromMe`, senão `patient`; `nomeDoPerfil` = `pushName` só do paciente; `ocorridaEm` = `messageTimestamp` (segundos) em ISO; `midia` e `texto` a partir de `conversation`, `extendedTextMessage.text`, `audioMessage`, `imageMessage` e `documentMessage`.
 
-- [ ] Testes com payloads tirados da tarefa 1:
+- [x] Testes com payloads tirados da tarefa 1:
   - texto simples e texto estendido;
   - `fromMe` vira `human`;
   - áudio vira `midia: "audio"` com `texto: null`;
@@ -185,8 +185,8 @@ Mapeamento: `phoneNumberId` e `wabaId` = `evolution:<instância>`; `waMessageId`
   - outra instância, outro evento e JSON fora do formato são ignorados;
   - número fora da lista é ignorado, e número da lista passa (a comparação é por E.164: `+` mais os dígitos);
   - os ids levam os prefixos.
-- [ ] Rodar e ver falhar; implementar; rodar.
-- [ ] Commit: `feat(whatsapp): leitura do webhook da Evolution para o formato da recepção`.
+- [x] Rodar e ver falhar; implementar; rodar.
+- [x] Commit: `feat(whatsapp): leitura do webhook da Evolution para o formato da recepção`.
 
 ### Tarefa 5: Cliente da Evolution e escolha do canal
 
@@ -417,3 +417,4 @@ Fica só a sessão do chip (chaves de cifra por contato, como em qualquer aparel
 ## Ajustes da execução
 
 - **Tarefa 3.** O NX004 original é testado em `tests/rls/demo.test.ts`; o `conta-demo.test.ts` testa o script de preparo. Rodei os dois, um de cada vez (10 e 11 casos). As clínicas temporárias do teste novo são HealthTech, como a real: no Starter, o limite de 1 agente recusa o segundo antes da trava. A função ganhou um `coalesce` no `like`: com o identificador nulo, a comparação daria `null` e deixaria publicar sem número na demonstração (caso coberto no teste).
+- **Tarefa 4.** `MotivoIgnorado` ganhou `sem-conteudo` (reação, edição, apagamento, voto): não são formato errado, e o log do ensaio fica legível. A lista de permitidos compara por `chaveDoNumero` (nota 8 da Evolution), e `@lid` sem `remoteJidAlt` é `formato`. A checagem da lista vem antes da leitura do conteúdo.
