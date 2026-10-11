@@ -253,7 +253,7 @@ export function lerConfigDaEvolution(env: NodeJS.ProcessEnv): ConfigDaEvolution 
 6. `tratarMensagem(m, agendar, { podeResponder })`, em que `podeResponder` chama `dentroDoTeto` e, no teto, `passarParaEquipePorTeto` antes de devolver `false`.
 7. Falha transitória, 500; definitiva, 200. Log com `erroParaLog`, como na rota da Meta.
 
-- [ ] Testes contra o banco (clínica de demonstração temporária, com o agente conectado ao canal pelo `service_role`), um por critério de aceite da spec:
+- [x] Testes contra o banco (clínica de demonstração temporária, com o agente conectado ao canal pelo `service_role`), um por critério de aceite da spec:
   - sem config, 404;
   - segredo errado, 401;
   - número permitido grava e a resposta sai pela Evolution;
@@ -267,9 +267,9 @@ export function lerConfigDaEvolution(env: NodeJS.ProcessEnv): ConfigDaEvolution 
   - no teto, nenhuma chamada à IA;
   - `fromMe` com o id da nossa resposta é ignorado, e com resposta `pending` dá 500;
   - log sem conteúdo nem telefone em todos os casos (`console` espionado).
-- [ ] **Áudio** (edge case da spec): ler o que `responderConversa` e o histórico do modelo fazem com mensagem sem texto (`midia: "audio"`), escrever um teste que fixe esse comportamento e registrar o resultado em "Ajustes" deste plano. Se a IA responder como se tivesse ouvido, levar ao Jhones antes de seguir.
-- [ ] Rodar o arquivo sozinho; depois `tests/whatsapp/webhook.test.ts` sozinho.
-- [ ] Commit: `feat(whatsapp): rota do canal de demonstração pela Evolution`.
+- [x] **Áudio** (edge case da spec): ler o que `responderConversa` e o histórico do modelo fazem com mensagem sem texto (`midia: "audio"`), escrever um teste que fixe esse comportamento e registrar o resultado em "Ajustes" deste plano. Se a IA responder como se tivesse ouvido, levar ao Jhones antes de seguir.
+- [x] Rodar o arquivo sozinho; depois `tests/whatsapp/webhook.test.ts` sozinho.
+- [x] Commit: `feat(whatsapp): rota do canal de demonstração pela Evolution`.
 
 ### Tarefa 8: A tela de Conversas da demonstração com a conversa real
 
@@ -420,3 +420,9 @@ Fica só a sessão do chip (chaves de cifra por contato, como em qualquer aparel
 - **Tarefa 4.** `MotivoIgnorado` ganhou `sem-conteudo` (reação, edição, apagamento, voto): não são formato errado, e o log do ensaio fica legível. A lista de permitidos compara por `chaveDoNumero` (nota 8 da Evolution), e `@lid` sem `remoteJidAlt` é `formato`. A checagem da lista vem antes da leitura do conteúdo.
 - **Tarefa 5.** O `EvolutionError` usa `code` (e não `codigo`, como a interface do plano dizia), igual ao `MetaError`: é a propriedade que o `erroParaLog` leva ao log e o `fail_ai_reply` grava. O `status` aceita `null` (sem resposta da Evolution, `rede`). O `resposta-sem-id` leva o status real da resposta (201), não 200. O envio pela Evolution também ganhou casos no `dependencias.test.ts` (o caminho de produção do `enviar`).
 - **Tarefa 6.** `passarParaEquipePorTeto(clinicId, conversationId)` chama a `fail_ai_reply` sem reserva (`p_message_id` nulo), em vez de um `update` próprio: é o mesmo handoff da falha da IA (`handled_by = 'human'`, `ai_failed_at = now()` do banco, filtrado por clínica), e o alerta do painel vem junto. Por isso o parâmetro `agora` saiu. O teto conta toda mensagem `ai` criada no dia (também a reservada e a que falhou: o modelo já foi chamado). Os testes unitários do fuso ficaram em `lib/conversations/teto.test.ts`, e os de banco em `tests/conversations/teto.test.ts`.
+- **Tarefa 7.**
+  - A regra do `fromMe` (decisão 4) ficou em `lib/conversations/eco.ts` (`origemDoFromMe`: `ja-gravada`, `resposta-pendente` ou `eco`), e a rota só traduz o resultado em 200 ou 500. Já gravada é qualquer mensagem com o mesmo `evo:<id>`, de qualquer autor: o eco repetido também não precisa de nada.
+  - A config ganhou `validarConfigDaEvolution`, que devolve os problemas pelo nome da variável (o script de conexão mostra). Falha fechada: variável presente mas inválida desliga o canal (segredo com menos de 24 caracteres, número fora de E.164, teto que não é inteiro positivo).
+  - Log com o rótulo `[evolution-webhook]`; a resposta da IA e o protocolo seguem logando com `[whatsapp-webhook]`. O `tests/whatsapp/log.ts` aceita os dois rótulos e a chave `motivo`.
+  - **Áudio:** o histórico do modelo troca a mensagem sem texto pelo marcador `[áudio, que ainda não pode ser ouvido]` (`lib/agent-config/prompt.ts`). A IA sabe que não ouviu, e responde a partir disso. O teste da rota fixa que esse é o conteúdo que chega ao modelo. Não precisou ir ao Jhones.
+  - O teste de ponta a ponta roda as tarefas do `after()` com o `dormir` mockado (sem os 10 s do agrupamento) e a rede interceptada por URL. Duas mutações conferidas (sem o `resposta-pendente` e sem o teto): os casos correspondentes ficam vermelhos.
