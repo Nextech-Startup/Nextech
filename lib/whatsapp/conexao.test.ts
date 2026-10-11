@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { aplicarEventoDaConta, conexaoDoWhatsapp, type EventoRegistrado } from "./conexao"
+import { agentesDesconectados, aplicarEventoDaConta, conexaoDoWhatsapp, type EventoRegistrado } from "./conexao"
 
 const T1 = "2026-09-21T10:00:00.000Z"
 const T2 = "2026-09-21T11:00:00.000Z"
@@ -97,5 +97,37 @@ describe("conexaoDoWhatsapp", () => {
       "conectado",
     )
     expect(conexaoDoWhatsapp({ temNumero: false, ultimoEvento: null })).toBe("sem-numero")
+  })
+})
+
+describe("agentesDesconectados", () => {
+  const agentes = [
+    { id: "a1", name: "Recepção", temNumero: true },
+    { id: "a2", name: "Pediatria", temNumero: true },
+    { id: "a3", name: "Rascunho", temNumero: false },
+  ]
+
+  it("avisa só quem tem a desconexão como último evento e ainda tem número", () => {
+    const eventos = [
+      { agent_id: "a1", event: "ACCOUNT_OFFBOARDED", occurred_at: "2026-10-10T10:00:00Z" },
+      { agent_id: "a2", event: "ACCOUNT_OFFBOARDED", occurred_at: "2026-10-09T10:00:00Z" },
+      { agent_id: "a2", event: "ACCOUNT_RECONNECTED", occurred_at: "2026-10-09T12:00:00Z" },
+      { agent_id: "a3", event: "ACCOUNT_OFFBOARDED", occurred_at: "2026-10-10T10:00:00Z" },
+    ] as const
+    expect(agentesDesconectados(agentes, eventos)).toEqual([
+      { agenteId: "a1", agente: "Recepção", desde: "2026-10-10T10:00:00Z" },
+    ])
+  })
+
+  it("decide pela hora, e não pela ordem da lista", () => {
+    const eventos = [
+      { agent_id: "a2", event: "ACCOUNT_RECONNECTED", occurred_at: "2026-10-09T12:00:00Z" },
+      { agent_id: "a2", event: "ACCOUNT_OFFBOARDED", occurred_at: "2026-10-09T10:00:00Z" },
+    ] as const
+    expect(agentesDesconectados(agentes, eventos)).toEqual([])
+  })
+
+  it("sem evento, ninguém está desconectado", () => {
+    expect(agentesDesconectados(agentes, [])).toEqual([])
   })
 })

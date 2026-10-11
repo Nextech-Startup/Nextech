@@ -70,3 +70,28 @@ export function aplicarEventoDaConta(p: {
     p.ultimo.statusAntes === "active"
   return { novoStatus: reativa ? "active" : null, statusAntes: null }
 }
+
+export type AvisoDeDesconexao = { agenteId: string; agente: string; desde: string }
+
+/**
+ * Os agentes que a Meta desconectou e que ainda não voltaram
+ * (conversation-engine-v1, edge case ACCOUNT_OFFBOARDED). O último evento
+ * decide, pela hora, e não pela ordem em que a consulta devolveu.
+ */
+export function agentesDesconectados(
+  agentes: readonly { id: string; name: string; temNumero: boolean }[],
+  eventos: readonly { agent_id: string; event: EventoDaConta; occurred_at: string }[],
+): AvisoDeDesconexao[] {
+  return agentes.flatMap((a) => {
+    const ultimo = eventos
+      .filter((e) => e.agent_id === a.id)
+      .reduce<(typeof eventos)[number] | null>(
+        (atual, e) => (!atual || Date.parse(e.occurred_at) > Date.parse(atual.occurred_at) ? e : atual),
+        null,
+      )
+    const conexao = conexaoDoWhatsapp({ temNumero: a.temNumero, ultimoEvento: ultimo?.event ?? null })
+    return conexao === "desconectado-pela-meta" && ultimo
+      ? [{ agenteId: a.id, agente: a.name, desde: ultimo.occurred_at }]
+      : []
+  })
+}

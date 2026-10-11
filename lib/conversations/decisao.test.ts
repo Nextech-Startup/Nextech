@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { decidirResposta, type EstadoDaConversa } from "./decisao"
+import { decidirResposta, marcoDaRetomada, type EstadoDaConversa } from "./decisao"
 
 const AGORA = "2026-09-28T15:00:00.000Z"
 const horasAntes = (h: number) => new Date(Date.parse(AGORA) - h * 3_600_000).toISOString()
@@ -57,5 +57,17 @@ describe("decidirResposta (conversation-engine-v1, comportamentos 3 e 4)", () =>
 
   it("humano sem marco nenhum: a IA fica calada", () => {
     expect(decidir(conversa({ handledBy: "human" }))).toEqual({ responde: false, motivo: "humano-atendendo" })
+  })
+})
+
+describe("marcoDaRetomada", () => {
+  it("é o mais recente dos dois", () => {
+    expect(marcoDaRetomada("2026-10-11T10:00:00Z", "2026-10-11T11:00:00Z")).toBe("2026-10-11T11:00:00Z")
+    expect(marcoDaRetomada("2026-10-11T12:00:00Z", "2026-10-11T11:00:00Z")).toBe("2026-10-11T12:00:00Z")
+  })
+  it("com um só, é ele; sem nenhum, null", () => {
+    expect(marcoDaRetomada(null, "2026-10-11T11:00:00Z")).toBe("2026-10-11T11:00:00Z")
+    expect(marcoDaRetomada("2026-10-11T10:00:00Z", null)).toBe("2026-10-11T10:00:00Z")
+    expect(marcoDaRetomada(null, null)).toBeNull()
   })
 })

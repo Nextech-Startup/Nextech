@@ -20,10 +20,15 @@ export type MotivoDoSilencio = "agente-fora-do-ar" | "urgente" | "fora-da-janela
 
 export type Decisao = { responde: true; retoma: boolean } | { responde: false; motivo: MotivoDoSilencio }
 
-function maisRecente(a: string | null, b: string | null): string | null {
-  if (!a) return b
-  if (!b) return a
-  return Date.parse(a) >= Date.parse(b) ? a : b
+/**
+ * O marco da retomada: o mais recente entre a última ação humana e a
+ * última falha da IA. A tela de Conversas mostra a partir dele quando a IA
+ * volta sozinha.
+ */
+export function marcoDaRetomada(humano: string | null, falha: string | null): string | null {
+  if (!humano) return falha
+  if (!falha) return humano
+  return Date.parse(humano) >= Date.parse(falha) ? humano : falha
 }
 
 /**
@@ -41,7 +46,7 @@ export function decidirResposta(p: { agenteAtivo: boolean; conversa: EstadoDaCon
   }
   if (conversa.handledBy === "ai") return { responde: true, retoma: false }
 
-  const marco = maisRecente(conversa.humanTookOverAt, conversa.aiFailedAt)
+  const marco = marcoDaRetomada(conversa.humanTookOverAt, conversa.aiFailedAt)
   if (marco && Date.parse(p.agora) - Date.parse(marco) >= RETOMADA_DA_IA_MS) {
     return { responde: true, retoma: true }
   }
