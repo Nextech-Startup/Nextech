@@ -17,9 +17,9 @@
 
 **1546 testes passando** · 29 migrations aplicadas · em produção em `app.nextech.ia.br`
 
-**Prioridade atual (decisão do Jhones, 2026-10-11): a apresentação para investidor.** As telas da conta de demonstração mais a IA conversando pelo WhatsApp de verdade, por um canal de demonstração na Evolution API (`docs/specs/evolution-demo-v1.md`), rodando no computador do Jhones durante a apresentação.
+**Prioridade atual (decisão do Jhones, 2026-10-11): a apresentação para investidor.** Num login só (`clinica@`), as telas da conta de demonstração mais a IA conversando pelo WhatsApp de verdade, por um canal de demonstração na Evolution API (`docs/specs/evolution-demo-v1.md`). A Evolution roda no computador do Jhones durante a apresentação, e a conversa real aparece na tela de Conversas da demonstração, junto das de exemplo, até a limpeza no fim.
 
-**Próximas sessões, nesta ordem:** (1) implementar `evolution-demo-v1`; (2) o PR `staging` → `main`, quando o Jhones pedir, para a produção ter as telas da demonstração; (3) a correção da posse do WhatsApp; (4) o MFA no painel interno; (5) a parte 5 da 3b (preview e áudio). A posse e o MFA são bloqueios de go-live (Pendências, abaixo) e não da apresentação: a demonstração não conecta WhatsApp, e a clínica de apresentação usa um chip da Nextech.
+**Próximas sessões, nesta ordem:** (1) implementar `evolution-demo-v1`; (2) o PR `staging` → `main`, quando o Jhones pedir, para a produção ter as telas da demonstração; (3) a correção da posse do WhatsApp; (4) o MFA no painel interno; (5) a parte 5 da 3b (preview e áudio). A posse e o MFA são bloqueios de go-live (Pendências, abaixo) e não da apresentação: só contas da Nextech existem, o canal é um chip da Nextech, e a recepção da Evolution procura o agente pela instância e pela clínica.
 
 ---
 
