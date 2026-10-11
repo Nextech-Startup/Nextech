@@ -25,7 +25,8 @@ describe("shell da clínica na conta de demonstração", () => {
 describe("shell de uma clínica comum", () => {
   it("o menu continua com os itens em breve", () => {
     const { painel } = shellDaClinica("owner", false)
-    expect(itens(painel).filter((i) => i.status === "em-breve")).toHaveLength(8)
+    // Conversas virou tela real na parte 4 do motor de conversa.
+    expect(itens(painel).filter((i) => i.status === "em-breve")).toHaveLength(7)
   })
 
   it("sem link de Minha conta e sem selo", () => {

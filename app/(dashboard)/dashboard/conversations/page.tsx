@@ -90,7 +90,7 @@ export default async function ConversasPage({
       celularNaConversa={Boolean(pedida)}
       agora={agora}
       caminho={ROTA}
-      caminhoDaFicha="/dashboard/patients"
+      // Pacientes ainda é "em breve" fora da demonstração: sem link para a ficha.
       modo={{ tipo: "clinica", agir }}
       aoVivo={<AoVivo clinicId={clinicId} />}
       aviso={

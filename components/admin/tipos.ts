@@ -1,5 +1,6 @@
 import type { ConexoesDaClinica } from "@/lib/admin/conexoes"
 import type { CicloDeConsumo } from "@/lib/admin/consumo"
+import type { EstadoDeSuporte } from "@/lib/admin/estado-de-suporte"
 import type { ExecucaoDeCron, JanelaDeEventos } from "@/lib/admin/saude"
 import type { ClinicPlan } from "@/lib/agent-config/schema"
 
@@ -23,9 +24,10 @@ export type ConexoesDoPainel = ClinicaDoPainel & {
 export type SaudeDaOperacao = { webhooks: JanelaDeEventos; ia: JanelaDeEventos; crons: ExecucaoDeCron[] }
 
 /** O que se vê de uma clínica antes da justificativa: só números. */
-export type ResumoDeSuporte = ClinicaDoPainel & { abertas: number; aguardando: number; comFalha: number }
+export type ResumoDeSuporte = ClinicaDoPainel & { abertas: number; aguardando: number; comFalha: number; urgentes: number }
 
-export type EstadoDaConversaDeSuporte = "falha" | "aguardando" | "humano" | "ia"
+/** A regra mora em `lib/admin/estado-de-suporte.ts`. */
+export type EstadoDaConversaDeSuporte = EstadoDeSuporte
 
 /** Uma conversa na lista de suporte. Só aparece com acesso vigente. */
 export type ConversaDeSuporte = {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  acessosDaTrilha,
   acessoVigente,
   registroDeSuporte,
   validarJustificativa,
@@ -63,6 +64,12 @@ describe("acessoVigente", () => {
     expect(vigente?.justificativa.chamado).toBe("2")
   })
 
+  it("o relógio do banco adiantado em segundos não barra o acesso recém-concedido", () => {
+    // `created_at` vem do relógio do banco; `agora`, do servidor da aplicação.
+    expect(acessoVigente([acesso("c1", "2026-09-28T14:32:02-03:00")], "c1", AGORA)).not.toBeNull()
+    expect(acessoVigente([acesso("c1", "2026-09-28T14:33:01-03:00")], "c1", AGORA)).toBeNull()
+  })
+
   it("acesso com data no futuro não vale", () => {
     expect(acessoVigente([acesso("c1", "2026-09-28T15:00:00-03:00")], "c1", AGORA)).toBeNull()
   })
@@ -90,5 +97,32 @@ describe("registroDeSuporte", () => {
   it("o metadado guarda só o motivo e o chamado", () => {
     const r = registroDeSuporte({ clinicaId: "c1", justificativa: J, conversaId: "conv-9" })
     expect(Object.keys(r.metadata).sort()).toEqual(["chamado", "motivo"])
+  })
+})
+
+describe("acessosDaTrilha", () => {
+  it("lê motivo e chamado do metadata", () => {
+    expect(
+      acessosDaTrilha([
+        { clinic_id: "A", created_at: "2026-10-11T10:00:00Z", metadata: { motivo: "resposta-errada", chamado: "4821" } },
+      ]),
+    ).toEqual([
+      {
+        clinicaId: "A",
+        concedidoEm: "2026-10-11T10:00:00Z",
+        justificativa: { motivo: "resposta-errada", chamado: "4821" },
+      },
+    ])
+  })
+
+  it("descarta registro sem clínica, sem metadata ou com justificativa inválida", () => {
+    expect(
+      acessosDaTrilha([
+        { clinic_id: null, created_at: "2026-10-11T10:00:00Z", metadata: { motivo: "outro", chamado: "1" } },
+        { clinic_id: "A", created_at: "2026-10-11T10:00:00Z", metadata: null },
+        { clinic_id: "A", created_at: "2026-10-11T10:00:00Z", metadata: { motivo: "curiosidade", chamado: "1" } },
+        { clinic_id: "A", created_at: "2026-10-11T10:00:00Z", metadata: { motivo: "outro", chamado: "Maria" } },
+      ]),
+    ).toEqual([])
   })
 })

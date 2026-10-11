@@ -205,11 +205,12 @@ describe("mapa do painel interno", () => {
     ])
   })
 
-  it("só a listagem de clínicas e a auditoria estão construídas (admin-audit-v1)", () => {
+  it("só a listagem de clínicas, as conversas de suporte e a auditoria estão construídas", () => {
     const prontos = ADMIN_NAV.flatMap((g) =>
       g.items.filter((i) => i.status === "pronto").map((i) => i.href),
     )
-    expect(prontos).toEqual(["/admin", "/admin/audit"])
+    // Auditoria: admin-audit-v1. Conversas: conversation-engine-v1, parte 4.
+    expect(prontos).toEqual(["/admin", "/admin/conversations", "/admin/audit"])
   })
 
   it("na auditoria, só ela fica ativa: /admin é prefixo, mas não acende Clínicas", () => {

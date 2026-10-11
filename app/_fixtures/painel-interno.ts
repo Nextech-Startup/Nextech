@@ -130,8 +130,10 @@ export const CONVERSAS_DE_SUPORTE: ConversaDeSuporte[] = CONVERSAS.map((c) => ({
   paciente: c.paciente.nome ?? formatarTelefone(c.paciente.telefone),
   agente: c.agente,
   // Paciente esperando resposta pesa mais do que quem atende: é o que o chamado costuma relatar.
-  estado: c.itens.some((i) => i.tipo === "evento" && i.evento === "falha_da_ia")
-    ? "falha"
+  estado: c.urgente
+    ? "urgente"
+    : c.itens.some((i) => i.tipo === "evento" && i.evento === "falha_da_ia")
+      ? "falha"
     : c.ultima.autor === "patient"
       ? "aguardando"
       : c.atendidaPor === "human"
@@ -149,12 +151,13 @@ export const RESUMOS_DE_SUPORTE: ResumoDeSuporte[] = [
     abertas: CONVERSAS_DE_SUPORTE.length,
     aguardando: conta("aguardando"),
     comFalha: conta("falha"),
+    urgentes: conta("urgente"),
   },
-  { ...clinica("cl-odonto-vida"), abertas: 9, aguardando: 1, comFalha: 0 },
-  { ...clinica("cl-pele-viva"), abertas: 21, aguardando: 4, comFalha: 2 },
-  { ...clinica("cl-movimento"), abertas: 14, aguardando: 0, comFalha: 0 },
-  { ...clinica("cl-nutri"), abertas: 0, aguardando: 0, comFalha: 0 },
-  { ...clinica("cl-mente-serena"), abertas: 33, aguardando: 3, comFalha: 0 },
+  { ...clinica("cl-odonto-vida"), abertas: 9, aguardando: 1, comFalha: 0, urgentes: 0 },
+  { ...clinica("cl-pele-viva"), abertas: 21, aguardando: 4, comFalha: 2, urgentes: 0 },
+  { ...clinica("cl-movimento"), abertas: 14, aguardando: 0, comFalha: 0, urgentes: 0 },
+  { ...clinica("cl-nutri"), abertas: 0, aguardando: 0, comFalha: 0, urgentes: 0 },
+  { ...clinica("cl-mente-serena"), abertas: 33, aguardando: 3, comFalha: 0, urgentes: 0 },
 ]
 
 /**

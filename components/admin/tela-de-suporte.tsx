@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react"
 import { Botao, Campo, Input, Select } from "@/components/patterns/formulario"
 import { PageHeader } from "@/components/patterns/page-header"
 import { StatusBadge } from "@/components/patterns/status-badge"
+import { Button } from "@/components/ui/button"
 import {
   DURACAO_DO_ACESSO_MS,
   MOTIVOS_DE_SUPORTE,
@@ -25,6 +26,9 @@ function Contagens({ c }: { c: ResumoDeSuporte }) {
       <span>{plural(c.abertas, "aberta", "abertas")}</span>
       <span>{formatarNumero(c.aguardando)} aguardando</span>
       <span className={c.comFalha > 0 ? "text-danger-fg" : undefined}>{formatarNumero(c.comFalha)} com falha</span>
+      {c.urgentes > 0 && (
+        <span className="font-medium text-danger-fg">{plural(c.urgentes, "urgente", "urgentes")}</span>
+      )}
     </span>
   )
 }
@@ -41,7 +45,9 @@ export function ClinicasParaSuporte({
   clinicas: readonly ResumoDeSuporte[]
   hrefDaClinica: (id: string) => string
 }) {
-  const ordenadas = [...clinicas].sort((a, b) => b.comFalha - a.comFalha || b.aguardando - a.aguardando)
+  const ordenadas = [...clinicas].sort(
+    (a, b) => b.urgentes - a.urgentes || b.comFalha - a.comFalha || b.aguardando - a.aguardando,
+  )
 
   return (
     <div className="grid gap-6">
@@ -81,6 +87,7 @@ export function TelaDeAcessoDeSuporte({
   hrefDaLista,
   agora,
   acaoDesabilitada,
+  real,
 }: {
   clinica: ResumoDeSuporte
   acesso: (AcessoDeSuporte & { expiraEm: string }) | null
@@ -88,6 +95,12 @@ export function TelaDeAcessoDeSuporte({
   hrefDaLista: string
   agora: string
   acaoDesabilitada?: string
+  /**
+   * A tela real: liberar grava a justificativa na trilha, e abrir uma
+   * conversa é um link sem prefetch (um prefetch gravaria uma abertura que
+   * ninguém fez). Encerrar antes dos 30 min não existe ainda.
+   */
+  real?: { liberar: (dados: FormData) => Promise<void>; hrefDaConversa: (id: string) => string; erro: string | null }
 }) {
   return (
     <div className="grid gap-6">
@@ -100,18 +113,31 @@ export function TelaDeAcessoDeSuporte({
       </div>
 
       {acesso === null ? (
-        <Justificativa acaoDesabilitada={acaoDesabilitada} />
+        <Justificativa acaoDesabilitada={acaoDesabilitada} liberar={real?.liberar} erro={real?.erro ?? null} />
       ) : (
         <>
-          <FaixaDoAcesso acesso={acesso} acaoDesabilitada={acaoDesabilitada} />
-          <ListaDeConversas conversas={conversas} agora={agora} acaoDesabilitada={acaoDesabilitada} />
+          <FaixaDoAcesso acesso={acesso} acaoDesabilitada={acaoDesabilitada} encerravel={!real} />
+          <ListaDeConversas
+            conversas={conversas}
+            agora={agora}
+            acaoDesabilitada={acaoDesabilitada}
+            hrefDaConversa={real?.hrefDaConversa}
+          />
         </>
       )}
     </div>
   )
 }
 
-function Justificativa({ acaoDesabilitada }: { acaoDesabilitada?: string }) {
+function Justificativa({
+  acaoDesabilitada,
+  liberar,
+  erro,
+}: {
+  acaoDesabilitada?: string
+  liberar?: (dados: FormData) => Promise<void>
+  erro: string | null
+}) {
   return (
     <section
       aria-labelledby="justificativa-titulo"
@@ -125,7 +151,15 @@ function Justificativa({ acaoDesabilitada }: { acaoDesabilitada?: string }) {
           As conversas têm dado de saúde. Sem motivo e sem chamado, o acesso não é liberado.
         </p>
       </div>
-      <form className="grid gap-4">
+      {erro && (
+        <p
+          role="alert"
+          className="rounded-xl border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger-fg"
+        >
+          {erro}
+        </p>
+      )}
+      <form action={liberar} className="grid gap-4">
         <Campo label="Motivo">
           <Select name="motivo" required defaultValue="">
             <option value="" disabled>
@@ -157,9 +191,11 @@ function Justificativa({ acaoDesabilitada }: { acaoDesabilitada?: string }) {
 function FaixaDoAcesso({
   acesso,
   acaoDesabilitada,
+  encerravel,
 }: {
   acesso: AcessoDeSuporte & { expiraEm: string }
   acaoDesabilitada?: string
+  encerravel: boolean
 }) {
   return (
     <div
@@ -173,9 +209,11 @@ function FaixaDoAcesso({
           {ROTULO_DO_MOTIVO[acesso.justificativa.motivo]}, chamado #{acesso.justificativa.chamado}.
         </span>
       </p>
-      <Botao type="button" variante="secundario" disabled={Boolean(acaoDesabilitada)} title={acaoDesabilitada}>
-        Encerrar acesso
-      </Botao>
+      {encerravel && (
+        <Botao type="button" variante="secundario" disabled={Boolean(acaoDesabilitada)} title={acaoDesabilitada}>
+          Encerrar acesso
+        </Botao>
+      )}
     </div>
   )
 }
@@ -184,10 +222,12 @@ function ListaDeConversas({
   conversas,
   agora,
   acaoDesabilitada,
+  hrefDaConversa,
 }: {
   conversas: readonly ConversaDeSuporte[]
   agora: string
   acaoDesabilitada?: string
+  hrefDaConversa?: (id: string) => string
 }) {
   const ordenadas = [...conversas].sort(
     (a, b) => ORDEM_DA_CONVERSA[a.estado] - ORDEM_DA_CONVERSA[b.estado] || ms(b.ultimaAtividade) - ms(a.ultimaAtividade),
@@ -212,15 +252,23 @@ function ListaDeConversas({
             <div className="flex flex-wrap items-center gap-3 sm:contents">
               <StatusBadge tone={TOM_DA_CONVERSA[c.estado]}>{ROTULO_DA_CONVERSA[c.estado]}</StatusBadge>
               <span className="text-xs text-ink-3 tabular-nums">{tempoRelativo(c.ultimaAtividade, agora)}</span>
-              <Botao
-                type="button"
-                variante="secundario"
-                disabled={Boolean(acaoDesabilitada)}
-                title={tituloDoAbrir}
-                className="ml-auto w-fit sm:ml-0"
-              >
-                Abrir conversa
-              </Botao>
+              {hrefDaConversa ? (
+                <Button asChild variant="outline" className="ml-auto w-fit sm:ml-0">
+                  <Link href={hrefDaConversa(c.id)} prefetch={false} title={tituloDoAbrir}>
+                    Abrir conversa
+                  </Link>
+                </Button>
+              ) : (
+                <Botao
+                  type="button"
+                  variante="secundario"
+                  disabled={Boolean(acaoDesabilitada)}
+                  title={tituloDoAbrir}
+                  className="ml-auto w-fit sm:ml-0"
+                >
+                  Abrir conversa
+                </Botao>
+              )}
             </div>
           </li>
         ))}

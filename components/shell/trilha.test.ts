@@ -44,10 +44,10 @@ describe("montarTrilha", () => {
   })
 
   it("na demonstração, a tela que era em breve ganha trilha", () => {
-    const rota = "/dashboard/conversations"
+    const rota = "/dashboard/schedule"
     expect(montarTrilha(resolveDashboardNav("owner", rota, { demo: true }), rota)).toEqual([
       { label: "Operação" },
-      { label: "Conversas" },
+      { label: "Agenda" },
     ])
     // Fora dela, o item é inerte e não acende: sem trilha.
     expect(montarTrilha(resolveDashboardNav("owner", rota), rota)).toEqual([])

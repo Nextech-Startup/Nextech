@@ -33,6 +33,7 @@ export const ROTULO_OPERACIONAL: Record<NivelOperacional, string> = {
 export const GRAVIDADE_OPERACIONAL: Record<NivelOperacional, number> = { falha: 0, atencao: 1, ok: 2 }
 
 export const TOM_DA_CONVERSA: Record<EstadoDaConversaDeSuporte, StatusTone> = {
+  urgente: "danger",
   falha: "danger",
   aguardando: "warning",
   humano: "info",
@@ -40,16 +41,21 @@ export const TOM_DA_CONVERSA: Record<EstadoDaConversaDeSuporte, StatusTone> = {
 }
 
 export const ROTULO_DA_CONVERSA: Record<EstadoDaConversaDeSuporte, string> = {
+  urgente: "Urgente",
   falha: "Falha da IA",
   aguardando: "Aguardando resposta",
   humano: "Com a equipe",
   ia: "Com a IA",
 }
 
-/** A conversa que falhou é a que o chamado costuma descrever: sobe primeiro. */
+/**
+ * A urgência vem antes de tudo, como na fila da clínica; depois, a conversa
+ * que falhou, que é a que o chamado costuma descrever.
+ */
 export const ORDEM_DA_CONVERSA: Record<EstadoDaConversaDeSuporte, number> = {
-  falha: 0,
-  aguardando: 1,
-  humano: 2,
-  ia: 3,
+  urgente: 0,
+  falha: 1,
+  aguardando: 2,
+  humano: 3,
+  ia: 4,
 }

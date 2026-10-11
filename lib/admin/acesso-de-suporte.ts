@@ -23,11 +23,18 @@ export const ROTULO_DO_MOTIVO: Record<MotivoDeSuporte, string> = {
 
 export type Justificativa = { motivo: MotivoDeSuporte; chamado: string }
 
-/** Na fase 3b, estas ações se juntam ao `AdminAction` de `audit.ts`. */
+/** Fazem parte do `AdminAction` de `audit.ts` (motor de conversa, parte 4). */
 export type AcaoDeSuporte = "conversation.list" | "conversation.view"
 
 /** Tempo para investigar um chamado sem justificar de novo a cada conversa. */
 export const DURACAO_DO_ACESSO_MS = 30 * 60 * 1000
+
+/**
+ * A concessão é gravada com o relógio do banco (`created_at`), e o "agora"
+ * vem do servidor da aplicação. Com o banco segundos adiantado, o acesso
+ * recém-concedido pareceria do futuro e a pessoa veria o formulário de novo.
+ */
+export const FOLGA_DO_RELOGIO_MS = 60 * 1000
 
 /** Só dígitos, com "#" opcional: o chamado é um número, nunca uma descrição. */
 const CHAMADO = /^#?\s*(\d{1,10})$/
@@ -61,7 +68,12 @@ export function acessoVigente(
 ): (AcessoDeSuporte & { expiraEm: string }) | null {
   const t = ms(agora)
   const vigente = acessos
-    .filter((a) => a.clinicaId === clinicaId && ms(a.concedidoEm) <= t && t - ms(a.concedidoEm) < DURACAO_DO_ACESSO_MS)
+    .filter(
+      (a) =>
+        a.clinicaId === clinicaId &&
+        ms(a.concedidoEm) <= t + FOLGA_DO_RELOGIO_MS &&
+        t - ms(a.concedidoEm) < DURACAO_DO_ACESSO_MS,
+    )
     .sort((a, b) => ms(b.concedidoEm) - ms(a.concedidoEm))[0]
   if (!vigente) return null
   return { ...vigente, expiraEm: new Date(ms(vigente.concedidoEm) + DURACAO_DO_ACESSO_MS).toISOString() }
@@ -95,4 +107,21 @@ export function registroDeSuporte(p: {
     targetId: p.conversaId,
     metadata,
   }
+}
+
+/**
+ * Os acessos concedidos, a partir dos registros `conversation.list` da
+ * trilha. Registro sem clínica ou com justificativa que não valida
+ * (gravado à mão, ou por versão antiga) não libera nada.
+ */
+export function acessosDaTrilha(
+  linhas: readonly { clinic_id: string | null; created_at: string; metadata: unknown }[],
+): AcessoDeSuporte[] {
+  return linhas.flatMap((l) => {
+    if (!l.clinic_id || typeof l.metadata !== "object" || l.metadata === null) return []
+    const { motivo, chamado } = l.metadata as Record<string, unknown>
+    if (typeof motivo !== "string" || typeof chamado !== "string") return []
+    const v = validarJustificativa({ motivo, chamado })
+    return v.ok ? [{ clinicaId: l.clinic_id, concedidoEm: l.created_at, justificativa: v.justificativa }] : []
+  })
 }

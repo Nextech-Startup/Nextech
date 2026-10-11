@@ -7,8 +7,8 @@ import type { ConversaDeSuporte, ResumoDeSuporte } from "./tipos"
 const AGORA = "2026-09-28T14:32:00-03:00"
 const PROTOTIPO = "Protótipo: a ação ainda não existe"
 
-const SORRISO: ResumoDeSuporte = { id: "cl-1", nome: "Clínica Sorriso", plano: "healthtech", abertas: 12, aguardando: 2, comFalha: 1 }
-const OUTRA: ResumoDeSuporte = { id: "cl-2", nome: "Outra Clínica", plano: "pro", abertas: 4, aguardando: 0, comFalha: 0 }
+const SORRISO: ResumoDeSuporte = { id: "cl-1", nome: "Clínica Sorriso", plano: "healthtech", abertas: 12, aguardando: 2, comFalha: 1, urgentes: 0 }
+const OUTRA: ResumoDeSuporte = { id: "cl-2", nome: "Outra Clínica", plano: "pro", abertas: 4, aguardando: 0, comFalha: 0, urgentes: 0 }
 
 const CONVERSAS: ConversaDeSuporte[] = [
   { id: "conv-1", paciente: "Juliana Prado", agente: "Recepção", estado: "ia", ultimaAtividade: "2026-09-28T14:29:00-03:00" },
@@ -94,5 +94,47 @@ describe("TelaDeAcessoDeSuporte com acesso", () => {
     const b = botao(acesso(true), "Abrir conversa")
     expect(b).toContain("disabled")
     expect(b).toContain("registro na auditoria")
+  })
+})
+
+describe("TelaDeAcessoDeSuporte real", () => {
+  const liberar = async () => {}
+  const URGENTE: ConversaDeSuporte = {
+    id: "conv-3",
+    paciente: "Paula Reis",
+    agente: "Recepção",
+    estado: "urgente",
+    ultimaAtividade: "2026-09-28T10:00:00-03:00",
+  }
+  const real = (comAcesso: boolean, erro: string | null = null) =>
+    renderToStaticMarkup(
+      <TelaDeAcessoDeSuporte
+        clinica={{ ...SORRISO, urgentes: 1 }}
+        acesso={comAcesso ? ACESSO : null}
+        conversas={[...CONVERSAS, URGENTE]}
+        hrefDaLista="/admin/conversations"
+        agora={AGORA}
+        real={{ liberar, hrefDaConversa: (id) => `/admin/conversations/cl-1/${id}`, erro }}
+      />,
+    )
+
+  it("o formulário envia para a ação e mostra o erro como alerta", () => {
+    const html = real(false, "Informe o número do chamado, só com dígitos.")
+    expect(html).toMatch(/<form[^>]*action=/)
+    expect(html).toMatch(/role="alert"[^>]*>Informe o número do chamado/)
+    expect(botao(html, "Liberar acesso por 30 min")).not.toContain('disabled=""')
+  })
+
+  it("abrir é link para a conversa, sem encerrar acesso", () => {
+    const html = real(true)
+    expect(html).toContain('href="/admin/conversations/cl-1/conv-1"')
+    expect(html).not.toContain("Encerrar acesso")
+  })
+
+  it("a urgente vem antes da falha e aparece na contagem", () => {
+    const html = real(true)
+    expect(html.indexOf("Paula Reis")).toBeLessThan(html.indexOf("Rafael Lima"))
+    expect(html).toContain(">Urgente<")
+    expect(html).toContain("1 urgente")
   })
 })

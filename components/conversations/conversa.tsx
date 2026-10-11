@@ -135,7 +135,7 @@ export function Conversa({
   conversa: ConversaAberta
   agora: string
   voltarHref: string
-  fichaHref: string
+  fichaHref?: string
   modo?: ModoDaConversa
 }) {
   const router = useRouter()

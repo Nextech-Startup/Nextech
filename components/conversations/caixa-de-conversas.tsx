@@ -49,7 +49,8 @@ export function CaixaDeConversas({
   celularNaConversa: boolean
   agora: string
   caminho: string
-  caminhoDaFicha: string
+  /** Sem ele, a conversa não oferece abrir a ficha. */
+  caminhoDaFicha?: string
   modo?: ModoDaConversa
   aoVivo?: ReactNode
   aviso?: ReactNode
@@ -129,7 +130,7 @@ export function CaixaDeConversas({
               conversa={aberta}
               agora={agora}
               voltarHref={href({ status, q })}
-              fichaHref={`${caminhoDaFicha}/${aberta.paciente.id}`}
+              fichaHref={caminhoDaFicha && `${caminhoDaFicha}/${aberta.paciente.id}`}
               modo={modo}
             />
           ) : (

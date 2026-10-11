@@ -16,7 +16,8 @@ export function PainelDoPaciente({
   fichaHref,
 }: {
   paciente: PacienteDaConversa
-  fichaHref: string
+  /** Sem ficha (Pacientes ainda não é tela real, ou é o suporte), sem o link. */
+  fichaHref?: string
 }) {
   return (
     <div className="grid content-start gap-6 p-5">
@@ -56,9 +57,11 @@ export function PainelDoPaciente({
         ]}
       />
 
-      <Button asChild variant="outline" size="sm" className="w-fit">
-        <Link href={fichaHref}>Abrir ficha do paciente</Link>
-      </Button>
+      {fichaHref && (
+        <Button asChild variant="outline" size="sm" className="w-fit">
+          <Link href={fichaHref}>Abrir ficha do paciente</Link>
+        </Button>
+      )}
     </div>
   )
 }
