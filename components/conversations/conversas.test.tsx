@@ -1,11 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
 import { AvisoDeDesconexao } from "./aviso-de-desconexao"
-import { BuscaDaFila } from "./busca-da-fila"
+import { BUSCA_VAZIA, BuscaDaFila, reduzirBusca, type EventoDaBusca, type ResultadoDaBusca } from "./busca-da-fila"
 import { Conversa, pedirAcao, type ModoDaConversa } from "./conversa"
 import { ListaDeConversas } from "./lista-de-conversas"
 import { ordenarConversas } from "./estado"
-import type { ConversaAberta, ItemDaConversa } from "./tipos"
+import type { ConversaAberta, ConversaResumo, ItemDaConversa } from "./tipos"
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }))
 
@@ -262,5 +262,60 @@ describe("busca da fila na tela real", () => {
   it("sem busca, mostra a fila do servidor e os recortes", () => {
     expect(html).toContain('data-lista="servidor"')
     expect(html).toContain("segmentos")
+  })
+})
+
+describe("estado da busca da fila", () => {
+  const achou = (id: string): ResultadoDaBusca => ({ conversas: [{ id } as ConversaResumo], erro: null })
+  const passar = (...eventos: EventoDaBusca[]) => eventos.reduce(reduzirBusca, BUSCA_VAZIA)
+
+  it("começa na fila do servidor, sem espera", () => {
+    expect(BUSCA_VAZIA).toEqual({ esperando: null, resultado: null })
+  })
+
+  it("buscar marca a espera e mantém o resultado anterior até a resposta", () => {
+    const antes = passar({ tipo: "buscar", pedido: 1 }, { tipo: "resposta", pedido: 1, resultado: achou("a") })
+    expect(reduzirBusca(antes, { tipo: "buscar", pedido: 2 })).toEqual({ esperando: 2, resultado: achou("a") })
+  })
+
+  it("a resposta da busca esperada vira o resultado e encerra a espera", () => {
+    expect(passar({ tipo: "buscar", pedido: 1 }, { tipo: "resposta", pedido: 1, resultado: achou("a") })).toEqual({
+      esperando: null,
+      resultado: achou("a"),
+    })
+  })
+
+  it("a resposta de uma busca que não é a última é descartada", () => {
+    const e = passar(
+      { tipo: "buscar", pedido: 1 },
+      { tipo: "buscar", pedido: 2 },
+      { tipo: "resposta", pedido: 1, resultado: achou("velha") },
+    )
+    expect(e).toEqual({ esperando: 2, resultado: null })
+  })
+
+  it("limpar volta à fila na hora, mesmo com uma busca em andamento", () => {
+    const e = passar({ tipo: "buscar", pedido: 1 }, { tipo: "resposta", pedido: 1, resultado: achou("a") }, { tipo: "buscar", pedido: 2 }, { tipo: "limpar" })
+    expect(e).toEqual(BUSCA_VAZIA)
+  })
+
+  it("a resposta que chega depois de limpar não repõe a lista buscada", () => {
+    const e = passar({ tipo: "buscar", pedido: 1 }, { tipo: "limpar" }, { tipo: "resposta", pedido: 1, resultado: achou("a") })
+    expect(e).toEqual(BUSCA_VAZIA)
+  })
+
+  it.each(["", "   "])("apagar o termo (%j), pelo × do campo, pelo Esc ou pelo teclado, volta à fila", (valor) => {
+    const e = passar({ tipo: "buscar", pedido: 1 }, { tipo: "resposta", pedido: 1, resultado: achou("a") }, { tipo: "digitar", valor })
+    expect(e).toEqual(BUSCA_VAZIA)
+  })
+
+  it("digitar um termo novo sem buscar mantém o resultado da última busca", () => {
+    const antes = passar({ tipo: "buscar", pedido: 1 }, { tipo: "resposta", pedido: 1, resultado: achou("a") })
+    expect(reduzirBusca(antes, { tipo: "digitar", valor: "Bru" })).toBe(antes)
+  })
+
+  it("digitar durante a espera não a cancela", () => {
+    const antes = passar({ tipo: "buscar", pedido: 1 })
+    expect(reduzirBusca(antes, { tipo: "digitar", valor: "Ana M" })).toBe(antes)
   })
 })
