@@ -1,7 +1,7 @@
 "use client"
 
 import * as Tabs from "@radix-ui/react-tabs"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 
 export type Secao = {
   id: string
@@ -18,12 +18,10 @@ export type Secao = {
  * Seções, e não sete itens de menu: são o cadastro de uma coisa só.
  *
  * A seção escolhida vai para a query string (`?aba=equipe`): o link é
- * compartilhável, o voltar do navegador funciona e salvar não joga a
- * clínica de volta para a primeira. `scroll: false` porque trocar de seção
- * não é navegar.
+ * compartilhável, recarregar mantém a seção, e salvar não joga a clínica de
+ * volta para a primeira. A troca é só do navegador (`trocarDeAba`).
  */
 export function Abas({ secoes }: { secoes: readonly Secao[] }) {
-  const router = useRouter()
   const params = useSearchParams()
 
   const pedida = params.get("aba")
@@ -33,11 +31,7 @@ export function Abas({ secoes }: { secoes: readonly Secao[] }) {
     <Tabs.Root
       value={atual}
       orientation="vertical"
-      onValueChange={(valor) => {
-        const novo = new URLSearchParams(params)
-        novo.set("aba", valor)
-        router.replace(`?${novo}`, { scroll: false })
-      }}
+      onValueChange={(valor) => trocarDeAba(params, valor)}
       className="grid gap-6 lg:grid-cols-[12.5rem_minmax(0,1fr)] lg:gap-10"
     >
       <Tabs.List
@@ -75,4 +69,21 @@ export function Abas({ secoes }: { secoes: readonly Secao[] }) {
       ))}
     </Tabs.Root>
   )
+}
+
+/**
+ * Troca a seção pelo History API, que o Next sincroniza com o
+ * `useSearchParams` sem ir ao servidor: o servidor não lê `aba`, e as sete
+ * seções já estão na página. Pelo `router.replace`, cada clique refazia a
+ * página inteira no servidor (~2 s), e a aba só mudava quando a resposta
+ * chegava, sem nenhum sinal na tela.
+ */
+export function trocarDeAba(
+  params: Pick<URLSearchParams, "toString">,
+  valor: string,
+  historico: Pick<History, "replaceState"> = window.history,
+): void {
+  const novo = new URLSearchParams(params.toString())
+  novo.set("aba", valor)
+  historico.replaceState(null, "", `?${novo}`)
 }
