@@ -15,7 +15,7 @@
 
 **Spec:** `docs/specs/evolution-demo-v1.md`. Afetadas: `docs/specs/demo-account-v1.md` e `docs/specs/conversation-engine-v1.md`.
 
-## Status da execução: ⬜ não iniciado
+## Status da execução: 🟨 em andamento
 
 ### Feito antes da execução (2026-10-11)
 - [x] Spec `docs/specs/evolution-demo-v1.md`, com as decisões do Jhones (commits `16b45ce` e `cf8a789`, mais o deste plano).
@@ -97,7 +97,7 @@
 
 Nada de código. As fontes da spec eram espelhos. O que for confirmado vai para a seção "Notas da Evolution", no fim deste plano.
 
-- [ ] Ler a documentação oficial da Evolution API v2 (`doc.evolution-api.com` e o repositório `EvolutionAPI/evolution-api`, `.env.example` e `docker-compose`) e anotar:
+- [x] Ler a documentação oficial da Evolution API v2 (`doc.evolution-api.com` e o repositório `EvolutionAPI/evolution-api`, `.env.example` e `docker-compose`) e anotar:
   1. imagem e tag estáveis, e as variáveis mínimas do servidor (`AUTHENTICATION_API_KEY`, banco Postgres, cache Redis, `SERVER_URL`);
   2. criar instância (`POST /instance/create`, com `integration: "WHATSAPP-BAILEYS"`), o token da instância que volta, e pegar o QR (`GET /instance/connect/{instância}`);
   3. configurar o webhook da instância com URL, eventos (`MESSAGES_UPSERT`) e **cabeçalhos próprios** (o segredo);
@@ -105,8 +105,8 @@ Nada de código. As fontes da spec eram espelhos. O que for confirmado vai para 
   5. **se a mensagem enviada pela API chega como `MESSAGES_UPSERT` com `fromMe`, ou só como `SEND_MESSAGE`** (decisão 4);
   6. o `sendText`: corpo (`number`, `text`), cabeçalho `apikey` e o id da mensagem na resposta (`key.id`);
   7. a política de reenvio do webhook (que códigos ele repete).
-- [ ] Se algum fato contradisser a spec ou este plano, parar e levar ao Jhones antes de seguir.
-- [ ] Commit: `docs: notas da Evolution API v2 no plano do canal de demonstração`.
+- [x] Se algum fato contradisser a spec ou este plano, parar e levar ao Jhones antes de seguir.
+- [x] Commit: `docs: notas da Evolution API v2 no plano do canal de demonstração`.
 
 ### Tarefa 2: Orquestração da mensagem na lib
 
@@ -381,6 +381,35 @@ Carregar `frontend-design` e `ui-ux` antes. O ensaio precisa do Jhones presente,
 
 ---
 
-## Notas da Evolution (preencher na tarefa 1)
+## Notas da Evolution (tarefa 1, 2026-10-11)
 
-_Vazio até a tarefa 1._
+Fonte: o código da tag `2.3.7` do repositório `EvolutionAPI/evolution-api` (a última estável; a `2.4.0` ainda é `rc2`) e as tags do Docker Hub. Arquivos lidos: `docker-compose.yaml`, `env.example`, `whatsapp.baileys.service.ts`, `channel.service.ts`, `webhook.controller.ts`, `webhook.schema.ts`, `instance.controller.ts`, `sendMessage.router.ts`, `sendMessage.dto.ts`, `auth.guard.ts` e `createJid.ts`.
+
+1. **Imagem e servidor.**
+   - Imagem `evoapicloud/evolution-api:v2.3.7` (a `latest` tem outro digest e é de maio de 2026: fixar a tag).
+   - O compose oficial sobe API, Postgres 15, Redis e um frontend (`evolution-manager`) na porta **3000**, a mesma do `next start`: o nosso compose deixa o frontend de fora, e também a rede externa `dokploy-network`.
+   - Variáveis mínimas: `SERVER_URL`, `AUTHENTICATION_API_KEY`, `DATABASE_PROVIDER=postgresql`, `DATABASE_CONNECTION_URI`, `CACHE_REDIS_ENABLED`, `CACHE_REDIS_URI`, `CACHE_LOCAL_ENABLED=false`.
+   - **Padrões que importam para a LGPD:** `DATABASE_SAVE_DATA_NEW_MESSAGE`, `_CONTACTS`, `_CHATS`, `_HISTORIC`, `_LABELS`, `_MESSAGE_UPDATE` e `_IS_ON_WHATSAPP` vêm `true` (a Evolution guarda mensagem, contato e número no Postgres dela, em texto puro); `TELEMETRY_ENABLED=true`; e o serviço faz `console.log(messageRaw)` de toda mensagem recebida, sem nível de log que desligue. Ver a decisão sobre o resíduo, abaixo.
+   - `AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=false` (padrão) deixa o campo `apikey` do envelope do webhook nulo. Manter assim.
+2. **Instância.** `POST /instance/create` com o cabeçalho `apikey` global e `{ instanceName, integration: "WHATSAPP-BAILEYS", qrcode: true }`. A resposta traz `hash`, que é o token da instância (string; dá para fixar mandando `token` no corpo). O QR vem em `qrcode` na criação e em `GET /instance/connect/{instância}`. O estado sai em `GET /instance/connectionState/{instância}`.
+3. **Webhook da instância.** `POST /webhook/set/{instância}` com `{ webhook: { enabled: true, url, headers: { "x-nextech-secret": … }, byEvents: false, base64: false, events: ["MESSAGES_UPSERT"] } }`. Os `headers` vão em toda chamada. Do Docker Desktop para o app no Windows: `http://host.docker.internal:3000/...`.
+4. **`MESSAGES_UPSERT`.**
+   - Envelope: `{ event: "messages.upsert", instance, data, destination, date_time, sender, server_url, apikey }`. O `event` chega **minúsculo, com ponto**; o nome em maiúsculas é só o da configuração.
+   - `data`: `{ key: { remoteJid, fromMe, id, participant?, remoteJidAlt? }, pushName, status, message, contextInfo, messageType, messageTimestamp, instanceId, source }`.
+   - `messageTimestamp` é número, em segundos.
+   - A Evolution **converte `extendedTextMessage` em `message.conversation`** antes do webhook (`prepareMessage`). A leitura aceita os dois, por segurança.
+   - Mídia: `audioMessage`, `imageMessage`, `videoMessage`, `documentMessage` (o `documentWithCaptionMessage` vira `documentMessage`), `stickerMessage`, `ptvMessage`. Com `base64: false`, o conteúdo da mídia não vem.
+   - **`@lid`:** o `remoteJid` pode chegar como `<lid>@lid`. A Evolution troca pelo `remoteJidAlt` (o jid do telefone) quando ele existe; sem ele, não há telefone, e a leitura ignora (`formato`).
+   - Com `fromMe`, o `pushName` vem `"Você"`; o `remoteJid` é sempre o do outro lado (o paciente).
+   - Só os tipos `notify` e `append` do Baileys viram webhook.
+5. **A mensagem enviada pela API não chega como `MESSAGES_UPSERT`.** O socket sobe com `emitOwnEvents: false`, e o envio dispara só `SEND_MESSAGE` (não assinado). A regra da decisão 4 fica como defesa e o teste fica, como previsto. A mensagem digitada no celular do chip chega como `MESSAGES_UPSERT` com `fromMe: true`.
+6. **`sendText`.** `POST /message/sendText/{instância}`, cabeçalho `apikey` (o global **ou o token da instância**: o guard compara com `instance.token` no banco da Evolution), corpo `{ number, text }`. Resposta **201** com o `messageRaw` enviado, de onde sai `key.id`. O `number` aceita dígitos, com ou sem `+` (o `createJid` tira `+`, espaços e parênteses). Número fora do WhatsApp responde 400.
+7. **Reenvio do webhook.** Até 10 tentativas (`WEBHOOK_RETRY_MAX_ATTEMPTS`), espera exponencial a partir de 5 s, teto de 300 s, jitter de 20%. **Não reenvia 400, 401, 403, 404 e 422** (`WEBHOOK_RETRY_NON_RETRYABLE_STATUS_CODES`); 500 e timeout (30 s) são reenviados. Bate com o plano: 500 para falha transitória e para a decisão 4; 401 e 404 encerram.
+8. **Nono dígito.** O `createJid` tira o 9 do celular brasileiro com DDD 31 ou maior (formato antigo do WhatsApp), e o `remoteJid` desses números chega com 12 dígitos. A lista de permitidos compara pela mesma chave nos dois formatos: `55` + DDD + 9 + 8 dígitos casa com `55` + DDD + 8 dígitos.
+
+**Decisão do Jhones sobre o resíduo na Evolution (2026-10-11): não guardar.** O compose da tarefa 10 sobe a Evolution com:
+- `DATABASE_SAVE_DATA_NEW_MESSAGE`, `_MESSAGE_UPDATE`, `_CONTACTS`, `_CHATS`, `_HISTORIC`, `_LABELS` e `_IS_ON_WHATSAPP` em `false`; `DATABASE_SAVE_DATA_INSTANCE=true` (o guard do token da instância lê a tabela de instâncias);
+- `TELEMETRY_ENABLED=false`;
+- `logging: driver: none` no serviço da API (o `console.log(messageRaw)` não fica em lugar nenhum).
+
+Fica só a sessão do chip (chaves de cifra por contato, como em qualquer aparelho). Custo aceito: se o celular do investidor pedir reenvio de uma mensagem nossa (falha rara de decifração), o `getMessage` não acha o original, e o reenvio pode sair vazio. O celular do chip guarda a conversa como qualquer WhatsApp: o roteiro da limpeza inclui apagar as conversas nele.
