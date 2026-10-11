@@ -125,7 +125,7 @@ export async function tratarMensagem(
 - O corpo é o que hoje está no `if (evento.tipo === "mensagem")` da rota: `receberMensagem`, depois agendar `enviarProtocolo` se houver protocolo e `responderConversa` nas mesmas condições (`autor === "patient"`, `nova || !jaRespondida`, `agenteAtivo`, `!optOut`, `!urgente`).
 - `podeResponder` (o teto) só é consultado quando a resposta seria agendada.
 
-- [ ] Testes em `entrada.test.ts`, com `receberMensagem`, `responderConversa` e `enviarProtocolo` mockados:
+- [x] Testes em `entrada.test.ts`, com `receberMensagem`, `responderConversa` e `enviarProtocolo` mockados:
   - mensagem nova do paciente agenda só a resposta;
   - urgente com protocolo agenda só o protocolo;
   - opt-out não agenda nada;
@@ -134,9 +134,9 @@ export async function tratarMensagem(
   - agente fora do ar não agenda resposta;
   - `podeResponder` falso não agenda resposta, e o protocolo sai mesmo assim;
   - `receberMensagem` devolvendo `null` não agenda nada.
-- [ ] Rodar e ver falhar; implementar; mudar a rota para `tratarMensagem(evento, (etapa, t) => after(() => emSegundoPlano(etapa, t)))`.
-- [ ] `npx vitest run lib/conversations/entrada.test.ts`, depois `tests/whatsapp/webhook.test.ts` sozinho (banco): os 30 casos seguem passando.
-- [ ] Commit: `refactor(whatsapp): orquestração da mensagem do webhook na lib`.
+- [x] Rodar e ver falhar; implementar; mudar a rota para `tratarMensagem(evento, (etapa, t) => after(() => emSegundoPlano(etapa, t)))`.
+- [x] `npx vitest run lib/conversations/entrada.test.ts`, depois `tests/whatsapp/webhook.test.ts` sozinho (banco): os 30 casos seguem passando.
+- [x] Commit: `refactor(whatsapp): orquestração da mensagem do webhook na lib`.
 
 ### Tarefa 3: A trava da demonstração para o canal (migration)
 

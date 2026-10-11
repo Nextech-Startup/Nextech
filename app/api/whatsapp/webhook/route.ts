@@ -1,8 +1,6 @@
 import { after } from "next/server"
-import { receberMensagem } from "@/lib/conversations/recepcao"
-import { responderConversa } from "@/lib/conversations/resposta"
+import { tratarMensagem } from "@/lib/conversations/entrada"
 import { receberStatus } from "@/lib/conversations/status"
-import { enviarProtocolo } from "@/lib/conversations/urgencia"
 import { erroParaLog } from "@/lib/security/erro-para-log"
 import { assinaturaValida, desafioDaVerificacao } from "@/lib/whatsapp/assinatura"
 import { receberEventoDeConta } from "@/lib/whatsapp/conta"
@@ -82,20 +80,7 @@ export async function POST(request: Request) {
 
     try {
       if (evento.tipo === "mensagem") {
-        const r = await receberMensagem(evento)
-        // A conversa acabou de escalar: o protocolo da clínica sai já, sem
-        // o agrupamento da resposta da IA.
-        const protocolo = r?.protocolo
-        if (r && protocolo) {
-          after(() => emSegundoPlano("protocolo", () => enviarProtocolo({ ...r, protocolo })))
-        }
-        // Reenvio (`nova: false`) só agenda de novo se a mensagem ainda não
-        // tiver resposta. Pedido de opt-out e mensagem urgente não têm
-        // resposta da IA.
-        const semResposta = r?.nova || !r?.jaRespondida
-        if (r && r.autor === "patient" && semResposta && r.agenteAtivo && !r.optOut && !r.urgente) {
-          after(() => emSegundoPlano("resposta", () => responderConversa(r)))
-        }
+        await tratarMensagem(evento, (etapa, tarefa) => after(() => emSegundoPlano(etapa, tarefa)))
       } else if (evento.tipo === "status") {
         await receberStatus(evento)
       } else {
