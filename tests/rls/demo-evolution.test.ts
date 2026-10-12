@@ -263,3 +263,56 @@ describe("o canal fora da demonstração (NX005)", () => {
     expect(error).toBeNull()
   })
 })
+
+// Brechas apontadas pela revisão de segurança de 2026-10-11.
+describe("a trava sem brecha", () => {
+  /** SQL como uma conexão direta ao banco (sem papel do PostgREST: auth.role() nulo). */
+  async function sqlDireto(query: string): Promise<string> {
+    const ref = new globalThis.URL(URL).host.split(".")[0]
+    const resposta = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${process.env.SUPABASE_ACCESS_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    })
+    return `${resposta.status} ${await resposta.text()}`
+  }
+
+  it("conexão direta ao banco (papel nulo) também não liga o canal na demonstração", async () => {
+    const { data, error } = await admin.from("agents").insert(rascunho(demo, "Conexão direta")).select("id").single()
+    if (error) throw error
+    const resultado = await sqlDireto(
+      `update public.agents set whatsapp_phone_number_id = '${canal("direto")}' where id = '${data.id}'`,
+    )
+    expect(resultado).toMatch(/não conecta WhatsApp/)
+    expect((await agente(data.id)).whatsapp_phone_number_id).toBeNull()
+  })
+
+  it("com o canal conectado, a clínica não deixa de ser demonstração (NX005)", async () => {
+    const id = canal("marca")
+    const { data, error } = await admin
+      .from("agents")
+      .insert({ ...rascunho(demo, "Canal da marca"), whatsapp_phone_number_id: id, whatsapp_waba_id: id })
+      .select("id")
+      .single()
+    if (error) throw error
+
+    const { error: erroMarca } = await admin.from("clinics").update({ is_demo: false }).eq("id", demo)
+    expect(erroMarca?.code).toBe("NX005")
+    const { data: clinica } = await admin.from("clinics").select("is_demo").eq("id", demo).single()
+    expect(clinica?.is_demo).toBe(true)
+
+    await admin.from("agents").delete().eq("id", data.id)
+  })
+
+  it("sem o canal, a marca de demonstração sai normalmente", async () => {
+    const { data, error } = await admin
+      .from("clinics")
+      .insert({ legal_name: "Clínica Demo sem canal (teste)", status: "draft", is_demo: true, plan: "healthtech" })
+      .select("id")
+      .single()
+    if (error) throw error
+    const { error: erroMarca } = await admin.from("clinics").update({ is_demo: false }).eq("id", data.id)
+    expect(erroMarca).toBeNull()
+    await admin.from("clinics").delete().eq("id", data.id)
+  })
+})
