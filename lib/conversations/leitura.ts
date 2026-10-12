@@ -18,8 +18,8 @@ import type { Autor, ConversaAberta, ConversaResumo } from "./tipos-da-tela"
  * Leitura da tela de Conversas, com o client que a chama: o da sessão (a
  * clínica, com RLS) ou, só em `carregarConversa`, o `service_role` do
  * suporte. A fila e a busca passam por RPCs sem grant ao `service_role`
- * (`conversation_previews` e `search_conversations`) e falham fechadas com
- * ele. Toda consulta leva o filtro de `clinic_id`: com o `service_role`, é
+ * (`conversation_queue`, `search_conversations` e `conversation_previews`)
+ * e falham fechadas com ele. Toda consulta leva o filtro de `clinic_id`: com o `service_role`, é
  * ele que isola; com a sessão, soma à RLS.
  *
  * O conteúdo é decifrado aqui, no servidor, e nunca vai para log: a falha
@@ -109,22 +109,80 @@ async function resumir(supabase: Cliente, clinicId: string, brutas: readonly Lin
   return [...porId.values()].map((c) => paraResumo(c, previaDa.get(c.id) ?? null))
 }
 
+/** Uma linha da RPC da fila: a conversa, o agente, o paciente e a prévia, já juntos no banco. */
+type LinhaDaFila = Omit<LinhaDaConversa, "agente" | "paciente"> & {
+  agent_name: string
+  patient_id: string
+  patient_name: string | null
+  patient_phone: string
+  patient_consent_given_at: string | null
+  patient_opted_out: boolean
+  patient_created_at: string
+  insurance_name: string | null
+  /** Tudo nulo quando a conversa não tem mensagem visível. */
+  preview_author: Autor | null
+  preview_media_type: TipoDeMidia | null
+  preview_content_encrypted: string | null
+  preview_content_redacted_at: string | null
+  preview_occurred_at: string | null
+  preview_delivery_status: StatusDeEntrega | null
+}
+
+function previaDaFila(clinicId: string, l: LinhaDaFila): LinhaDaMensagem | null {
+  if (!l.preview_author || !l.preview_media_type || !l.preview_occurred_at) return null
+  const bruta: MensagemBruta = {
+    author: l.preview_author,
+    media_type: l.preview_media_type,
+    content_encrypted: l.preview_content_encrypted,
+    content_redacted_at: l.preview_content_redacted_at,
+    occurred_at: l.preview_occurred_at,
+    delivery_status: l.preview_delivery_status,
+  }
+  return paraMensagem(clinicId, l.id, bruta, `${l.id}:previa`)
+}
+
 /**
  * A fila da clínica: as `limite` conversas mais recentes e todas as
- * urgentes (nenhuma fica de fora por ser antiga).
+ * urgentes (nenhuma fica de fora por ser antiga), com a prévia de cada uma.
+ * Numa ida só ao banco, pela RPC `conversation_queue`: antes eram duas em
+ * série (as conversas, e com os ids delas as prévias), ~300 ms cada rodando
+ * do Brasil contra o Supabase em Oregon.
  */
 export async function carregarFila(
   supabase: Cliente,
   clinicId: string,
   opcoes: { limite?: number } = {},
 ): Promise<ConversaResumo[]> {
-  const base = () => supabase.from("conversations").select(COLUNAS_DA_CONVERSA).eq("clinic_id", clinicId)
-  const [recentes, urgentes] = await Promise.all([
-    base().order("last_message_at", { ascending: false }).limit(opcoes.limite ?? LIMITE_DA_FILA),
-    base().eq("is_urgent", true),
-  ])
-  for (const r of [recentes, urgentes]) if (r.error) throw r.error
-  return resumir(supabase, clinicId, [...recentes.data!, ...urgentes.data!] as unknown as LinhaBruta[])
+  const { data, error } = await supabase.rpc("conversation_queue", {
+    p_clinic_id: clinicId,
+    p_limit: opcoes.limite ?? LIMITE_DA_FILA,
+  })
+  if (error) throw error
+  return ((data ?? []) as LinhaDaFila[]).map((l) =>
+    paraResumo(
+      {
+        id: l.id,
+        handled_by: l.handled_by,
+        is_urgent: l.is_urgent,
+        human_took_over_at: l.human_took_over_at,
+        ai_failed_at: l.ai_failed_at,
+        qualified_at: l.qualified_at,
+        last_inbound_at: l.last_inbound_at,
+        last_message_at: l.last_message_at,
+        agente: l.agent_name,
+        paciente: {
+          id: l.patient_id,
+          name: l.patient_name,
+          whatsapp_phone_number: l.patient_phone,
+          consent_given_at: l.patient_consent_given_at,
+          opted_out: l.patient_opted_out,
+          created_at: l.patient_created_at,
+          convenio: l.insurance_name,
+        },
+      },
+      previaDaFila(clinicId, l),
+    ),
+  )
 }
 
 /**

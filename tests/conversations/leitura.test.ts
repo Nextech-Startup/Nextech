@@ -147,6 +147,40 @@ describe("carregarFila", () => {
     expect(principal.paciente.nome).toBe("Paciente Principal")
   })
 
+  // Antes, duas idas em série (as conversas e, com os ids, as prévias):
+  // ~600 ms rodando do Brasil contra o Supabase em Oregon.
+  it("sai numa ida só ao banco, pela RPC da fila, por POST", async () => {
+    const owner = await comoUsuario(A.equipe.owner!)
+    const chamadas: string[] = []
+    const original = globalThis.fetch
+    globalThis.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
+      chamadas.push(`${init?.method ?? "GET"} ${new URL(String(entrada)).pathname}`)
+      return original(entrada, init)
+    }
+    try {
+      await carregarFila(owner as never, A.id)
+    } finally {
+      globalThis.fetch = original
+    }
+    expect(chamadas).toEqual(["POST /rest/v1/rpc/conversation_queue"])
+  })
+
+  it("traz o agente, o paciente e o estado de cada conversa", async () => {
+    const owner = await comoUsuario(A.equipe.owner!)
+    const [fila, agente, paciente] = await Promise.all([
+      carregarFila(owner as never, A.id),
+      admin.from("conversations").select("agente:agents(name)").eq("id", conversa).single(),
+      admin.from("conversations").select("paciente:patients(id, whatsapp_phone_number, created_at)").eq("id", conversa).single(),
+    ])
+    const principal = fila.find((c) => c.id === conversa)!
+    const p = paciente.data!.paciente as unknown as { id: string; whatsapp_phone_number: string; created_at: string }
+    expect(principal.agente).toBe((agente.data!.agente as unknown as { name: string }).name)
+    expect(principal.paciente).toMatchObject({ id: p.id, telefone: p.whatsapp_phone_number, convenio: null, optOut: false })
+    expect(new Date(principal.paciente.desde).getTime()).toBe(new Date(p.created_at).getTime())
+    expect(principal).toMatchObject({ atendidaPor: "human", urgente: false })
+    expect(fila.find((c) => c.id === antiga)).toMatchObject({ urgente: true, atendidaPor: "human" })
+    expect(fila.map((c) => c.id).sort()).toEqual([antiga, buscada, conversa].sort())
+  })
 })
 
 describe("buscarNaFila (por POST)", () => {
@@ -204,6 +238,14 @@ describe("isolamento", () => {
     const ownerB = await comoUsuario(B.equipe.owner!)
     expect(await carregarFila(ownerB as never, A.id)).toEqual([])
     expect(await carregarConversa(ownerB as never, A.id, conversa)).toBeNull()
+  })
+
+  it("anônimo e service_role não chamam a RPC da fila", async () => {
+    for (const cliente of [anonClient(), admin]) {
+      const { data, error } = await cliente.rpc("conversation_queue", { p_clinic_id: A.id, p_limit: 10 })
+      expect(error).not.toBeNull()
+      expect(data).toBeNull()
+    }
   })
 
   it("com o próprio clinicId e o id da conversa de A, também não", async () => {
