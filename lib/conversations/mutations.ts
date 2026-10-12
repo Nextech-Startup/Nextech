@@ -1,4 +1,4 @@
-import { requireClinicContext } from "@/lib/auth/context"
+import { requireClinicContextForWrite } from "@/lib/auth/context"
 import { RPC_DA_ACAO, lerResultadoDaAcao, type AcaoDoPainel, type ResultadoDaAcao } from "./acoes-do-painel"
 
 /**
@@ -10,7 +10,7 @@ import { RPC_DA_ACAO, lerResultadoDaAcao, type AcaoDoPainel, type ResultadoDaAca
  * original em `cause` para quem loga por `erroParaLog`.
  */
 export async function agirNaConversa(acao: AcaoDoPainel, conversaId: string): Promise<ResultadoDaAcao> {
-  const { supabase } = await requireClinicContext()
+  const { supabase } = await requireClinicContextForWrite()
   const { data, error } = await supabase.rpc(RPC_DA_ACAO[acao], { p_conversation_id: conversaId })
   if (error) throw new Error("Falha na ação da conversa", { cause: error })
   return lerResultadoDaAcao(data)

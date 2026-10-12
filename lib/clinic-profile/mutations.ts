@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto"
-import { requireClinicContext } from "@/lib/auth/context"
+import { requireClinicContextForWrite, type ClinicContext } from "@/lib/auth/context"
 import {
   consentTextSchema,
   insuranceSchema,
@@ -38,7 +38,7 @@ import {
  * que a intenção fique explícita no código.
  */
 async function contextoDeEdicao() {
-  const ctx = await requireClinicContext()
+  const ctx = await requireClinicContextForWrite()
   if (ctx.role !== "owner") {
     throw new Error("Apenas o responsável pela clínica edita o perfil.")
   }
@@ -145,7 +145,7 @@ export async function deactivateInsurance(insuranceId: string): Promise<void> {
  * `insurance_id` de outro tenant é recusado pelo banco, não só por aqui.
  */
 async function reescreverVinculos(
-  supabase: Awaited<ReturnType<typeof requireClinicContext>>["supabase"],
+  supabase: ClinicContext["supabase"],
   clinicId: string,
   tabela: "professional_insurances" | "procedure_insurances",
   coluna: "professional_id" | "procedure_id",

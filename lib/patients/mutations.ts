@@ -1,5 +1,5 @@
 import { serviceContext } from "@/lib/auth/service-context"
-import { requireClinicContext } from "@/lib/auth/context"
+import { requireClinicContextForWrite } from "@/lib/auth/context"
 import {
   patientIdentifySchema,
   patientUpdateSchema,
@@ -152,7 +152,7 @@ export async function optOut(clinicId: string, patientId: string): Promise<void>
  * clínica. Por isso não roda com service_role, ao contrário de `optOut`.
  */
 export async function undoOptOut(patientId: string): Promise<void> {
-  const { supabase, clinicId, role } = await requireClinicContext()
+  const { supabase, clinicId, role } = await requireClinicContextForWrite()
 
   if (role !== "owner") {
     throw new Error("Apenas o owner reverte o opt-out de um paciente.")
@@ -175,7 +175,7 @@ export async function updatePatient(
   patientId: string,
   input: PatientUpdateInput,
 ): Promise<Patient> {
-  const { supabase, clinicId } = await requireClinicContext()
+  const { supabase, clinicId } = await requireClinicContextForWrite()
   const parsed = patientUpdateSchema.parse(input)
 
   const { data, error } = await supabase
@@ -211,7 +211,7 @@ export async function updatePatient(
  * banco.
  */
 export async function anonymizePatient(patientId: string): Promise<void> {
-  const { supabase, role } = await requireClinicContext()
+  const { supabase, role } = await requireClinicContextForWrite()
 
   if (role !== "owner") {
     throw new Error("Apenas o owner atende a um pedido de exclusão de dado.")

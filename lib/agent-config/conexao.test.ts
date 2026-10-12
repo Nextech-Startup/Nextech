@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { inspect } from "node:util"
 
-vi.mock("@/lib/auth/context", () => ({ requireClinicContext: vi.fn() }))
+vi.mock("@/lib/auth/context", () => ({ requireClinicContextForWrite: vi.fn() }))
 vi.mock("@/lib/auth/service-context", () => ({ serviceContext: vi.fn() }))
 
-import { requireClinicContext } from "@/lib/auth/context"
+import { requireClinicContextForWrite } from "@/lib/auth/context"
 import { AgentMutationError, connectWhatsapp, publishAgent } from "./mutations"
 
 /**
@@ -42,11 +42,11 @@ let supabase: ReturnType<typeof supabaseDeMentira>
 beforeEach(() => {
   process.env.WHATSAPP_API_VERSION = "v99.0"
   supabase = supabaseDeMentira()
-  vi.mocked(requireClinicContext).mockResolvedValue({
+  vi.mocked(requireClinicContextForWrite).mockResolvedValue({
     supabase,
     clinicId: "clinica",
     role: "owner",
-  } as unknown as Awaited<ReturnType<typeof requireClinicContext>>)
+  } as unknown as Awaited<ReturnType<typeof requireClinicContextForWrite>>)
 })
 
 afterEach(() => {
@@ -115,12 +115,12 @@ describe("connectWhatsapp com prova de posse", () => {
 // antes de o token sair para a Meta, e o NX004 vira a mensagem da tela.
 describe("clínica de demonstração", () => {
   it("recusa a conexão antes de chamar a Meta, sem gravar nada", async () => {
-    vi.mocked(requireClinicContext).mockResolvedValue({
+    vi.mocked(requireClinicContextForWrite).mockResolvedValue({
       supabase,
       clinicId: "clinica",
       role: "owner",
       isDemo: true,
-    } as unknown as Awaited<ReturnType<typeof requireClinicContext>>)
+    } as unknown as Awaited<ReturnType<typeof requireClinicContextForWrite>>)
     const fetch = vi.fn()
     vi.stubGlobal("fetch", fetch)
 
@@ -134,12 +134,12 @@ describe("clínica de demonstração", () => {
     const builder: Record<string, unknown> = {}
     for (const metodo of ["update", "eq", "select", "single"]) builder[metodo] = () => builder
     builder.then = (ok: (r: unknown) => unknown) => Promise.resolve({ data: null, error: recusa }).then(ok)
-    vi.mocked(requireClinicContext).mockResolvedValue({
+    vi.mocked(requireClinicContextForWrite).mockResolvedValue({
       supabase: { from: () => builder },
       clinicId: "clinica",
       role: "owner",
       isDemo: false,
-    } as unknown as Awaited<ReturnType<typeof requireClinicContext>>)
+    } as unknown as Awaited<ReturnType<typeof requireClinicContextForWrite>>)
 
     const erro = await publishAgent("agente").catch((e: unknown) => e)
     expect(erro).toBeInstanceOf(AgentMutationError)

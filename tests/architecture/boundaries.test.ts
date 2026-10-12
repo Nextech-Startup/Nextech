@@ -50,6 +50,29 @@ describe("fronteiras de arquitetura", () => {
     expect(infratores).toEqual([])
   })
 
+  // A leitura confere o token só pela assinatura (getClaims, sem ida ao
+  // Auth); a escrita confirma no Auth que a sessão ainda existe, porque o
+  // token segue válido até vencer mesmo depois de um logout.
+  it("toda mutation com sessão grava pela porta que confirma a sessão no Auth", () => {
+    const mutations = walk("lib")
+      .map(normalizar)
+      .filter((f) => f.endsWith("/mutations.ts"))
+      .filter((f) => /from\s+["']@\/lib\/auth\/context["']/.test(readFileSync(f, "utf8")))
+
+    // agentes, perfil, clínica, conversas e pacientes
+    expect(mutations.length).toBeGreaterThanOrEqual(5)
+    const pelaLeitura = mutations.filter((f) => /\brequireClinicContext\(\)/.test(readFileSync(f, "utf8")))
+    const semEscrita = mutations.filter((f) => !/\brequireClinicContextForWrite\(\)/.test(readFileSync(f, "utf8")))
+    expect(pelaLeitura).toEqual([])
+    expect(semEscrita).toEqual([])
+  })
+
+  it("o middleware confere o token pela assinatura, sem ida ao Auth", () => {
+    const fonte = readFileSync("middleware.ts", "utf8")
+    expect(fonte).toMatch(/\.auth\.getClaims\(\)/)
+    expect(fonte).not.toMatch(/\.auth\.getUser\(\)/)
+  })
+
   // O client do navegador existe só para o Realtime da tela de Conversas:
   // dado de clínica se lê no servidor, com requireClinicContext().
   it("o client do navegador só é importado pela assinatura do Realtime", () => {

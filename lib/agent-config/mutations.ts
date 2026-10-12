@@ -1,4 +1,4 @@
-import { requireClinicContext } from "@/lib/auth/context"
+import { requireClinicContextForWrite } from "@/lib/auth/context"
 import { cifrarSegredo } from "@/lib/security/tenant-secrets"
 import { ehErroDoPostgrest } from "@/lib/supabase/errors"
 import { MetaError, numeroPertenceAoWaba } from "@/lib/whatsapp/client"
@@ -19,7 +19,7 @@ import {
  * esta checagem dá erro legível antes de o banco recusar.
  */
 async function contextoDeEdicao() {
-  const ctx = await requireClinicContext()
+  const ctx = await requireClinicContextForWrite()
   if (ctx.role !== "owner") {
     throw new Error("Apenas o responsável pela clínica configura os agentes.")
   }

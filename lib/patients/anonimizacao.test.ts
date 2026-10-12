@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("@/lib/auth/context", () => ({ requireClinicContext: vi.fn() }))
+vi.mock("@/lib/auth/context", () => ({ requireClinicContextForWrite: vi.fn() }))
 vi.mock("@/lib/auth/service-context", () => ({ serviceContext: vi.fn() }))
 
-import { requireClinicContext } from "@/lib/auth/context"
+import { requireClinicContextForWrite } from "@/lib/auth/context"
 import { anonymizePatient } from "./mutations"
 
 type Resposta = { data: unknown; error: unknown }
@@ -41,11 +41,11 @@ const PACIENTE = "0f8fad5b-d9cb-469f-a165-70867728950e"
 const CLINICA = "clinica-a"
 
 function contexto(supabase: ReturnType<typeof supabaseDeMentira>, role = "owner") {
-  vi.mocked(requireClinicContext).mockResolvedValue({
+  vi.mocked(requireClinicContextForWrite).mockResolvedValue({
     supabase,
     clinicId: CLINICA,
     role,
-  } as unknown as Awaited<ReturnType<typeof requireClinicContext>>)
+  } as unknown as Awaited<ReturnType<typeof requireClinicContextForWrite>>)
 }
 
 beforeEach(() => vi.clearAllMocks())

@@ -68,13 +68,14 @@ export async function middleware(request: NextRequest) {
     },
   )
 
-  // getUser revalida o token no servidor de Auth.
-  // getSession leria o cookie sem verificar, o que não serve para decidir acesso.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // getClaims confere a assinatura do token pela chave pública do projeto
+  // (ES256, em memória) e renova a sessão vencida, gravando os cookies.
+  // getSession leria o cookie sem verificar, o que não serve para decidir
+  // acesso; getUser iria ao servidor de Auth em Oregon (~300 ms) em toda
+  // requisição. A página confere de novo, e a escrita confirma no Auth.
+  const { data } = await supabase.auth.getClaims()
 
-  if (!user) {
+  if (!data?.claims?.sub) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     url.searchParams.set("redirect", pathname)
