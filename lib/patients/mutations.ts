@@ -1,5 +1,6 @@
 import { serviceContext } from "@/lib/auth/service-context"
 import { requireClinicContextForWrite } from "@/lib/auth/context"
+import { pacientePeloTelefone } from "./por-telefone"
 import {
   patientIdentifySchema,
   patientUpdateSchema,
@@ -26,6 +27,9 @@ const UNIQUE_VIOLATION = "23505"
  * isso a violação de unique é tratada como caminho normal, não como erro:
  * significa que a corrida foi perdida, e o vencedor já criou o cadastro
  * que queríamos.
+ *
+ * A busca pelo telefone vai por POST (`pacientePeloTelefone`): o número
+ * nunca entra na URL do PostgREST, que cai no log.
  */
 export async function identifyPatient(
   clinicId: string,
@@ -34,14 +38,8 @@ export async function identifyPatient(
   const { whatsapp_phone_number, name } = patientIdentifySchema.parse(input)
   const { supabase } = serviceContext()
 
-  const existente = await supabase
-    .from("patients")
-    .select(PATIENT_COLUMNS)
-    .eq("clinic_id", clinicId)
-    .eq("whatsapp_phone_number", whatsapp_phone_number)
-    .maybeSingle()
-
-  if (existente.data) return existente.data as Patient
+  const existente = await pacientePeloTelefone(supabase, clinicId, whatsapp_phone_number)
+  if (existente) return existente
 
   const { data, error } = await supabase
     .from("patients")
@@ -58,15 +56,9 @@ export async function identifyPatient(
   if (error) {
     if (error.code === UNIQUE_VIOLATION) {
       // Corrida perdida: outra requisição criou entre o select e o insert.
-      const { data: vencedor, error: erroLeitura } = await supabase
-        .from("patients")
-        .select(PATIENT_COLUMNS)
-        .eq("clinic_id", clinicId)
-        .eq("whatsapp_phone_number", whatsapp_phone_number)
-        .single()
-
-      if (erroLeitura) throw erroLeitura
-      return vencedor as Patient
+      const vencedor = await pacientePeloTelefone(supabase, clinicId, whatsapp_phone_number)
+      if (!vencedor) throw error
+      return vencedor
     }
     throw error
   }

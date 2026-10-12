@@ -1,5 +1,13 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest"
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest"
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
+
+// O findPatientByPhone resolve a clínica pela sessão do Next, que não
+// existe aqui: o teste entrega o client logado e a clínica dele.
+const sessaoDaTela = vi.hoisted(() => ({ supabase: null as unknown, clinicId: "" }))
+vi.mock("@/lib/auth/context", () => ({
+  requireClinicContext: async () => sessaoDaTela,
+  requireClinicContextForWrite: async () => sessaoDaTela,
+}))
 
 // service_role ignora RLS: usado só para montar e desmontar o cenário.
 const admin = createClient(
@@ -503,5 +511,77 @@ describe("last_contact_at", () => {
     expect(alcancados!.map((p) => p.id)).not.toContain(saiu!.id)
 
     await admin.from("patients").delete().eq("id", saiu!.id)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Telefone fora da URL: a URL do PostgREST vai para o log de API do
+// Supabase (lgpd-security, regra 1). A busca por telefone é um POST, com o
+// número no corpo (RPC patient_by_phone), como a busca da tela de Conversas.
+// ---------------------------------------------------------------------------
+
+type Chamada = { metodo: string; url: string; corpo: string }
+
+async function comChamadas<T>(f: () => Promise<T>): Promise<{ resultado: T; chamadas: Chamada[] }> {
+  const chamadas: Chamada[] = []
+  const original = globalThis.fetch
+  globalThis.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
+    chamadas.push({ metodo: init?.method ?? "GET", url: String(entrada), corpo: String(init?.body ?? "") })
+    return original(entrada, init)
+  }
+  try {
+    return { resultado: await f(), chamadas }
+  } finally {
+    globalThis.fetch = original
+  }
+}
+
+/** Os 8 últimos dígitos, em qualquer formatação da URL. */
+const final = (telefone: string) => telefone.replace(/\D/g, "").slice(-8)
+
+function semTelefoneNaUrl(chamadas: Chamada[], telefone: string) {
+  expect(chamadas.length).toBeGreaterThan(0)
+  for (const c of chamadas) expect(decodeURIComponent(c.url).replace(/\D/g, "")).not.toContain(final(telefone))
+}
+
+const buscouPorPost = (chamadas: Chamada[], telefone: string) =>
+  chamadas.some((c) => c.metodo === "POST" && c.url.includes("/rpc/patient_by_phone") && c.corpo.includes(final(telefone)))
+
+describe("telefone do paciente fora da URL", () => {
+  it("identifyPatient acha o paciente da clínica por POST, sem cruzar clínica", async () => {
+    const { identifyPatient } = await import("@/lib/patients/mutations")
+    const { resultado, chamadas } = await comChamadas(() =>
+      identifyPatient(clinicB, { whatsapp_phone_number: TELEFONE_COMPARTILHADO }),
+    )
+    expect(resultado.id).toBe(pacienteB)
+    expect(buscouPorPost(chamadas, TELEFONE_COMPARTILHADO)).toBe(true)
+    semTelefoneNaUrl(chamadas, TELEFONE_COMPARTILHADO)
+  })
+
+  it("identifyPatient cria o paciente novo sem o telefone na URL", async () => {
+    const { identifyPatient } = await import("@/lib/patients/mutations")
+    const telefone = "+5581900000031"
+    const { resultado, chamadas } = await comChamadas(() => identifyPatient(clinicA, { whatsapp_phone_number: telefone }))
+    expect(resultado).toMatchObject({ clinic_id: clinicA, whatsapp_phone_number: telefone })
+    semTelefoneNaUrl(chamadas, telefone)
+    await admin.from("patients").delete().eq("id", resultado.id)
+  })
+
+  it("findPatientByPhone acha pela clínica da sessão, por POST", async () => {
+    const { findPatientByPhone } = await import("@/lib/patients/queries")
+    sessaoDaTela.supabase = await comoUsuario(userA)
+    sessaoDaTela.clinicId = clinicA
+    const { resultado, chamadas } = await comChamadas(() => findPatientByPhone("(81) 98888-7777"))
+    expect(resultado?.id).toBe(pacienteA)
+    expect(buscouPorPost(chamadas, TELEFONE_COMPARTILHADO)).toBe(true)
+    semTelefoneNaUrl(chamadas, TELEFONE_COMPARTILHADO)
+  })
+
+  it("a RPC respeita a RLS: o membro de A, pedindo B, não recebe nada; o anônimo não chama", async () => {
+    const sessaoA = await comoUsuario(userA)
+    const { data } = await sessaoA.rpc("patient_by_phone", { p_clinic_id: clinicB, p_phone: TELEFONE_COMPARTILHADO })
+    expect(data).toEqual([])
+    const anonimo = await anonClient().rpc("patient_by_phone", { p_clinic_id: clinicA, p_phone: TELEFONE_COMPARTILHADO })
+    expect(anonimo.error).not.toBeNull()
   })
 })

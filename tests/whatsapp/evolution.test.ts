@@ -45,7 +45,7 @@ const PALAVRAS = ["dor forte"]
 
 // Números de DDD 00, que não existem: nunca colidem com um número real do
 // banco compartilhado. Os permitidos vão para a lista; o último fica fora.
-const permitidos = Array.from({ length: 16 }, (_, i) => `5500${SUFIXO.slice(-6)}${String(i).padStart(3, "0")}`)
+const permitidos = Array.from({ length: 24 }, (_, i) => `5500${SUFIXO.slice(-6)}${String(i).padStart(3, "0")}`)
 const FORA_DA_LISTA = `5500${SUFIXO.slice(-6)}999`
 let proximoNumero = 0
 const novoNumero = () => permitidos[proximoNumero++]
@@ -77,6 +77,10 @@ let chamadasIa: Chamada[] = []
 let envios: Chamada[] = []
 let respostaDaEvolution: () => Response
 let idsDeSaida = 0
+/** Quando devolve uma resposta, o Supabase "falha" naquela chamada. */
+let falhaDoBanco: ((url: string) => Response | null) | null = null
+/** Toda URL que saiu para o Supabase no caso, para conferir que nenhuma leva telefone. */
+let urlsDoBanco: string[] = []
 
 const json = (status: number, corpo: unknown) =>
   new Response(JSON.stringify(corpo), { status, headers: { "content-type": "application/json" } })
@@ -97,6 +101,9 @@ async function redeSimulada(entrada: RequestInfo | URL, init?: RequestInit): Pro
     envios.push({ url, corpo: JSON.parse(String(init?.body)) })
     return respostaDaEvolution()
   }
+  urlsDoBanco.push(url)
+  const falha = falhaDoBanco?.(url)
+  if (falha) return falha
   return fetchOriginal(entrada, init)
 }
 
@@ -303,6 +310,8 @@ beforeEach(() => {
   fila.length = 0
   chamadasIa = []
   envios = []
+  falhaDoBanco = null
+  urlsDoBanco = []
   respostaDaEvolution = evolutionOk
   vi.stubGlobal("fetch", vi.fn(redeSimulada))
 })
@@ -557,6 +566,67 @@ describe("recepção e resposta pela Evolution", () => {
     } finally {
       delete process.env.EVOLUTION_DAILY_CAP
     }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Falha do banco: o PostgREST devolve o valor recusado em `details` (aqui,
+// o telefone), e o log só pode levar o tipo e o código (erroParaLog).
+// ---------------------------------------------------------------------------
+
+/** O erro do PostgREST como ele vem: código do Postgres e o valor em `details`. */
+const erroDoPostgrest = (status: number, code: string, numero: string) =>
+  json(status, { code, message: "falha simulada", details: `Failing row contains (+${numero}).`, hint: null })
+
+describe("falha do banco na recepção", () => {
+  it("transitória (timeout): 500, para a Evolution reenviar, sem mensagem gravada", async () => {
+    const numero = novoNumero()
+    falhaDoBanco = (url) =>
+      url.includes("/rpc/register_whatsapp_message") ? erroDoPostgrest(500, "57014", numero) : null
+
+    expect((await postar(upsert(numero, "Oi, tudo bem?"))).status).toBe(500)
+    expect(await mensagens(numero)).toEqual([])
+    expect(fila).toHaveLength(0)
+    expect(logs).toContainEqual(["[evolution-webhook]", { etapa: "recepcao", definitiva: false, tipo: "postgrest", codigo: "57014" }])
+  })
+
+  it("definitiva (dado recusado pelo banco): 200, porque se repetiria em todo reenvio", async () => {
+    const numero = novoNumero()
+    falhaDoBanco = (url) =>
+      url.includes("/rpc/register_whatsapp_message") ? erroDoPostgrest(400, "23514", numero) : null
+
+    expect((await postar(upsert(numero, "Oi, tudo bem?"))).status).toBe(200)
+    expect(await mensagens(numero)).toEqual([])
+    expect(logs).toContainEqual(["[evolution-webhook]", { etapa: "recepcao", definitiva: true, tipo: "postgrest", codigo: "23514" }])
+  })
+
+  it("depois do 200, o banco caindo no meio da resposta vira só um log de metadado", async () => {
+    const numero = novoNumero()
+    expect((await postar(upsert(numero, "Quero marcar uma consulta"))).status).toBe(200)
+
+    // A partir daqui, toda ida ao Supabase falha: a resposta da IA não tem
+    // a quem devolver o erro.
+    falhaDoBanco = () => erroDoPostgrest(503, "57P01", numero)
+    await expect(rodarAgendadas()).resolves.toBeGreaterThan(0)
+    expect(envios).toHaveLength(0)
+    const daResposta = logs.filter(
+      ([rotulo, dado]) => rotulo === "[evolution-webhook]" && (dado as { etapa?: string }).etapa === "resposta",
+    )
+    expect(daResposta).toContainEqual(["[evolution-webhook]", { etapa: "resposta", tipo: "postgrest", codigo: "57P01" }])
+  })
+})
+
+describe("telefone fora da URL (lgpd-security, regra 1)", () => {
+  // A URL do PostgREST vai para o log de API do Supabase.
+  it("no caminho inteiro (recepção, eco e resposta), nenhuma URL do banco leva o telefone", async () => {
+    const numero = novoNumero()
+    expect((await postar(upsert(numero, "Oi, preciso de ajuda"))).status).toBe(200)
+    await rodarAgendadas()
+    expect((await postar(upsert(numero, "Respondi pelo celular.", { fromMe: true }))).status).toBe(200)
+    await rodarAgendadas()
+
+    expect(urlsDoBanco.length).toBeGreaterThan(0)
+    for (const url of urlsDoBanco) expect(decodeURIComponent(url).replace(/\D/g, "")).not.toContain(numero.slice(-8))
   })
 })
 

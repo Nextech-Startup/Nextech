@@ -1,4 +1,5 @@
 import { serviceContext } from "@/lib/auth/service-context"
+import { pacientePeloTelefone } from "@/lib/patients/por-telefone"
 import type { MensagemDoWebhook } from "@/lib/whatsapp/webhook"
 
 /**
@@ -43,13 +44,8 @@ export async function origemDoFromMe(m: MensagemDoWebhook): Promise<OrigemDoFrom
   if (erroGravada) throw erroGravada
   if (gravada) return "ja-gravada"
 
-  const { data: paciente, error: erroPaciente } = await supabase
-    .from("patients")
-    .select("id")
-    .eq("clinic_id", clinicId)
-    .eq("whatsapp_phone_number", `+${m.waIdDoPaciente}`)
-    .maybeSingle()
-  if (erroPaciente) throw erroPaciente
+  // Por POST: o telefone nunca entra na URL do PostgREST, que cai no log.
+  const paciente = await pacientePeloTelefone(supabase, clinicId, `+${m.waIdDoPaciente}`)
   if (!paciente) return "eco"
 
   const { count, error: erroPendente } = await supabase
