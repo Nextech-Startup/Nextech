@@ -14,7 +14,7 @@ Publicar três páginas na landing, com texto de LGPD escrito a partir do que o 
 O texto é um rascunho para a revisão do Jhones, idealmente com um advogado antes da primeira clínica. Ele não substitui essa revisão.
 
 ## Decisões (Jhones, 2026-10-12)
-0. **Identidade:** nome empresarial `65.406.075 JHONES BONIFACIO DA SILVA`, CNPJ `65.406.075/0001-12` (matriz, inscrito em 02/03/2026), com o nome comercial Nextech. O encarregado é Jhones Bonifacio da Silva, grafado como no CNPJ.
+0. **Identidade:** nome empresarial `65.406.075 JHONES BONIFACIO DA SILVA`, CNPJ `65.406.075/0001-12` (matriz, inscrito em 02/03/2026), com o nome comercial Nextech. O encarregado é Jhones Bonifacio da Silva, grafado como no CNPJ. Sede em Recife/PE: as páginas publicam só a cidade/UF, não o endereço completo, e o foro dos termos é a comarca de Recife/PE.
 1. **Encarregado (DPO):** o Jhones, dono da empresa, com o e-mail `contato@nextech.ia.br`, a caixa que já existe no Zoho. A escolha inicial era um alias `privacidade@`, mas o Jhones ficou com o `contato@`. Um alias pode entrar depois, trocando só o e-mail no texto.
 2. **Leads do chatbot:** guardados por até 12 meses e apagados antes, se a pessoa pedir. A tabela só tem `created_at`, então a exclusão automática conta 12 meses a partir dele. Isso nunca guarda mais do que a política promete.
 3. **Rodapé:** "Privacidade" e "Termos" viram links. "Cookies" e "Segurança" apontam para `/privacidade#cookies` e `/privacidade#seguranca`. São quatro links para três páginas; a de exclusão é linkada pela política, na seção de direitos.
@@ -40,7 +40,7 @@ Toda afirmação de fato (fornecedor, medida de segurança, prazo, mecanismo) pr
 
 ### 2. `/privacidade`
 Seções, nesta ordem:
-1. **Quem somos:** razão social, CNPJ e endereço (dependência do Jhones) e o encarregado com `contato@nextech.ia.br`.
+1. **Quem somos:** nome empresarial, CNPJ, Recife/PE e o nome comercial Nextech (decisão 0) e o encarregado com `contato@nextech.ia.br`.
 2. **Os dois papéis da Nextech:**
    - *controladora* dos dados de visitantes, leads e usuários do painel (a equipe da clínica);
    - *operadora* dos dados dos pacientes, tratados em nome da clínica, que é a controladora. Pedidos de paciente vão primeiro para a clínica; se chegarem à Nextech, são encaminhados a ela.
@@ -82,7 +82,7 @@ Seções, nesta ordem:
 9. Limitação de responsabilidade.
 10. Suspensão e encerramento, com o destino dos dados ao fim do contrato.
 11. Proteção de dados: remete à política e ao papel de operadora.
-12. Alterações, lei aplicável e foro da comarca da sede (dependência do Jhones).
+12. Alterações, lei aplicável (brasileira) e foro da comarca de Recife/PE.
 
 ### 4. `/exclusao-de-dados`
 Instruções por tipo de titular, sempre pelo `contato@nextech.ia.br`, com prazo de até 15 dias e confirmação por e-mail:
@@ -138,7 +138,7 @@ Nenhuma. A regra de fornecedor novo muda a skill `lgpd-security`.
 
 ## Dependências (ação do Jhones)
 1. ~~Razão social, CNPJ e nome do encarregado~~: recebidos (decisão 0).
-2. Cidade/UF da sede, para o foro, e se o endereço completo vai na página.
+2. ~~Cidade/UF da sede e foro~~: Recife/PE, só a cidade na página (decisão 0).
 3. Revisão do texto, idealmente com advogado antes da primeira clínica.
 4. Depois do deploy, as três URLs nos campos do app na Meta (Configurações do app > Básico).
 
