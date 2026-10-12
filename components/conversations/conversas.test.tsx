@@ -60,6 +60,15 @@ describe("lista de conversas", () => {
     for (const rotulo of ["Urgente", "Humano", "IA"]) expect(html).toContain(`>${rotulo}<`)
   })
 
+  // Abrir a conversa vai ao servidor: cada item da fila responde ao clique
+  // na hora (SinalDeAbertura), atrás do conteúdo (isolate).
+  it("cada item da fila leva o sinal de abertura dentro do link", () => {
+    const itens = html.match(/<a [^>]*>/g) ?? []
+    expect(itens).toHaveLength(3)
+    for (const a of itens) expect(a).toMatch(/class="[^"]*\bisolate\b/)
+    expect(html.match(/<span aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10/g)).toHaveLength(3)
+  })
+
   it("começa pela urgente e marca só a selecionada", () => {
     expect(html.indexOf('href="/c/urg"')).toBeLessThan(html.indexOf('href="/c/ia"'))
     expect(html.match(/aria-current="page"/g)).toHaveLength(1)

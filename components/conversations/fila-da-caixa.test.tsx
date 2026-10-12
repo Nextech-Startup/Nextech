@@ -1,5 +1,8 @@
+import { isValidElement, type ReactElement, type ReactNode } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { FiltroSegmentado } from "@/components/patterns/filtro-segmentado"
+import { Vazio } from "@/components/patterns/vazio"
 import { contarPorEstado } from "./estado"
 import { FilaDaCaixa, trocarDeRecorte } from "./fila-da-caixa"
 import type { ConversaResumo } from "./tipos"
@@ -68,6 +71,45 @@ describe("trocarDeRecorte", () => {
     const params = new URLSearchParams("status=ia")
     trocarDeRecorte(params, "humano", CAMINHO, { pushState: vi.fn() })
     expect(params.toString()).toBe("status=ia")
+  })
+})
+
+/** Os elementos de um tipo na árvore que o componente devolve. */
+function elementos(no: ReactNode, tipo: unknown): ReactElement<Record<string, unknown>>[] {
+  if (Array.isArray(no)) return no.flatMap((n) => elementos(n, tipo))
+  if (!isValidElement(no)) return []
+  const el = no as ReactElement<Record<string, unknown>>
+  return [...(el.type === tipo ? [el] : []), ...elementos(el.props.children as ReactNode, tipo)]
+}
+
+describe("FilaDaCaixa: a troca de recorte", () => {
+  const historico = { pushState: vi.fn() }
+  beforeEach(() => {
+    historico.pushState.mockClear()
+    vi.stubGlobal("window", { history: historico })
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it("o recorte escolhido vai para a URL pelo History API, guardando a conversa aberta", () => {
+    nav.params = new URLSearchParams("c=hum1")
+    const tela = FilaDaCaixa({ todas: TODAS, busca: "", selecionada: "hum1", agora: AGORA, caminho: CAMINHO })
+    const [filtro] = elementos(tela, FiltroSegmentado)
+    ;(filtro.props.aoEscolher as (v: string) => void)("aguardando")
+    expect(historico.pushState).toHaveBeenCalledWith(null, "", `${CAMINHO}?c=hum1&status=aguardando`)
+  })
+
+  it("Ver todas, no recorte vazio, volta para Todas sem ir ao servidor", () => {
+    nav.params = new URLSearchParams("status=ia")
+    const tela = FilaDaCaixa({ todas: [TODAS[1]], busca: "", selecionada: null, agora: AGORA, caminho: CAMINHO })
+    const [vazio] = elementos(tela, Vazio)
+    const link = vazio.props.acao as ReactElement<{ onClick: (e: unknown) => void; prefetch: boolean }>
+    const e = { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, defaultPrevented: false, preventDefault: vi.fn() }
+    link.props.onClick(e)
+    expect(e.preventDefault).toHaveBeenCalled()
+    expect(link.props.prefetch).toBe(false)
+    expect(historico.pushState).toHaveBeenCalledWith(null, "", CAMINHO)
   })
 })
 

@@ -74,6 +74,11 @@ describe("sessão viva", () => {
     // local que a leitura do app faz.
     const { data: claims } = await antiga.auth.getClaims(tokenAntigo)
     expect(claims?.claims.sub).toBe(C.equipe.owner!.id)
+    // A porta de escrita (requireClinicContextForWrite) pergunta ao Auth,
+    // que já não conhece a sessão.
+    const { data: doAuth, error: erroDoAuth } = await antiga.auth.getUser(tokenAntigo)
+    expect(erroDoAuth).not.toBeNull()
+    expect(doAuth.user).toBeNull()
 
     // O banco recusa assim mesmo.
     const cliente = comToken(tokenAntigo)

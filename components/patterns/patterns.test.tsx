@@ -1,5 +1,7 @@
+import Link from "next/link"
+import { isValidElement, type ReactElement, type ReactNode } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { AvatarDeIniciais } from "./avatar-de-iniciais"
 import { Busca } from "./busca"
 import { FiltroSegmentado, cliqueSimples } from "./filtro-segmentado"
@@ -26,6 +28,50 @@ describe("FiltroSegmentado", () => {
   it("mostra a contagem e nomeia a navegação", () => {
     expect(html).toContain('aria-label="Filtrar conversas"')
     expect(html).toContain(">7<")
+  })
+})
+
+/** Os elementos de um tipo numa árvore já montada (sem DOM: o Vitest roda em node). */
+function elementos(no: ReactNode, tipo: unknown): ReactElement<Record<string, unknown>>[] {
+  if (Array.isArray(no)) return no.flatMap((n) => elementos(n, tipo))
+  if (!isValidElement(no)) return []
+  const el = no as ReactElement<Record<string, unknown>>
+  return [...(el.type === tipo ? [el] : []), ...elementos(el.props.children as ReactNode, tipo)]
+}
+
+describe("FiltroSegmentado: o clique", () => {
+  const segmentos = [
+    { valor: "todas", rotulo: "Todas", href: "/c" },
+    { valor: "ia", rotulo: "IA", href: "/c?status=ia" },
+  ]
+  const evento = (extra: Record<string, unknown> = {}) => ({
+    button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, defaultPrevented: false,
+    preventDefault: vi.fn(), ...extra,
+  })
+  const links = (aoEscolher?: (v: string) => void) =>
+    elementos(FiltroSegmentado({ rotulo: "Filtro", atual: "todas", segmentos, aoEscolher }), Link)
+
+  it("com aoEscolher, o clique comum troca na tela e o link não navega", () => {
+    const aoEscolher = vi.fn()
+    const e = evento()
+    ;(links(aoEscolher)[1].props.onClick as (e: unknown) => void)(e)
+    expect(e.preventDefault).toHaveBeenCalled()
+    expect(aoEscolher).toHaveBeenCalledWith("ia")
+  })
+
+  it("com aoEscolher, o clique com Ctrl segue o link (outra aba)", () => {
+    const aoEscolher = vi.fn()
+    const e = evento({ ctrlKey: true })
+    ;(links(aoEscolher)[1].props.onClick as (e: unknown) => void)(e)
+    expect(e.preventDefault).not.toHaveBeenCalled()
+    expect(aoEscolher).not.toHaveBeenCalled()
+  })
+
+  it("com aoEscolher, não pré-carrega o servidor; sem ele, é o link comum", () => {
+    expect(links(vi.fn()).map((l) => l.props.prefetch)).toEqual([false, false])
+    const comuns = links()
+    expect(comuns.map((l) => l.props.prefetch)).toEqual([undefined, undefined])
+    expect(comuns.map((l) => l.props.onClick)).toEqual([undefined, undefined])
   })
 })
 

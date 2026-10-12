@@ -67,6 +67,28 @@ describe("fronteiras de arquitetura", () => {
     expect(semEscrita).toEqual([])
   })
 
+  // A trava acima olha as mutations pelo nome do arquivo. Esta olha o que
+  // o arquivo faz: quem resolve a sessão pela porta de leitura só lê.
+  it("quem usa a porta de leitura não grava: nem tabela, nem RPC que não seja de leitura", () => {
+    const LEITURAS = new Set(["search_conversations", "conversation_previews", "conversation_queue", "patient_by_phone"])
+    const usamALeitura = [...walk("app"), ...walk("lib")]
+      .map(normalizar)
+      .filter((f) => !/\.test\.tsx?$/.test(f))
+      .filter((f) => /\brequireClinicContext\(\)/.test(readFileSync(f, "utf8")))
+    expect(usamALeitura.length).toBeGreaterThan(5)
+
+    const gravam = usamALeitura.filter((f) => {
+      const fonte = readFileSync(f, "utf8")
+      const rpcs = [...fonte.matchAll(/\.rpc\(\s*["'`]([a-z_]+)/g)].map((m) => m[1])
+      return (
+        /\.(insert|update|upsert|delete)\(/.test(fonte) ||
+        /\.rpc\(\s*[^"'`\s]/.test(fonte) ||
+        rpcs.some((r) => !LEITURAS.has(r))
+      )
+    })
+    expect(gravam).toEqual([])
+  })
+
   it("o middleware confere o token pela assinatura, sem ida ao Auth", () => {
     const fonte = readFileSync("middleware.ts", "utf8")
     expect(fonte).toMatch(/\.auth\.getClaims\(\)/)
