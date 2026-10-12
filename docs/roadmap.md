@@ -203,6 +203,16 @@ A "Clínica Demonstração Nextech" está marcada com `clinics.is_demo`, com o `
 - **Preparo:** `npm run demo:preparar <id da clínica>`. É idempotente e recusa clínica de cliente.
 - **Quando entrar o primeiro cliente:** cada tela de protótipo vira real com a sua fase, e a demonstração continua com a fixture.
 
+### Canal de demonstração (Evolution) ✅ (2026-10-11)
+Spec: `docs/specs/evolution-demo-v1.md`. Plano: `docs/superpowers/plans/2026-10-11-canal-de-demonstracao-evolution.md`.
+
+Para a apresentação a investidor: um chip da Nextech, ligado à Evolution API no computador da apresentação, responde pelo WhatsApp com o motor de conversa real, e a conversa aparece ao vivo na tela de Conversas da demonstração, entre as de exemplo. Só existe com as variáveis `EVOLUTION_*` no `.env` local (nunca na Vercel), só na clínica de demonstração (travas NX004 e NX005 no banco) e só para os números da lista. Ensaio real feito com o chip (respostas em ~16 s, eco do celular calando a IA, protocolo de urgência em 1,3 s), e a limpeza conferida no banco.
+
+- **Para usar:** o roteiro em `docs/infra-setup.md` ("Canal de demonstração"): compose da Evolution, `scripts/canal-demo.ts conectar`, `next start -H 127.0.0.1` e, no fim, `scripts/canal-demo.ts limpar`.
+
+### Desempenho e segurança do painel (2026-10-11)
+A lentidão dos filtros de Conversas (~1,9 s por clique) vinha de idas em série ao Supabase, que está em us-west-2 (~300 ms por ida rodando do Brasil). O recorte da fila agora é do navegador (~50 ms), a leitura confere o token pela assinatura (`getClaims`), a fila sai numa RPC só e a conversa pedida sai junto da fila: abrir a conversa real caiu de 1,90 s para 0,72 s. Da revisão de segurança: a RLS das clínicas passou a exigir a sessão viva (logout e banimento valem na hora), o telefone do paciente saiu das URLs do PostgREST (RPC por POST) e as travas da demonstração fecharam duas brechas. Falta, no PR para a `main`: fixar as funções da Vercel em `pdx1`, junto do banco (`docs/infra-setup.md`).
+
 ## Fase 4 — Templates e sequências
 - `whatsapp-templates-v1.md`, `message-sequences-v1.md`
 - Depende da fase 3b (precisa do agente e do paciente conversando)
@@ -211,6 +221,11 @@ A "Clínica Demonstração Nextech" está marcada com `clinics.is_demo`, com o `
 - Algoritmo de disponibilidade/conflito, integração Google Calendar
 - Consome `duration_minutes` de `Procedure` (`clinic-profile-v1.md`) — **já disponível** desde 2026-09-16, via `getDuracaoDoProcedimento()`, que cai na duração padrão da política quando o procedimento não tem a própria
 - `scheduling_policies` (antecedência mínima, prazo de cancelamento, política de falta) e `professionals.google_calendar_id` — cada profissional pode ter o próprio calendário — também já existem
+
+## CRM próprio — o funil comercial da clínica (spec escrita, 2026-10-11)
+- `docs/specs/crm-v1.md`: o que acontece depois da qualificação (Novo, Qualificado, Agendado, Compareceu, Ganho, Perdido), para a clínica que não tem CRM externo. Pro e HealthTech; o dado é gravado em todo plano.
+- Em duas partes: a 1 (oportunidades, automação no banco, quadro com arrastar e menu) e a 2 (números do funil). Falta o Jhones revisar a spec; o plano da parte 1 sai numa sessão nova.
+- É a fonte: na fase 6, o adaptador de CRM externo só espelha para fora, pela interface `CrmAdapter`.
 
 ## Fase 6 — Primeiro CRM adapter
 - Implementação da interface `CrmAdapter` (skill `integrations`) pro provider mais pedido pelos clientes atuais da NextTech

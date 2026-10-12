@@ -12,14 +12,16 @@
 | **3b — Motor de conversa** | 🟡 partes 1 a 4 de 5 ✅ (dados e recepção; decisão e resposta da IA; urgência, opt-out, manutenção pelo pg_cron e qualificação; tela real de Conversas e acesso de suporte); falta: parte 5 (preview e áudio) |
 | **3c — Shell de navegação** | ✅ concluída |
 | **Conta de demonstração** | ✅ concluída (`docs/specs/demo-account-v1.md`): todas as telas do painel na "Clínica Demonstração Nextech", com dado de exemplo e selo |
+| **Canal de demonstração (Evolution)** | ✅ concluído e ensaiado com o chip (`docs/specs/evolution-demo-v1.md`) |
+| **CRM próprio** | 📝 spec escrita (`docs/specs/crm-v1.md`), à espera da revisão do Jhones |
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**1546 testes passando** · 29 migrations aplicadas · em produção em `app.nextech.ia.br`
+**1767 testes passando** (138 arquivos) · 34 migrations aplicadas · em produção em `app.nextech.ia.br`
 
-**Prioridade atual (decisão do Jhones, 2026-10-11): a apresentação para investidor.** Num login só (`clinica@`), as telas da conta de demonstração mais a IA conversando pelo WhatsApp de verdade, por um canal de demonstração na Evolution API (`docs/specs/evolution-demo-v1.md`). A Evolution roda no computador do Jhones durante a apresentação, e a conversa real aparece na tela de Conversas da demonstração, junto das de exemplo, até a limpeza no fim.
+**Prioridade atual (decisão do Jhones, 2026-10-11): a apresentação para investidor.** O canal de demonstração está pronto e ensaiado: num login só (`clinica@`), as telas da conta de demonstração mais a IA conversando pelo WhatsApp de verdade, pela Evolution API no computador da apresentação. Roteiro em `docs/infra-setup.md` ("Canal de demonstração"); antes, pôr o número do investidor na lista de permitidos e, no fim, `scripts/canal-demo.ts limpar`.
 
-**Próximas sessões, nesta ordem:** (1) implementar `evolution-demo-v1`, pelo plano `docs/superpowers/plans/2026-10-11-canal-de-demonstracao-evolution.md`; (2) o PR `staging` → `main`, quando o Jhones pedir, para a produção ter as telas da demonstração; (3) a correção da posse do WhatsApp; (4) o MFA no painel interno; (5) a parte 5 da 3b (preview e áudio). A posse e o MFA são bloqueios de go-live (Pendências, abaixo) e não da apresentação: só contas da Nextech existem, o canal é um chip da Nextech, e a recepção da Evolution procura o agente pela instância e pela clínica.
+**Próximas sessões, nesta ordem:** (1) o PR `staging` → `main`, quando o Jhones pedir, com as funções da Vercel fixadas em `pdx1` (junto do banco, `docs/infra-setup.md`); (2) a correção da posse do WhatsApp; (3) o MFA no painel interno; (4) o plano da parte 1 do CRM, depois da revisão da spec; (5) a parte 5 da 3b (preview e áudio). A posse e o MFA são bloqueios de go-live (Pendências, abaixo), não da apresentação.
 
 ---
 
@@ -237,6 +239,16 @@ Spec `docs/specs/demo-account-v1.md`; plano `docs/superpowers/plans/2026-09-27-c
 - **Na clínica real:** o script rodou três vezes. A primeira criou o vínculo do `admin@` e preencheu equipe, procedimentos, convênios e política; as seguintes deram "ja-existia" e "ja-tinha", e a terceira já passou pelas travas e gravou `clinic.prepare_demo`.
 - **Revisão visual:** 14 rotas, pelos dois logins, nos dois temas, em 1440 e 390px, sem rolagem horizontal. Também o menu de uma clínica comum, criada só para a captura e apagada no fim.
 
+## Canal de demonstração e desempenho do painel ✅ (2026-10-11)
+
+Spec `docs/specs/evolution-demo-v1.md`; plano `docs/superpowers/plans/2026-10-11-canal-de-demonstracao-evolution.md` (com todos os ajustes e commits).
+
+- **Canal:** rota `app/api/whatsapp/evolution` (só com as `EVOLUTION_*` do `.env` local; sem elas, 404), leitura do payload com lista de números permitidos, envio pela Evolution escolhido pelo prefixo `evolution:` do agente, teto diário, eco do celular do chip calando a IA, scripts `conectar` e `limpar` com trilha, e a tela de Conversas da demonstração com a conversa real entre as de exemplo, no minuto real.
+- **Banco:** NX004 restrito ao `authenticated`, e o `evolution:` só na clínica de demonstração e só pelo `service_role` (NX005), sem brecha com papel nulo nem ao tirar a marca.
+- **Ensaio real:** respostas em ~16 s, protocolo de urgência em 1,3 s, a conversa ao vivo em 1,7 s, limpeza conferida no banco.
+- **Desempenho:** o Supabase está em us-west-2 (~300 ms por ida do Brasil). Filtros de Conversas de 1,9 s para ~50 ms (no navegador); abrir conversa de 1,90 s para 0,72 s (`getClaims` na leitura, fila numa RPC, leituras em paralelo); abas do Perfil pelo History API.
+- **Segurança (revisão de 2026-10-11):** a RLS das clínicas exige a sessão viva (logout, troca de senha e banimento valem na hora, no app, no PostgREST e no Realtime); a escrita confirma a sessão no Auth; o telefone do paciente saiu das URLs do PostgREST (RPC `patient_by_phone`); o app da apresentação escuta só no loopback.
+
 ---
 
 ## Acessos
@@ -260,7 +272,11 @@ Spec `docs/specs/demo-account-v1.md`; plano `docs/superpowers/plans/2026-09-27-c
 - [ ] **Para a apresentação ao investidor** (`docs/specs/evolution-demo-v1.md`, plano `docs/superpowers/plans/2026-10-11-canal-de-demonstracao-evolution.md`):
   - [x] celular dedicado com o chip da demonstração (nunca o de uma clínica);
   - [x] Docker instalado no computador da apresentação;
-  - [ ] os números da lista de permitidos: o do investidor e outro celular para o ensaio, diferente do chip
+  - [x] o número do ensaio, na lista de permitidos (ensaio feito em 2026-10-11);
+  - [ ] o número do investidor na lista de permitidos, antes da apresentação;
+  - [ ] apagar no celular do chip a conversa do ensaio (o banco já foi limpo)
+- [ ] **Funções da Vercel em `pdx1`**, junto do Supabase (us-west-2): hoje, provavelmente `iad1`, a ~70 ms por ida. Conferir em Settings → Functions e fixar no PR para a `main` (`docs/infra-setup.md`)
+- [ ] **Revisar a spec do CRM próprio** (`docs/specs/crm-v1.md`), antes do plano da parte 1
 - [x] ~~**Prova de posse do número na conexão**~~: entrou na parte 2 da 3b. `connectWhatsapp` confere na Graph API que o número pertence ao WABA
 - [ ] **Antes de assinar o webhook da Meta em produção (bloqueio de go-live):**
   - ~~a triagem de urgência, o opt-out e a varredura das respostas `pending`~~: entraram na parte 3 da 3b;
@@ -305,6 +321,11 @@ Spec `docs/specs/demo-account-v1.md`; plano `docs/superpowers/plans/2026-09-27-c
   em 2026-10-11, a pedido do Jhones, e conferida no banco
 
 ### Dívida técnica conhecida
+
+- [ ] **Painel interno sem a conferência de sessão viva** (conferência de segurança de 2026-10-11, não bloqueia): `private.is_platform_admin()` e a policy de `platform_admins` não exigem `private.sessao_ativa()`. Pelo PostgREST direto, um token de admin revogado ainda lê `admin_audit_log` (sem PII) até vencer; o `/admin` em si passa pelo `getUser`. Fechar no mesmo padrão: `and (select private.sessao_ativa())` no `is_platform_admin` e a policy usando-o
+- [ ] **Canal Realtime já aberto não reconfere a sessão** até reconectar. O aviso não leva dado, então o impacto é nulo; anotado para não esquecer
+- [ ] **Telefone sem o nono dígito na tela:** o WhatsApp entrega números de DDD 31 ou maior sem o nono dígito, e a tela mostra "(81) 8830-…". Não é dado errado (é o formato do jid); o `formatarTelefone` poderia repor o 9 em celular de 8 dígitos
+- [ ] **`tests/rls/conta-demo.test.ts` frágil com o banco lento:** muitas idas em série; uma vez o `afterAll` estourou os 10 s e deixou usuários `teste-conta-demo-*` (apagados à mão)
 
 - [ ] **Script da demonstração, reforços opcionais** (segunda conferência de segurança, sem bloqueio): (1) uma clínica recém-criada, ainda sem membro, passa pelas travas; exigir ao menos um membro da equipe fecharia isso; (2) contar como da equipe só o e-mail confirmado (`email_confirmed_at`). E, de QA: a Visão geral real é conferida no teste pelo tipo `div`, e não pelo cabeçalho
 - [ ] **Usuário em duas clínicas:** `requireClinicContext()` usa `limit(1)` sem ordem, e o convite do painel interno não recusa quem já responde por outra clínica. Convidar o e-mail de um cliente para a demonstração faria o painel dele alternar entre as duas. O script da demonstração já recusa. Achado B2 da revisão de segurança, anterior a esta entrega

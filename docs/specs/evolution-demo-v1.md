@@ -120,35 +120,37 @@ Nenhum: é um canal interno de demonstração. A clínica de demonstração usa 
 ## Dependências (ação do Jhones)
 - [x] Um celular dedicado com o chip da demonstração (confirmado em 2026-10-11). Conecta à Evolution por QR code na implementação.
 - [x] Docker instalado no computador da apresentação (confirmado em 2026-10-11).
-- [ ] Os números que vão conversar (o do investidor e outro celular para o ensaio, diferente do chip), na lista de permitidos do `.env` local.
+- [x] Os números que vão conversar, na lista de permitidos do `.env` local (o do ensaio, em 2026-10-11; o do investidor entra antes da apresentação).
 - `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` e `MESSAGE_CONTENT_ENCRYPTION_KEY` no `.env` local (já existem).
 - Passo a passo em `docs/infra-setup.md`, escrito na implementação.
 
 ## Critério de aceite
-- [ ] Sem `EVOLUTION_*`, a rota responde 404 e nada é gravado.
-- [ ] Segredo do webhook ausente ou errado: 401, nada gravado.
-- [ ] Mensagem de número permitido grava paciente, conversa e mensagem na clínica de demonstração, e a resposta da IA sai pela Evolution (fetch interceptado) e é confirmada.
-- [ ] Agente de outra clínica com o mesmo identificador não recebe a mensagem.
-- [ ] Mensagem `fromMe` vira eco (`author = human`) e silencia a IA.
-- [ ] Número fora da lista: nada gravado, e o log não tem o número.
-- [ ] Grupo, status e evento que não é mensagem nova são ignorados com 200.
-- [ ] O mesmo `key.id` duas vezes grava uma mensagem e gera uma resposta.
-- [ ] Palavra de urgência manda o protocolo da clínica pela Evolution e passa a conversa para a equipe.
-- [ ] Opt-out não gera resposta.
-- [ ] Falha no envio pela Evolution passa a conversa para a equipe, sem nada enviado.
-- [ ] No teto diário, a IA não é chamada.
-- [ ] Log sem conteúdo nem telefone em todos os caminhos, inclusive no de erro (teste com o `console` espionado).
-- [ ] **NX004, contra o banco:** o `authenticated` continua recusado ao gravar identificador (da Meta ou `evolution:`) e ao publicar agente na demonstração. O `service_role` grava `evolution:` e publica. Identificador da Meta é recusado na demonstração também pelo `service_role`, e `evolution:` é recusado em clínica que não é de demonstração, por qualquer papel.
-- [ ] **Conversas da demonstração:** a fila junta a conversa real com as de exemplo, na ordem e com a contagem certas. A real abre com as ações reais, e a de exemplo com o protótipo. A mensagem nova aparece ao vivo.
-- [ ] **Busca da demonstração por POST:** a página não lê `?q=`, e a busca acha a conversa real e a de exemplo.
-- [ ] **Isolamento:** o membro de outra clínica não vê a conversa real da demonstração (RLS e canal privado, contra o banco real).
-- [ ] Os scripts de conexão e de limpeza são idempotentes. Depois da limpeza, a clínica de demonstração fica sem paciente, conversa, mensagem nem agente conectado, conferido no banco, e o script de preparo da demonstração volta a passar.
-- [ ] **Ensaio real antes da apresentação**, com o chip conectado, pelo `clinica@`:
-  - três conversas do celular do Jhones, cada uma respondida em menos de 30 s;
-  - uma urgência com o protocolo;
-  - uma resposta pelo celular do chip calando a IA;
-  - a conversa aparecendo ao vivo na tela de Conversas, entre as de exemplo;
-  - o tour pelas outras telas do sidebar no mesmo login.
+Implementado e conferido em 2026-10-11 (plano `docs/superpowers/plans/2026-10-11-canal-de-demonstracao-evolution.md`). Entre parênteses, onde está a prova.
+
+- [x] Sem `EVOLUTION_*`, a rota responde 404 e nada é gravado (`tests/whatsapp/evolution.test.ts`, "portaria"; `lib/whatsapp/evolution-config.test.ts`).
+- [x] Segredo do webhook ausente ou errado: 401, nada gravado (`tests/whatsapp/evolution.test.ts`).
+- [x] Mensagem de número permitido grava paciente, conversa e mensagem na clínica de demonstração, e a resposta da IA sai pela Evolution (fetch interceptado) e é confirmada (`tests/whatsapp/evolution.test.ts`).
+- [x] Agente de outra clínica com o mesmo identificador não recebe a mensagem (`tests/whatsapp/evolution.test.ts`; `tests/rls/demo-evolution.test.ts`).
+- [x] Mensagem `fromMe` vira eco (`author = human`) e silencia a IA (`tests/whatsapp/evolution.test.ts`; no ensaio, o eco do chip às 21:19).
+- [x] Número fora da lista: nada gravado, e o log não tem o número (`tests/whatsapp/evolution.test.ts`; `lib/whatsapp/evolution-webhook.test.ts`).
+- [x] Grupo, status e evento que não é mensagem nova são ignorados com 200 (`tests/whatsapp/evolution.test.ts`).
+- [x] O mesmo `key.id` duas vezes grava uma mensagem e gera uma resposta (`tests/whatsapp/evolution.test.ts`).
+- [x] Palavra de urgência manda o protocolo da clínica pela Evolution e passa a conversa para a equipe (`tests/whatsapp/evolution.test.ts`; no ensaio, protocolo em 1,3 s).
+- [x] Opt-out não gera resposta (`tests/whatsapp/evolution.test.ts`).
+- [x] Falha no envio pela Evolution passa a conversa para a equipe, sem nada enviado (`tests/whatsapp/evolution.test.ts`; `lib/whatsapp/evolution.test.ts`).
+- [x] No teto diário, a IA não é chamada (`tests/whatsapp/evolution.test.ts`; `tests/conversations/teto.test.ts`).
+- [x] Log sem conteúdo nem telefone em todos os caminhos, inclusive no de erro (`tests/whatsapp/evolution.test.ts`, com o `console` espionado, inclusive timeout e restrição recusada na gravação e o banco caindo depois do 200, com o telefone no `details` do erro). Depois da revisão de segurança, o telefone também saiu das URLs do PostgREST (RPC `patient_by_phone`, por POST).
+- [x] **NX004, contra o banco** (`tests/rls/demo-evolution.test.ts`). Depois da revisão de segurança, também com papel nulo (conexão direta) e sem tirar a marca de demonstração com o canal conectado (NX005).
+- [x] **Conversas da demonstração** (`tests/demo/rotas.test.ts`; `components/conversations/fila-da-caixa.test.tsx`). Ao vivo, no navegador: a mensagem nova apareceu na fila em 1,7 s, sem recarregar.
+- [x] **Busca da demonstração por POST** (`tests/demo/rotas.test.ts`, `acoes.test.ts`; no navegador, achou a real).
+- [x] **Isolamento** (`tests/conversations/leitura.test.ts`, `tests/rls/conversas-realtime.test.ts`; a RLS não distingue a demonstração).
+- [x] Os scripts de conexão e de limpeza são idempotentes, e a limpeza é conferida no banco (`tests/rls/canal-demo.test.ts`; depois do ensaio, 0 pacientes, conversas e mensagens, e o agente pausado sem identificador).
+- [x] **Ensaio real**, com o chip conectado, pelo `clinica@` (2026-10-11):
+  - três trocas do outro celular, respondidas em 17,4 s, 15,9 s e 16,0 s. É uma conversa só: um celular tem uma conversa por agente;
+  - a urgência ("dor forte"), com o protocolo em 1,3 s e a conversa marcada urgente;
+  - a resposta pelo celular do chip, gravada como equipe, e a IA calada;
+  - a conversa ao vivo na tela de Conversas, entre as de exemplo; assumir, devolver e a busca;
+  - o tour pelas 12 telas do sidebar no mesmo login, sem tela quebrada.
 
 ## Como medir
 O ensaio real (último critério) sem falha. Na apresentação, o investidor recebe resposta em todas as mensagens de texto, e o tour pelo sidebar não troca de login.

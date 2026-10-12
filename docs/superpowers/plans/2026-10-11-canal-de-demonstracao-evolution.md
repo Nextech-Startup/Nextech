@@ -15,13 +15,13 @@
 
 **Spec:** `docs/specs/evolution-demo-v1.md`. Afetadas: `docs/specs/demo-account-v1.md` e `docs/specs/conversation-engine-v1.md`.
 
-## Status da execução: 🟨 em andamento
+## Status da execução: ✅ concluída (2026-10-11)
 
 ### Feito antes da execução (2026-10-11)
 - [x] Spec `docs/specs/evolution-demo-v1.md`, com as decisões do Jhones (commits `16b45ce` e `cf8a789`, mais o deste plano).
 - [x] Celular dedicado com o chip da demonstração (Jhones).
 - [x] Docker instalado no computador da apresentação (Jhones).
-- [ ] Números que vão conversar: pedir ao Jhones no início da tarefa 10. Para o ensaio, é preciso **outro celular, diferente do chip**, para mandar as mensagens.
+- [x] Números que vão conversar: o do ensaio, na lista de permitidos do `.env` local (o do investidor entra antes da apresentação). O ensaio usou **outro celular, diferente do chip**.
 
 ### Estado de partida
 - `staging` em `cf8a789` (mais o commit deste plano), com push. Suíte: 1546 testes em 121 arquivos, saída 0, no `54f552c`; depois disso, só documentação.
@@ -342,42 +342,42 @@ export async function limparCanalDeDemonstracao(
   4. configurar o webhook para `http://host.docker.internal:3000/api/whatsapp/evolution`, com o cabeçalho `x-nextech-secret`;
   5. preencher o `.env`;
   6. `npx tsx scripts/canal-demo.ts conectar`;
-  7. `npm run build` e `npx next start -p 3000`;
+  7. `npm run build` e `npx next start -H 127.0.0.1 -p 3000` (só no loopback: ver os ajustes da tarefa 12);
   8. o ensaio;
   9. **no fim, `npx tsx scripts/canal-demo.ts limpar`**.
 - [x] Skills `integrations` e `architecture`: a Evolution continua fora do produto e existe só como canal de demonstração, com a spec citada.
 - [x] `demo-account-v1.md`: a seção da mudança (a conversa real do canal, NX004 restrito ao `authenticated`, busca por POST).
-- [ ] Pedir ao Jhones os números da lista de permitidos e do ensaio (na hora do ensaio, tarefa 11).
+- [x] Pedir ao Jhones os números da lista de permitidos e do ensaio (na hora do ensaio, tarefa 11).
 - [x] Commit: `docs: infra local e roteiro do canal de demonstração`.
 
 ### Tarefa 11: Revisão visual e ensaio real
 
 Carregar `frontend-design` e `ui-ux` antes. O ensaio precisa do Jhones presente, com o celular do chip e outro celular.
 
-- [ ] Subir tudo pelo roteiro da tarefa 10. Conferir antes que não há `next start` antigo na porta.
-- [ ] **Ensaio** (último critério de aceite da spec), pelo `clinica@`:
+- [x] Subir tudo pelo roteiro da tarefa 10. Conferir antes que não há `next start` antigo na porta.
+- [x] **Ensaio** (último critério de aceite da spec), pelo `clinica@`:
   - três conversas do outro celular, cada uma respondida em menos de 30 s;
   - uma urgência com o protocolo;
   - uma resposta digitada no celular do chip, que cala a IA;
   - a conversa aparecendo ao vivo na tela de Conversas, entre as de exemplo;
   - assumir e devolver na conversa real;
   - a busca achando a real.
-- [ ] **Capturas** de `/dashboard/conversations` com a conversa real aberta, nos dois temas, em 1440 e 390 px, sem rolagem horizontal (`docs/design/shot-referencia.mjs` copiado para o scratchpad, com `npm i playwright-core@1` lá).
-- [ ] Tour pelo sidebar inteiro no mesmo login: nenhuma tela quebrada.
-- [ ] **Limpar** (`scripts/canal-demo.ts limpar`) e conferir no banco que a demonstração voltou ao estado de antes.
-- [ ] Corrigir o que aparecer, com teste, e fazer o commit `fix(demo): ajustes do ensaio do canal de demonstração`, se houver.
+- [x] **Capturas** de `/dashboard/conversations` com a conversa real aberta, nos dois temas, em 1440 e 390 px, sem rolagem horizontal (`docs/design/shot-referencia.mjs` copiado para o scratchpad, com `npm i playwright-core@1` lá).
+- [x] Tour pelo sidebar inteiro no mesmo login: nenhuma tela quebrada.
+- [x] **Limpar** (`scripts/canal-demo.ts limpar`) e conferir no banco que a demonstração voltou ao estado de antes.
+- [x] Corrigir o que aparecer, com teste, e fazer o commit `fix(demo): ajustes do ensaio do canal de demonstração`, se houver.
 
 ### Tarefa 12: Verificação final, revisões e fechamento
 
-- [ ] `npx vitest run` inteiro em segundo plano, com o commit e o `git status` no topo do arquivo de saída e `echo exit=$?` no fim; `npx tsc --noEmit`; `npm run build`.
-- [ ] `security-reviewer` e `qa-reviewer` sobre o diff (commits desde este plano). Tratar os achados, pedir a conferência das correções e a das correções da conferência.
-- [ ] Documentação:
+- [x] `npx vitest run` inteiro em segundo plano, com o commit e o `git status` no topo do arquivo de saída e `echo exit=$?` no fim; `npx tsc --noEmit`; `npm run build`.
+- [x] `security-reviewer` e `qa-reviewer` sobre o diff (commits desde este plano). Tratar os achados, pedir a conferência das correções e a das correções da conferência.
+- [x] Documentação:
   - este plano (status, commits, ajustes, o que a próxima sessão precisa saber);
   - a spec `evolution-demo-v1.md` (critérios marcados);
   - `docs/roadmap.md`;
   - `docs/status.md` (o contador de testes e de migrations, e a próxima sessão: o PR `staging` → `main` quando o Jhones pedir, depois a posse do WhatsApp e o MFA);
   - a memória do projeto.
-- [ ] Suíte inteira no último commit, `git status` limpo, `git checkout -- CLAUDE.md` e `git push origin staging`. Se pedir login, parar e avisar o Jhones.
+- [x] Suíte inteira no último commit, `git status` limpo, `git checkout -- CLAUDE.md` e `git push origin staging`. Se pedir login, parar e avisar o Jhones.
 
 ---
 
@@ -441,3 +441,25 @@ Fica só a sessão do chip (chaves de cifra por contato, como em qualquer aparel
   - O compose fixa `evoapicloud/evolution-api:v2.3.7`, `postgres:15` e `redis:7`. Só a API publica porta (`127.0.0.1:8080`); Postgres e Redis ficam na rede interna. Os dois segredos (`AUTHENTICATION_API_KEY`, `POSTGRES_PASSWORD`) vêm do `scripts/canal-demo/.env` (modelo em `.env.example` ao lado), e o compose recusa subir sem eles. O resto da configuração, inclusive a parte de LGPD, fica versionado no compose.
   - O QR é escaneado pelo painel da própria API (`http://localhost:8080/manager`), sem o frontend separado do compose oficial (que ocupa a porta 3000).
   - O roteiro em `docs/infra-setup.md` usa PowerShell (`Invoke-RestMethod`) e inclui apagar as conversas no celular do chip no fim.
+- **Tarefa 11 (ensaio, 2026-10-11, com o Jhones).**
+  - Com o chip conectado e o outro celular: três trocas respondidas em 17,4 s, 15,9 s e 16,0 s; `qualified_at` gravado; assumir, devolver e a busca às 21:18; o eco do celular do chip gravado como equipe, e a IA calada; "dor forte" com o protocolo em 1,3 s e a conversa urgente. As "três conversas" da spec viraram uma conversa com três trocas: um celular tem uma conversa por agente (unique `agent_id, patient_id`).
+  - No roteiro, eu tinha dito que o passo 5 ia para "Humano". O certo é "Aguardando": a equipe atende, e a última mensagem é do paciente (`estadoDaConversa`).
+  - Ao vivo, sem recarregar (pedido da revisão de QA): com paciente fictício gravado pelo `register_whatsapp_message`, a conversa entrou na fila em 1,7 s, sem recarregar a página (marca na `window` preservada); a busca por POST a achou; "Assumir conversa" e "Devolver para a IA" gravaram `assumed` e `returned_to_ai`.
+  - Capturas da conversa real nos dois temas, em 1440 e 390 px, sem rolagem horizontal; tour pelas 12 rotas do menu sem tela quebrada.
+  - O número do ensaio é do DDD 81, e o WhatsApp o entrega sem o nono dígito: a tela mostra "(81) 8830-…" com 8 dígitos. Não é bug de dado (é o formato do jid); o formatador poderia repor o nono dígito (pendência no status).
+  - Limpeza conferida no banco: 0 pacientes, conversas e mensagens; o agente pausado sem identificador; a regra fictícia fica; a trilha com mais dois registros (conectar e limpar). O compose ficou parado com `stop` (a sessão do chip fica), e o Redis da Evolution, com 0 chaves. Falta o Jhones apagar a conversa no celular do chip.
+- **Fora do plano, no meio da sessão.**
+  - `f5e174f`: as abas do Perfil da clínica pareciam mortas (~1,9 s por troca, ida ao servidor). Trocadas pelo History API.
+  - `fede161`: agentes `pm` e `po` do Synkra AIOS. O instalador ignorou o `--dry-run` e sobrescreveu o `.env` sem backup; restaurado da memória do `next start` (memória `instalador-externo-e-env`). O framework fica local, fora do git; `bf5252c` tira os testes dele da suíte.
+  - `fc97868`: a spec do CRM próprio (`docs/specs/crm-v1.md`).
+  - **Lentidão do painel** (investigação com `systematic-debugging`): cada clique refazia a página no servidor, com 5 a 6 idas em série ao Supabase, que está em us-west-2 (~300 ms por ida rodando do Brasil). Correções, cada uma com teste e medida no `next start`: o recorte da fila no navegador (`14b2317`, de 1,9 s para ~50 ms), o sinal no item clicado (`8a490a8`), `getClaims` na leitura e `getUser` só na escrita (`c4600ec`), a fila numa RPC só (`98ab2d3`, migration `conversation_queue`), a conversa pedida junto da fila (`6f4566b`). Abrir a conversa real: de 1,90 s para 0,72 s. Também: os alertas da Visão geral da demonstração apontavam para o protótipo do admin (`85e2442`), e a regra de arquitetura das actions com fixture (`50f3312`). A região das funções da Vercel (`pdx1`) ficou anotada em `docs/infra-setup.md` (`07bd919`).
+- **Tarefa 12.**
+  - Primeira suíte no `6f4566b`: 1734 testes passando; as 9 falhas eram arquivos do `.aios-core/` (0 teste), corrigido em `bf5252c`.
+  - **Revisão de segurança** (decisões do Jhones nas duas médias, as recomendadas):
+    - médio 1, sessão encerrada lendo conteúdo decifrado pela leitura com `getClaims`: a RLS das clínicas exige a sessão viva (`39eacb5`, migration `session_alive_rls`), e quem tem a sessão encerrada vai para o login (`48a0e7a`);
+    - médio 2, telefone na URL do PostgREST (`eco.ts`, e antes do plano o `identifyPatient`): RPC `patient_by_phone` por POST (`307f340`);
+    - baixos 1 e 2, trava da demonstração com papel nulo e ao tirar o `is_demo` (`e404852`); baixo 3, erro inesperado do `getClaims` vai para o login (`39eacb5`); baixo 4, o app da apresentação só no loopback (`890b6f9`, conferido que a Evolution chega pelo `host.docker.internal`).
+    - Conferência: os seis resolvidos, sem brecha nova. Ficaram como pendência (não bloqueiam): a mesma conferência de sessão no painel interno (`is_platform_admin`, sem PII, já era assim) e o canal Realtime já aberto, que só reconfere a sessão ao reconectar (o aviso não leva dado).
+  - **Revisão de QA**: sete lacunas de teste, todas fechadas e conferidas (`307f340`, `06ec72f`, `b9a08bb`, `48a0e7a`): o caminho de erro da rota, a prévia na RPC nova, a evidência ao vivo, a escrita pela porta de leitura em qualquer arquivo, o clique do recorte, o sinal na lista e as abas.
+  - Banco: 34 migrations (5 desta sessão: `demo_evolution_channel`, `conversation_queue`, `session_alive_rls`, `patient_by_phone`, `demo_channel_lock_hardening`), todas aditivas ou `create or replace` de função, com `--dry-run` antes.
+- **Para a próxima sessão:** o PR `staging` → `main` quando o Jhones pedir (junto, fixar as funções da Vercel em `pdx1`); antes da apresentação, o número do investidor na lista de permitidos e o roteiro de `docs/infra-setup.md`; depois, a posse do WhatsApp, o MFA e o plano da parte 1 do CRM.
