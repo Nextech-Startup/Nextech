@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { ArrowRight, CalendarCheck, Check, MessagesSquare, Repeat2, UserX } from "lucide-react"
 import { requireClinicContext } from "@/lib/auth/context"
 import { relogioDaDemonstracao } from "@/lib/demo/relogio"
+import { alertasNoPainel } from "@/lib/demo/rotas"
 import { podeAcessar } from "@/lib/navigation/acesso"
 import { primeiraRotaVisivel } from "@/lib/navigation/landing"
 import { getCurrentClinic } from "@/lib/clinics/queries"
@@ -59,9 +60,11 @@ export default async function DashboardPage({
   if (isDemo) {
     const [{ periodo }, clinica] = await Promise.all([searchParams, getCurrentClinic()])
     const relogio = relogioDaDemonstracao(AGORA)
+    const visao = relogio.deslocar(VISAO_GERAL)
     return (
       <TelaDeVisaoGeral
-        dados={{ ...relogio.deslocar(VISAO_GERAL), clinica: clinica.legal_name }}
+        // Os alertas da fixture apontam para o protótipo do admin, que barra a clínica.
+        dados={{ ...visao, alertas: alertasNoPainel(visao.alertas), clinica: clinica.legal_name }}
         periodo={periodo === "7d" ? "7d" : "mes"}
         agora={relogio.agora}
         hrefDoPeriodo={{ "7d": "/dashboard?periodo=7d", mes: "/dashboard" }}

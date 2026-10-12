@@ -15,6 +15,8 @@ import { OperacaoDoAgente } from "@/components/agents/operacao-do-agente"
 import { ListaDeAgentes } from "@/app/(dashboard)/dashboard/agents/lista"
 import { FormularioDeAgente } from "@/app/(dashboard)/dashboard/agents/formulario"
 import { deslocarDatas, girarDiasDaSemana, relogioDoMinuto } from "@/lib/demo/relogio"
+import { alertasNoPainel } from "@/lib/demo/rotas"
+import type { Alerta } from "@/lib/overview/alertas"
 import { AGORA } from "@/app/_fixtures/agora"
 import { AGENTES, DETALHES_DOS_AGENTES } from "@/app/_fixtures/agentes"
 import { COMPROMISSOS, EXPEDIENTE } from "@/app/_fixtures/agenda"
@@ -234,7 +236,8 @@ const EXISTENTES: Rota[] = [
     rota: "/dashboard",
     menu: "/dashboard",
     carregar: () => import("@/app/(dashboard)/dashboard/page"),
-    confere: { dados: { ...d(VISAO_GERAL), clinica: CLINICA } },
+    // Os links dos alertas apontam para o painel, não para o protótipo do admin.
+    confere: { dados: { ...d(VISAO_GERAL), alertas: alertasNoPainel(d(VISAO_GERAL).alertas), clinica: CLINICA } },
   },
   {
     rota: "/dashboard/agents",
@@ -377,6 +380,18 @@ describe("na conta de demonstração", () => {
     contexto.isDemo = true
     vi.useFakeTimers({ toFake: ["Date"] })
     vi.setSystemTime(new Date(HOJE))
+  })
+
+  // O layout do admin barra a clínica e a devolve para a Visão geral: o
+  // "Abrir conversa" do alerta parecia não fazer nada.
+  it("nenhum alerta da Visão geral leva ao painel interno", async () => {
+    const tela = await abrir(rota("/dashboard"))
+    const { dados } = tela.props as { dados: { alertas: Alerta[] } }
+    const hrefs = dados.alertas.flatMap((a) => (a.acao ? [a.acao.href] : []))
+    expect(hrefs.length).toBeGreaterThan(0)
+    for (const href of hrefs) expect(href).toMatch(/^\/dashboard(\/|\?|$)/)
+    expect(hrefs).toContain("/dashboard/conversations?c=c-urgente")
+    expect(hrefs).toContain("/dashboard/templates")
   })
   afterEach(() => vi.useRealTimers())
 
