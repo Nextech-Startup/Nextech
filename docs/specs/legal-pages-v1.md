@@ -14,7 +14,8 @@ Publicar três páginas na landing, com texto de LGPD escrito a partir do que o 
 O texto é um rascunho para a revisão do Jhones, idealmente com um advogado antes da primeira clínica. Ele não substitui essa revisão.
 
 ## Decisões (Jhones, 2026-10-12)
-1. **Encarregado (DPO):** o Jhones, com o e-mail `privacidade@nextech.ia.br`, um alias novo no Zoho. O alias precisa existir antes da publicação.
+0. **Identidade:** nome empresarial `65.406.075 JHONES BONIFACIO DA SILVA`, CNPJ `65.406.075/0001-12` (matriz, inscrito em 02/03/2026), com o nome comercial Nextech. O encarregado é Jhones Bonifacio da Silva, grafado como no CNPJ.
+1. **Encarregado (DPO):** o Jhones, dono da empresa, com o e-mail `contato@nextech.ia.br`, a caixa que já existe no Zoho. A escolha inicial era um alias `privacidade@`, mas o Jhones ficou com o `contato@`. Um alias pode entrar depois, trocando só o e-mail no texto.
 2. **Leads do chatbot:** guardados por até 12 meses e apagados antes, se a pessoa pedir. A tabela só tem `created_at`, então a exclusão automática conta 12 meses a partir dele. Isso nunca guarda mais do que a política promete.
 3. **Rodapé:** "Privacidade" e "Termos" viram links. "Cookies" e "Segurança" apontam para `/privacidade#cookies` e `/privacidade#seguranca`. São quatro links para três páginas; a de exclusão é linkada pela política, na seção de direitos.
 4. **Termos:** um documento só, para o serviço e para o site.
@@ -39,7 +40,7 @@ Toda afirmação de fato (fornecedor, medida de segurança, prazo, mecanismo) pr
 
 ### 2. `/privacidade`
 Seções, nesta ordem:
-1. **Quem somos:** razão social, CNPJ e endereço (dependência do Jhones) e o encarregado com `privacidade@nextech.ia.br`.
+1. **Quem somos:** razão social, CNPJ e endereço (dependência do Jhones) e o encarregado com `contato@nextech.ia.br`.
 2. **Os dois papéis da Nextech:**
    - *controladora* dos dados de visitantes, leads e usuários do painel (a equipe da clínica);
    - *operadora* dos dados dos pacientes, tratados em nome da clínica, que é a controladora. Pedidos de paciente vão primeiro para a clínica; se chegarem à Nextech, são encaminhados a ela.
@@ -59,7 +60,7 @@ Seções, nesta ordem:
    - leads: até 12 meses;
    - conta do painel: enquanto durar o contrato, mais os prazos legais;
    - dados de pacientes: enquanto a clínica for cliente, apagados ou redigidos a pedido dela.
-9. **Seus direitos (art. 18):** como exercer pelo `privacidade@nextech.ia.br`, prazo de resposta de até 15 dias (art. 19, II), link para `/exclusao-de-dados` e o direito de reclamar à ANPD.
+9. **Seus direitos (art. 18):** como exercer pelo `contato@nextech.ia.br`, prazo de resposta de até 15 dias (art. 19, II), link para `/exclusao-de-dados` e o direito de reclamar à ANPD.
 10. **`#cookies`:** o painel usa só os cookies essenciais da sessão de login. A landing não usa cookie de rastreio. Preferências locais, como o tema, ficam só no navegador. A implementação confere o que de fato é gravado antes de escrever.
 11. **`#seguranca`:** as medidas da tabela da seção 1, em linguagem simples.
 12. **Alterações e data:** "Última atualização: dd/mm/aaaa", com a data da publicação.
@@ -84,7 +85,7 @@ Seções, nesta ordem:
 12. Alterações, lei aplicável e foro da comarca da sede (dependência do Jhones).
 
 ### 4. `/exclusao-de-dados`
-Instruções por tipo de titular, sempre pelo `privacidade@nextech.ia.br`, com prazo de até 15 dias e confirmação por e-mail:
+Instruções por tipo de titular, sempre pelo `contato@nextech.ia.br`, com prazo de até 15 dias e confirmação por e-mail:
 - **Clínica:** pedir a exclusão da conta e dos dados obtidos pela Meta (ID do WhatsApp Business, ID do número, token de acesso). Ela também pode remover o app da Nextech nas configurações do portfólio na Meta. Se existir no painel uma ação de desconectar o WhatsApp na data da implementação, a página cita esse caminho; se não existir, não cita.
 - **Paciente:** pedir à clínica que o atende. Se o pedido chegar à Nextech, ele é encaminhado à clínica. Na exclusão, o conteúdo das conversas é redigido.
 - **Lead:** pedir por e-mail, e a linha de `chatbot_leads` é apagada.
@@ -136,11 +137,10 @@ Nenhum. As páginas são públicas.
 Nenhuma. A regra de fornecedor novo muda a skill `lgpd-security`.
 
 ## Dependências (ação do Jhones)
-1. Razão social, CNPJ, endereço da sede e a comarca do foro.
-2. Nome completo do encarregado, como deve aparecer na política.
-3. O alias `privacidade@nextech.ia.br` criado no Zoho, recebendo de fora.
-4. Revisão do texto, idealmente com advogado antes da primeira clínica.
-5. Depois do deploy, as três URLs nos campos do app na Meta (Configurações do app > Básico).
+1. ~~Razão social, CNPJ e nome do encarregado~~: recebidos (decisão 0).
+2. Cidade/UF da sede, para o foro, e se o endereço completo vai na página.
+3. Revisão do texto, idealmente com advogado antes da primeira clínica.
+4. Depois do deploy, as três URLs nos campos do app na Meta (Configurações do app > Básico).
 
 ## Critério de aceite
 1. `/privacidade`, `/termos` e `/exclusao-de-dados` respondem 200 em `www.nextech.ia.br` e em `app.nextech.ia.br`, sem redirecionar para o login.
@@ -156,4 +156,4 @@ Nenhuma. A regra de fornecedor novo muda a skill `lgpd-security`.
 
 ## Como medir
 - A Meta aceita as URLs nos campos do app, e o App Review não volta por causa da política.
-- Todo pedido que chega em `privacidade@` é respondido em até 15 dias.
+- Todo pedido que chega em `contato@` é respondido em até 15 dias.
