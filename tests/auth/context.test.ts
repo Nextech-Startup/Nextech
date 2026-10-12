@@ -7,6 +7,13 @@ const mockGetUser = vi.fn()
 const mockGetClaims = vi.fn()
 const mockFrom = vi.fn()
 
+// A sessão encerrada vai para o login: o redirect do Next lança, como lá.
+vi.mock("next/navigation", () => ({
+  redirect: (destino: string) => {
+    throw new Error(`REDIRECT:${destino}`)
+  },
+}))
+
 vi.mock("@/lib/supabase/server", () => ({
   createServerClient: async () => ({
     auth: { getUser: mockGetUser, getClaims: mockGetClaims },
@@ -74,11 +81,32 @@ describe("requireClinicContext", () => {
   it("lança quando o usuário não é membro de nenhuma clínica", async () => {
     tokenValido()
     mockMembership(null)
+    sessaoNoAuth("user-1")
     const { requireClinicContext, ClinicContextError } = await import(
       "@/lib/auth/context"
     )
 
     await expect(requireClinicContext()).rejects.toBeInstanceOf(ClinicContextError)
+  })
+
+  // A RLS exige a sessão viva: com a sessão encerrada, o vínculo volta
+  // vazio mesmo com o token bem assinado. Sem esta conferência, a tela
+  // diria "Nenhuma clínica vinculada" a quem só precisa entrar de novo.
+  it("sem vínculo e sem a sessão no Auth (logout em outro lugar), vai para o login", async () => {
+    tokenValido()
+    mockMembership(null)
+    sessaoNoAuth(null)
+    const { requireClinicContext } = await import("@/lib/auth/context")
+
+    await expect(requireClinicContext()).rejects.toThrow("REDIRECT:/login")
+  })
+
+  it("sem token, não pergunta ao Auth: lança direto", async () => {
+    semToken()
+    const { requireClinicContext, ClinicContextError } = await import("@/lib/auth/context")
+
+    await expect(requireClinicContext()).rejects.toBeInstanceOf(ClinicContextError)
+    expect(mockGetUser).not.toHaveBeenCalled()
   })
 
   it("devolve clinicId, role, userId e e-mail do vínculo e do token", async () => {

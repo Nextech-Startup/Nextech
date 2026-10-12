@@ -5,6 +5,7 @@ import {
   admin,
   anonClient,
   comoUsuario,
+  criarUsuario,
   emMinutos,
   limparClinica,
   montarClinica,
@@ -133,6 +134,28 @@ describe("canal privado conversas:<clinic_id>", () => {
     const antes = membroB.avisos.length
     await controleEmA(membroA)
     expect(membroB.avisos.length).toBe(antes)
+  }, 60_000)
+
+  // A RLS das clínicas exige a sessão viva (migration 20261012140000): o
+  // token de uma sessão encerrada, ainda bem assinado, não entra no canal.
+  it("o membro de A com a sessão encerrada não entra no canal de A", async () => {
+    const staff = await criarUsuario("realtime-a-encerrada")
+    A.usuarios.push(staff)
+    const { error } = await admin.from("clinic_members").insert({ clinic_id: A.id, user_id: staff.id, role: "staff" })
+    if (error) throw error
+
+    const antiga = anonClient()
+    const { error: erroLogin } = await antiga.auth.signInWithPassword({ email: staff.email, password: staff.password })
+    if (erroLogin) throw erroLogin
+    const outra = anonClient()
+    const { error: erroOutra } = await outra.auth.signInWithPassword({ email: staff.email, password: staff.password })
+    if (erroOutra) throw erroOutra
+    await outra.auth.signOut({ scope: "global" })
+
+    const encerrada = await entrar(antiga, topico(A))
+    await controleEmA(membroA)
+    expect(encerrada.status).not.toContain("SUBSCRIBED")
+    expect(encerrada.avisos).toEqual([])
   }, 60_000)
 
   it("o anônimo não entra no canal privado de A", async () => {

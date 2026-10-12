@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation"
 import { createServerClient } from "@/lib/supabase/server"
 
 export type ClinicRole = "owner" | "staff" | "professional"
@@ -43,8 +44,10 @@ type Identidade = { id: string; email: string | null }
  * de logout, troca de senha nem banimento: quem fecha essa janela é o banco,
  * cujas funções de acesso da RLS exigem a sessão do token viva em
  * `auth.sessions` (migration `20261012140000_session_alive_rls`). Com a
- * sessão encerrada, a consulta de vínculo abaixo volta vazia e a porta
- * lança. Para gravar, use `requireClinicContextForWrite()`.
+ * sessão encerrada, a consulta de vínculo abaixo volta vazia; só nesse
+ * caminho raro a porta confirma a sessão no Auth, e quem saiu de todas as
+ * sessões vai para o login (e não para "Nenhuma clínica vinculada"). Para
+ * gravar, use `requireClinicContextForWrite()`.
  *
  * Todo módulo de domínio obtém daqui o client já autenticado. Nenhum cria
  * o seu próprio — ver o teste em `tests/architecture/boundaries.test.ts`,
@@ -54,8 +57,19 @@ type Identidade = { id: string; email: string | null }
  */
 export async function requireClinicContext(): Promise<ClinicContext> {
   const supabase = await createServerClient()
+  const identidade = await identidadeDoToken(supabase)
 
-  return resolverVinculo(supabase, await identidadeDoToken(supabase))
+  try {
+    return await resolverVinculo(supabase, identidade)
+  } catch (erro) {
+    if (identidade && erro instanceof ClinicContextError) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) redirect("/login")
+    }
+    throw erro
+  }
 }
 
 /**
