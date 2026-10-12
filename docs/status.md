@@ -21,7 +21,7 @@
 
 **Prioridade atual (decisão do Jhones, 2026-10-11): a apresentação para investidor.** O canal de demonstração está pronto e ensaiado: num login só (`clinica@`), as telas da conta de demonstração mais a IA conversando pelo WhatsApp de verdade, pela Evolution API no computador da apresentação. Roteiro em `docs/infra-setup.md` ("Canal de demonstração"); antes, pôr o número do investidor na lista de permitidos e, no fim, `scripts/canal-demo.ts limpar`.
 
-**Próximas sessões, nesta ordem:** (1) o PR `staging` → `main`, quando o Jhones pedir, com as funções da Vercel fixadas em `pdx1` (junto do banco, `docs/infra-setup.md`); (2) a correção da posse do WhatsApp; (3) o MFA no painel interno; (4) o plano da parte 1 do CRM, depois da revisão da spec; (5) a parte 5 da 3b (preview e áudio). A posse e o MFA são bloqueios de go-live (Pendências, abaixo), não da apresentação.
+**Próximas sessões, nesta ordem:** (1) as páginas legais (`docs/specs/legal-pages-v1.md`), que destravam o App Review da Meta, depois que o Jhones passar a identidade da empresa; (2) a correção da posse do WhatsApp; (3) o MFA no painel interno; (4) o plano da parte 1 do CRM, depois da revisão da spec; (5) a parte 5 da 3b (preview e áudio). O PR `staging` → `main` (#7, com as funções em `pdx1`) entrou em 2026-10-12. A posse e o MFA são bloqueios de go-live (Pendências, abaixo), não da apresentação.
 
 ---
 

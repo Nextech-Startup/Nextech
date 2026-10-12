@@ -67,7 +67,11 @@ Duas classes de segredo, que não se misturam:
 - [ ] Cada clínica autoriza o próprio calendário — não existe uma conta Google única do Nextech (ver skill `integrations`).
 
 ## Meta / WhatsApp (referência — já coberto em detalhe na skill `integrations`)
-- [ ] App do Nextech registrado na Meta com permissão de Embedded Signup (fluxo com coexistência).
+- [x] App do Nextech criado na conta de developer do Jhones, conectado a um portfólio empresarial **próprio da Nextech**, nunca ao de outro projeto (2026-10-12). A conta de developer é do perfil pessoal; o portfólio é escolhido por app.
+- [ ] Verificação do negócio no portfólio da Nextech (Central de segurança): razão social e CNPJ como no cartão CNPJ, site `nextech.ia.br`. Se pedir verificação de domínio, o TXT na raiz convive com o SPF do Zoho.
+- [ ] Use cases > Customize for WhatsApp > **Tech Provider onboarding**. A coexistência só vale para Tech Provider ou Solution Partner, e a verificação vem antes do App Review.
+- [ ] App Review: ícone 1024×1024, URL da política de privacidade (bloqueada até `docs/specs/legal-pages-v1.md`) e dois vídeos (envio de mensagem e gestão de template, gravados com o número de teste da API Setup).
+- [ ] Embedded Signup na **v4**: a Meta desliga a v2 em 2026-10-15. Construir o fluxo já na v4.
 - [ ] Permissões `whatsapp_business_messaging` e `whatsapp_business_management` com advanced access.
 
 ### Quando as credenciais chegarem (webhook já construído contra mock)
