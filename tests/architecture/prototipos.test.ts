@@ -20,20 +20,34 @@ const todos = [...arquivos("app"), ...arquivos("components"), ...arquivos("lib")
 /** Qualquer literal de caminho com `_fixtures/`: import estático ou dinâmico. */
 const importaFixtures = (f: string) => /["'][^"']*_fixtures\/[^"']*["']/.test(readFileSync(f, "utf8"))
 const paginaDoPainel = (f: string) => f.startsWith(`${PAINEL}/`) && f.endsWith("/page.tsx")
+/** As server actions de uma tela do painel, como a busca de Conversas na demonstração. */
+const actionDoPainel = (f: string) => f.startsWith(`${PAINEL}/`) && f.endsWith("/acoes.ts")
+const teste = (f: string) => /\.test\.tsx?$/.test(f)
 
 describe("dado fictício", () => {
   // O dado inventado existe para desenhar tela e para a conta de
   // demonstração (spec demo-account-v1). Numa clínica comum, viraria
   // informação falsa sobre paciente de verdade.
-  it("importam _fixtures só as telas de protótipo do admin e as páginas do painel", () => {
+  it("importam _fixtures só as telas de protótipo do admin, as páginas e as actions do painel e os testes", () => {
     const infratores = todos.filter(
       (f) =>
         !f.startsWith(`${FIXTURES}/`) &&
         !f.startsWith(`${TELAS_DO_ADMIN}/`) &&
         !paginaDoPainel(f) &&
+        !actionDoPainel(f) &&
+        !teste(f) &&
         importaFixtures(f),
     )
     expect(infratores).toEqual([])
+  })
+
+  // A action também é alcançável fora da página (é um POST público): o
+  // desvio da demonstração precisa estar nela, não só na tela que a chama.
+  it("toda action do painel que importa _fixtures lê isDemo", () => {
+    const semDemo = todos
+      .filter((f) => actionDoPainel(f) && importaFixtures(f))
+      .filter((f) => !/\bisDemo\b/.test(readFileSync(f, "utf8")))
+    expect(semDemo).toEqual([])
   })
 
   it("toda página do painel que importa _fixtures lê isDemo", () => {
