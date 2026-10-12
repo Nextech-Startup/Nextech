@@ -103,13 +103,20 @@ const conversasReais = vi.hoisted(() => {
 })
 
 const listarConversas = vi.hoisted(() => vi.fn())
+// A ordem das leituras: a fila leva um tique para responder, como a rede.
+const leituras = vi.hoisted(() => [] as string[])
 vi.mock("@/lib/conversations/queries", () => ({
   listarConversas: async (...args: unknown[]) => {
     listarConversas(...args)
+    await new Promise((r) => setTimeout(r, 0))
+    leituras.push("fila respondeu")
     return conversasReais.fila
   },
   buscarConversas: async () => [],
-  abrirConversa: async (id: string) => (id === conversasReais.aberta.id ? conversasReais.aberta : null),
+  abrirConversa: async (id: string) => {
+    leituras.push("conversa pedida")
+    return id === conversasReais.aberta.id ? conversasReais.aberta : null
+  },
   avisosDeDesconexao: async () => conversasReais.avisos,
 }))
 
@@ -340,6 +347,22 @@ describe("numa clínica comum", () => {
     expect((tela.props as { aberta: unknown }).aberta).toBeNull()
   })
 
+  // Com a conversa na URL, ela não depende da fila: as duas leituras saem
+  // juntas, e não uma depois da outra (~300 ms a menos contra Oregon).
+  it("com ?c= na URL, a conversa é pedida sem esperar a fila", async () => {
+    leituras.length = 0
+    const tela = await abrir({ ...rota("/dashboard/conversations"), busca: { c: conversasReais.aberta.id } })
+    expect((tela.props as { aberta: unknown }).aberta).toEqual(conversasReais.aberta)
+    expect(leituras).toEqual(["conversa pedida", "fila respondeu"])
+  })
+
+  it("sem ?c=, a conversa aberta é a primeira da fila: espera a fila", async () => {
+    leituras.length = 0
+    const tela = await abrir({ ...rota("/dashboard/conversations"), busca: {} })
+    expect((tela.props as { aberta: unknown }).aberta).toEqual(conversasReais.aberta)
+    expect(leituras).toEqual(["fila respondeu", "conversa pedida"])
+  })
+
   it("o ?q= da URL não é lido: a busca da tela real é por POST", async () => {
     listarConversas.mockClear()
     const tela = await abrir({ ...rota("/dashboard/conversations"), busca: { q: "Maria" } })
@@ -479,6 +502,19 @@ describe("na conta de demonstração", () => {
       const primeira = filtrarConversas(todas, { estado: "aguardando", busca: "" })[0]
       const props = await conversas({ status: "aguardando" })
       expect((props.aberta as { id: string }).id).toBe(primeira.id)
+    })
+
+    it("a real pedida na URL não espera a fila", async () => {
+      leituras.length = 0
+      const props = await conversas({ c: conversasReais.aberta.id })
+      expect(props.aberta).toEqual(conversasReais.aberta)
+      expect(leituras).toEqual(["conversa pedida", "fila respondeu"])
+    })
+
+    it("a de exemplo pedida na URL não vai ao banco", async () => {
+      leituras.length = 0
+      await conversas({ c: conversa.id })
+      expect(leituras).toEqual(["fila respondeu"])
     })
 
     it("a real abre pela leitura real, com as ações reais e sem a ficha", async () => {

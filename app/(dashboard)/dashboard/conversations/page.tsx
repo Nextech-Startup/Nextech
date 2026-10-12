@@ -29,6 +29,15 @@ function texto(v: string | string[] | undefined): string | undefined {
 const UUID = z.string().uuid()
 
 /**
+ * A conversa pedida na URL não depende da fila: com um uuid, a leitura sai
+ * já, junto da fila, e não depois dela (~300 ms a menos contra o Supabase
+ * em Oregon). Sem pedido, ou com um id que não é do banco, não há o que ler.
+ */
+function abrirPedida(pedida: string | undefined) {
+  return pedida && UUID.safeParse(pedida).success ? abrirConversa(pedida) : Promise.resolve(null)
+}
+
+/**
  * A caixa de conversas, em dois ramos pelo mesmo `isDemo`:
  * - na conta de demonstração, a conversa real do canal de demonstração
  *   (evolution-demo-v1) e as de exemplo trazidas para hoje (demo-account-v1),
@@ -61,7 +70,8 @@ export default async function ConversasPage({
     // No minuto real: a conversa real e as de exemplo no mesmo relógio.
     const relogio = relogioDoMinuto(AGORA)
     const exemplos = relogio.deslocar(CONVERSAS)
-    const todas = [...(await listarConversas()), ...exemplos]
+    const [reais, pedidaDoBanco] = await Promise.all([listarConversas(), abrirPedida(pedida)])
+    const todas = [...reais, ...exemplos]
     const conversas = filtrarConversas(todas, filtro)
     const idAberta = pedida ?? conversas[0]?.id
     // O id diz de onde a conversa vem: uuid é do banco, o resto é fixture.
@@ -69,7 +79,9 @@ export default async function ConversasPage({
     const aberta = !idAberta
       ? null
       : real
-        ? await abrirConversa(idAberta)
+        ? pedida
+          ? pedidaDoBanco
+          : await abrirConversa(idAberta)
         : (exemplos.find((c) => c.id === idAberta) ?? null)
 
     return (
@@ -90,11 +102,15 @@ export default async function ConversasPage({
   }
 
   const agora = new Date().toISOString()
-  const [todas, avisos] = await Promise.all([listarConversas(), avisosDeDesconexao()])
+  const [todas, avisos, pedidaDoBanco] = await Promise.all([
+    listarConversas(),
+    avisosDeDesconexao(),
+    abrirPedida(pedida),
+  ])
   const conversas = filtrarConversas(todas, filtro)
   // Um id inválido ou de outra clínica dá null: a tela pede para escolher na fila.
-  const idAberta = pedida ?? conversas[0]?.id
-  const aberta = idAberta && UUID.safeParse(idAberta).success ? await abrirConversa(idAberta) : null
+  const primeira = conversas[0]?.id
+  const aberta = pedida ? pedidaDoBanco : primeira ? await abrirConversa(primeira) : null
 
   return (
     <CaixaDeConversas
