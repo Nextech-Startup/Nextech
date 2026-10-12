@@ -44,6 +44,15 @@ describe("middleware", () => {
     expect(mockGetUser).not.toHaveBeenCalled()
   })
 
+  it("erro inesperado na conferência do token vai para o login, e não dá 500", async () => {
+    mockGetClaims.mockRejectedValue(new Error("Invalid alg claim"))
+    const { middleware } = await import("@/middleware")
+
+    const resposta = await middleware(pedir("/dashboard"))
+
+    expect(new URL(resposta.headers.get("location")!).pathname).toBe("/login")
+  })
+
   it("rota pública não confere sessão", async () => {
     const { middleware } = await import("@/middleware")
 

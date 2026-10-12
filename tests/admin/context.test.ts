@@ -42,6 +42,14 @@ describe("isPlatformAdmin", () => {
     expect(await isPlatformAdmin()).toBe(false)
   })
 
+  it("erro inesperado na conferência do token dá falso, sem consulta", async () => {
+    mockGetClaims.mockRejectedValue(new Error("Invalid alg claim"))
+    const { isPlatformAdmin } = await import("@/lib/admin/context")
+
+    expect(await isPlatformAdmin()).toBe(false)
+    expect(mockFrom).not.toHaveBeenCalled()
+  })
+
   it("sem token válido, falso e sem consulta", async () => {
     mockGetClaims.mockResolvedValue({ data: null, error: null })
     const { isPlatformAdmin } = await import("@/lib/admin/context")

@@ -60,6 +60,17 @@ describe("requireClinicContext", () => {
     expect(mockFrom).not.toHaveBeenCalled()
   })
 
+  // Alg fora de RS256/ES256 com kid válido, ou falha do WebCrypto: o
+  // getClaims lança erro que não é de Auth. É sessão ausente (vai para o
+  // login), não erro 500.
+  it("erro inesperado da conferência do token conta como sessão ausente", async () => {
+    mockGetClaims.mockRejectedValue(new Error("Invalid alg claim"))
+    const { requireClinicContext, ClinicContextError } = await import("@/lib/auth/context")
+
+    await expect(requireClinicContext()).rejects.toBeInstanceOf(ClinicContextError)
+    expect(mockFrom).not.toHaveBeenCalled()
+  })
+
   it("lança quando o usuário não é membro de nenhuma clínica", async () => {
     tokenValido()
     mockMembership(null)

@@ -39,10 +39,12 @@ type Identidade = { id: string; email: string | null }
  * A identidade vem do token da sessão conferido pela assinatura
  * (`getClaims`): o projeto assina com chave assimétrica (ES256), e a chave
  * pública fica em memória (JWKS, 10 min). Sem a ida ao servidor de Auth em
- * Oregon, que custava ~300 ms em toda tela. O preço: um logout feito em
- * outro lugar só derruba a sessão quando o token vence (até 1 h). É o mesmo
- * limite que o PostgREST já tem, que também só confere a assinatura. Para
- * gravar, use `requireClinicContextForWrite()`.
+ * Oregon, que custava ~300 ms em toda tela. A assinatura sozinha não sabe
+ * de logout, troca de senha nem banimento: quem fecha essa janela é o banco,
+ * cujas funções de acesso da RLS exigem a sessão do token viva em
+ * `auth.sessions` (migration `20261012140000_session_alive_rls`). Com a
+ * sessão encerrada, a consulta de vínculo abaixo volta vazia e a porta
+ * lança. Para gravar, use `requireClinicContextForWrite()`.
  *
  * Todo módulo de domínio obtém daqui o client já autenticado. Nenhum cria
  * o seu próprio — ver o teste em `tests/architecture/boundaries.test.ts`,
@@ -53,11 +55,25 @@ type Identidade = { id: string; email: string | null }
 export async function requireClinicContext(): Promise<ClinicContext> {
   const supabase = await createServerClient()
 
-  const { data } = await supabase.auth.getClaims()
-  const sub = data?.claims?.sub
-  const email = data?.claims?.email
+  return resolverVinculo(supabase, await identidadeDoToken(supabase))
+}
 
-  return resolverVinculo(supabase, sub ? { id: sub, email: typeof email === "string" ? email : null } : null)
+/**
+ * Quem o token diz ser, conferido pela assinatura. Erro inesperado da
+ * conferência (alg fora de RS256/ES256 com kid válido, falha do WebCrypto)
+ * conta como sessão ausente: vai para o login, e não vira erro 500. O erro
+ * não é logado (pode carregar o token).
+ */
+async function identidadeDoToken(supabase: Supabase): Promise<Identidade | null> {
+  try {
+    const { data } = await supabase.auth.getClaims()
+    const sub = data?.claims?.sub
+    if (!sub) return null
+    const email = data.claims.email
+    return { id: sub, email: typeof email === "string" ? email : null }
+  } catch {
+    return null
+  }
 }
 
 /**

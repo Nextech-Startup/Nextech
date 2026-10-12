@@ -74,8 +74,11 @@ export async function isPlatformAdmin(): Promise<boolean> {
 
   // Pergunta de interface, no layout de toda tela da clínica: basta o token
   // conferido pela assinatura (getClaims), sem a ida ao servidor de Auth.
-  const { data } = await sessionClient.auth.getClaims()
-  const sub = data?.claims?.sub
+  // Erro inesperado da conferência conta como sem sessão.
+  const sub = await sessionClient.auth.getClaims().then(
+    ({ data }) => data?.claims?.sub,
+    () => undefined,
+  )
 
   if (!sub) return false
 

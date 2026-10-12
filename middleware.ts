@@ -73,9 +73,14 @@ export async function middleware(request: NextRequest) {
   // getSession leria o cookie sem verificar, o que não serve para decidir
   // acesso; getUser iria ao servidor de Auth em Oregon (~300 ms) em toda
   // requisição. A página confere de novo, e a escrita confirma no Auth.
-  const { data } = await supabase.auth.getClaims()
+  // Erro inesperado da conferência (alg ou chave inválidos) conta como sem
+  // sessão: vai para o login, e não vira erro 500.
+  const sub = await supabase.auth.getClaims().then(
+    ({ data }) => data?.claims?.sub,
+    () => undefined,
+  )
 
-  if (!data?.claims?.sub) {
+  if (!sub) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     url.searchParams.set("redirect", pathname)
