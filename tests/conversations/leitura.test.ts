@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { cifrarConteudo } from "@/lib/conversations/conteudo"
 import { buscarNaFila, carregarAvisosDeDesconexao, carregarConversa, carregarFila } from "@/lib/conversations/leitura"
-import { ROTULO_DA_MIDIA, TEXTO_ILEGIVEL } from "@/lib/conversations/tela"
+import { ROTULO_DA_MIDIA, TEXTO_ILEGIVEL, TEXTO_REDIGIDO } from "@/lib/conversations/tela"
 import {
   admin,
   anonClient,
@@ -27,6 +27,8 @@ let mensagemTrocada: string
 let antiga: string
 let buscada: string
 let conversaB: string
+let ultimaFalhou: string
+let redigida: string
 const TELEFONE_BUSCADO = `+5581977${String(Date.now()).slice(-6)}`
 
 beforeAll(async () => {
@@ -65,6 +67,32 @@ beforeAll(async () => {
 
   const pacienteB = await novoPaciente(B)
   conversaB = (await registrar(B, pacienteB, { autor: "patient", texto: "Oi da B", em: emMinutos(0) })).conversa
+
+  // A prévia na RPC da fila (conversation_queue). As duas são mais antigas
+  // que a principal, para não mudar o "limite 1".
+  // A última mensagem é a resposta da IA que não chegou ao paciente.
+  const pacienteDaFalha = await novoPaciente(A, { nome: "Paciente da Falha" })
+  const pergunta = await registrar(A, pacienteDaFalha, { autor: "patient", texto: "Tem horário amanhã?", em: emMinutos(-30) })
+  ultimaFalhou = pergunta.conversa
+  await respostaDaIa(A, ultimaFalhou, pergunta.mensagem, { texto: "Temos às 9h", em: emMinutos(-29), status: "failed" })
+
+  // Paciente com convênio, e a última mensagem apagada a pedido dele.
+  const { data: convenio, error: erroConvenio } = await admin
+    .from("insurances")
+    .insert({ clinic_id: A.id, name: "Convênio de Teste" })
+    .select("id")
+    .single()
+  if (erroConvenio) throw erroConvenio
+  const pacienteComConvenio = await novoPaciente(A, { nome: "Paciente com Convênio" })
+  const { error: erroVinculo } = await admin.from("patients").update({ insurance_id: convenio.id }).eq("id", pacienteComConvenio)
+  if (erroVinculo) throw erroVinculo
+  const apagada = await registrar(A, pacienteComConvenio, { autor: "patient", texto: "Meu exame deu alterado", em: emMinutos(-40) })
+  redigida = apagada.conversa
+  const { error: erroRedacao } = await admin
+    .from("messages")
+    .update({ content_encrypted: null, content_redacted_at: new Date().toISOString() })
+    .eq("id", apagada.mensagem)
+  if (erroRedacao) throw erroRedacao
 }, 60_000)
 
 afterAll(async () => {
@@ -179,7 +207,22 @@ describe("carregarFila", () => {
     expect(new Date(principal.paciente.desde).getTime()).toBe(new Date(p.created_at).getTime())
     expect(principal).toMatchObject({ atendidaPor: "human", urgente: false })
     expect(fila.find((c) => c.id === antiga)).toMatchObject({ urgente: true, atendidaPor: "human" })
-    expect(fila.map((c) => c.id).sort()).toEqual([antiga, buscada, conversa].sort())
+    expect(fila.map((c) => c.id).sort()).toEqual([antiga, buscada, conversa, ultimaFalhou, redigida].sort())
+  })
+
+  it("a resposta da IA que não chegou não vira prévia: fica a última que o paciente viu", async () => {
+    const owner = await comoUsuario(A.equipe.owner!)
+    const fila = await carregarFila(owner as never, A.id)
+    expect(fila.find((c) => c.id === ultimaFalhou)?.ultima).toMatchObject({ autor: "patient", previa: "Tem horário amanhã?" })
+  })
+
+  it("traz o convênio do paciente, e a prévia apagada a pedido dele não mostra o conteúdo", async () => {
+    const owner = await comoUsuario(A.equipe.owner!)
+    const fila = await carregarFila(owner as never, A.id)
+    const comConvenio = fila.find((c) => c.id === redigida)!
+    expect(comConvenio.paciente.convenio).toBe("Convênio de Teste")
+    expect(comConvenio.ultima).toMatchObject({ autor: "patient", previa: TEXTO_REDIGIDO })
+    expect(JSON.stringify(fila)).not.toContain("Meu exame deu alterado")
   })
 })
 
