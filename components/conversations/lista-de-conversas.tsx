@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { AvatarDeIniciais } from "@/components/patterns/avatar-de-iniciais"
+import { SinalDeAbertura } from "@/components/patterns/sinal-de-abertura"
 import { StatusBadge } from "@/components/patterns/status-badge"
 import { tempoRelativo } from "@/lib/formatters/data"
 import { formatarTelefone } from "@/lib/formatters/telefone"
@@ -43,10 +44,12 @@ export function ListaDeConversas({
               scroll={false}
               aria-current={atual ? "page" : undefined}
               className={cn(
-                "relative flex gap-3 px-4 py-3 outline-none transition-colors focus-visible:bg-accent",
+                "relative isolate flex gap-3 px-4 py-3 outline-none transition-colors focus-visible:bg-accent",
                 atual ? "bg-accent" : "hover:bg-accent/60",
               )}
             >
+              {/* Abrir a conversa vai ao servidor: o item responde ao clique na hora. */}
+              <SinalDeAbertura />
               {estado === "urgente" && (
                 <span aria-hidden="true" className="absolute inset-y-2 left-0 w-0.5 rounded-pill bg-danger-fg" />
               )}
