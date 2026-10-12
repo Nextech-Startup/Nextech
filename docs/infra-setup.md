@@ -117,7 +117,7 @@ A conversa real cai na conta de demonstração (`clinica@nextech.ia.br`), na tel
    ```powershell
    npx tsx scripts/canal-demo.ts conectar
    ```
-7. Subir o app: `npm run build` e depois `npx next start -p 3000`. Antes, conferir que não há outro `next start` na porta 3000 (`Get-NetTCPConnection -LocalPort 3000`). O `next dev` não serve: dá o 500 "Jest worker". Se o Windows perguntar, liberar o Node na rede privada: é por ela que a Evolution chega ao app.
+7. Subir o app: `npm run build` e depois `npx next start -H 127.0.0.1 -p 3000`. O `-H 127.0.0.1` deixa o app só no próprio computador: sem ele, o Next escuta em todas as interfaces, e a rede do local da apresentação alcançaria por HTTP o login e o webhook. A Evolution chega assim mesmo, pelo `host.docker.internal`, que o Docker Desktop leva ao loopback do Windows (conferido em 2026-10-11). Não é preciso liberar o Node no firewall: se o Windows perguntar, recusar. Antes, conferir que não há outro `next start` na porta 3000 (`Get-NetTCPConnection -LocalPort 3000`). O `next dev` não serve: dá o 500 "Jest worker".
 8. A apresentação: `http://localhost:3000`, login `clinica@nextech.ia.br`, tela de Conversas. Combinar mensagens de **texto**: áudio ainda não é transcrito, e a IA recebe só o aviso de que veio um áudio.
 9. **No fim, sempre:**
    ```powershell
