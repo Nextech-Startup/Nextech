@@ -1,8 +1,14 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { requireClinicContext } from "@/lib/auth/context"
+import { relogioDaDemonstracao } from "@/lib/demo/relogio"
+import { podeAcessar } from "@/lib/navigation/acesso"
 import { getAgent } from "@/lib/agent-config/queries"
 import { FormularioDeAgente } from "../formulario"
+import { PermissaoNegada } from "@/components/patterns/permissao-negada"
+import { OperacaoDoAgente } from "@/components/agents/operacao-do-agente"
+import { DETALHES_DOS_AGENTES } from "@/app/_fixtures/agentes"
+import { AGORA } from "@/app/_fixtures/agora"
 
 export const metadata: Metadata = {
   title: "Configuração do agente",
@@ -11,16 +17,35 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic"
 
+// O editor segue a regra da lista: quem não abre a lista não abre um agente.
+const ROTA = "/dashboard/agents"
+
 export default async function AgentPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const { role } = await requireClinicContext()
+  const { role, isDemo } = await requireClinicContext()
 
-  if (role !== "owner") {
-    return <SemPermissao />
+  if (!podeAcessar(role, ROTA)) {
+    return <PermissaoNegada titulo="Agentes" rota={ROTA} role={role} demo={isDemo} />
+  }
+
+  // Conta de demonstração (spec demo-account-v1): a operação do agente do
+  // protótipo, e nenhuma consulta ao dado real.
+  if (isDemo) {
+    const exemplo = DETALHES_DOS_AGENTES.find((a) => a.id === id)
+    if (!exemplo) notFound()
+    const relogio = relogioDaDemonstracao(AGORA)
+    return (
+      <OperacaoDoAgente
+        agente={relogio.deslocar(exemplo)}
+        agora={relogio.agora}
+        hrefDaLista={ROTA}
+        acaoDesabilitada="Protótipo: a ação ainda não existe"
+      />
+    )
   }
 
   // `getAgent` filtra por clinic_id além da RLS, então o agente de outra
@@ -30,15 +55,4 @@ export default async function AgentPage({
   if (!agente) notFound()
 
   return <FormularioDeAgente agente={agente} />
-}
-
-function SemPermissao() {
-  return (
-    <div className="max-w-md space-y-2">
-      <h1 className="text-2xl font-semibold">Agentes</h1>
-      <p className="text-[var(--text-2)]">
-        Só o responsável pela clínica configura os agentes.
-      </p>
-    </div>
-  )
 }

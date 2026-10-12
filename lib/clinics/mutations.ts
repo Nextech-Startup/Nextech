@@ -1,4 +1,4 @@
-import { requireClinicContext } from "@/lib/auth/context"
+import { requireClinicContextForWrite } from "@/lib/auth/context"
 import { clinicUpdateSchema, type Clinic, type ClinicUpdateInput } from "./schema"
 
 /**
@@ -14,7 +14,7 @@ import { clinicUpdateSchema, type Clinic, type ClinicUpdateInput } from "./schem
  * claro em vez de um update silencioso que não afeta nenhuma linha.
  */
 export async function updateClinic(input: ClinicUpdateInput): Promise<Clinic> {
-  const { supabase, clinicId, role } = await requireClinicContext()
+  const { supabase, clinicId, role } = await requireClinicContextForWrite()
 
   if (role !== "owner") {
     throw new Error("Apenas o owner edita o dado regulatório da clínica.")

@@ -1,102 +1,55 @@
 "use client"
 
 import { useActionState, useState } from "react"
+import { Plus } from "lucide-react"
 import { criarClinicaAction, type AdminFormState } from "./actions"
+import { Aviso, Botao, Campo, Input } from "@/components/patterns/formulario"
+import { Cartao } from "@/components/patterns/cartao"
 
 const estadoInicial: AdminFormState = { error: null, success: null }
 
 export function NovaClinicaForm() {
   const [aberto, setAberto] = useState(false)
-  const [state, formAction, pending] = useActionState(
-    criarClinicaAction,
-    estadoInicial,
-  )
+  const [state, formAction, pending] = useActionState(criarClinicaAction, estadoInicial)
 
   if (!aberto) {
     return (
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={() => setAberto(true)}
-          className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-strong)]"
-        >
+      <div className="flex flex-wrap items-center gap-3">
+        <Botao type="button" onClick={() => setAberto(true)}>
+          <Plus data-icon aria-hidden="true" />
           Nova clínica
-        </button>
-        {state.success && (
-          <p className="text-sm text-[var(--accent-on-light)] dark:text-[var(--accent-dim)]">
-            {state.success}
-          </p>
-        )}
+        </Botao>
+        {state.success && <Aviso state={{ error: null, success: state.success }} />}
       </div>
     )
   }
 
   return (
-    <form
-      action={formAction}
-      className="rounded-2xl border border-[var(--hairline)] bg-[var(--surface-1)] p-6"
+    <Cartao
+      titulo="Nova clínica"
+      descricao="A clínica nasce em rascunho. Ative depois de convidar o responsável."
     >
-      <h2 className="mb-4 font-medium">Nova clínica</h2>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <label
-            htmlFor="legal_name"
-            className="block text-sm font-medium text-[var(--text-2)]"
-          >
-            Razão social
-          </label>
-          <input
-            id="legal_name"
-            name="legal_name"
-            required
-            autoFocus
-            placeholder="Clínica Exemplo Ltda"
-            className="w-full rounded-xl border border-[var(--hairline)] bg-[var(--surface-0)] px-3 py-2.5 text-[var(--text-1)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
-          />
+      <form action={formAction} className="grid gap-5">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Campo label="Razão social">
+            <Input name="legal_name" required autoFocus placeholder="Clínica Exemplo Ltda" />
+          </Campo>
+          <Campo label="CNPJ" hint="(opcional agora)">
+            <Input name="cnpj" placeholder="00.000.000/0000-00" />
+          </Campo>
         </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor="cnpj" className="block text-sm font-medium text-[var(--text-2)]">
-            CNPJ <span className="text-[var(--text-3)]">(opcional agora)</span>
-          </label>
-          <input
-            id="cnpj"
-            name="cnpj"
-            placeholder="00.000.000/0000-00"
-            className="w-full rounded-xl border border-[var(--hairline)] bg-[var(--surface-0)] px-3 py-2.5 text-[var(--text-1)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
-          />
+        <Aviso state={{ error: state.error, success: null }} />
+
+        <div className="flex gap-2">
+          <Botao type="submit" disabled={pending}>
+            {pending ? "Criando…" : "Criar clínica"}
+          </Botao>
+          <Botao type="button" variante="secundario" onClick={() => setAberto(false)}>
+            Cancelar
+          </Botao>
         </div>
-      </div>
-
-      {state.error && (
-        <p
-          role="alert"
-          className="mt-4 rounded-xl border border-[var(--warn)]/30 bg-[var(--warn)]/10 px-4 py-3 text-sm"
-        >
-          {state.error}
-        </p>
-      )}
-
-      <div className="mt-5 flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-strong)] disabled:opacity-60"
-        >
-          {pending ? "Criando..." : "Criar clínica"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setAberto(false)}
-          className="text-sm text-[var(--text-2)] transition hover:text-[var(--text-1)]"
-        >
-          Cancelar
-        </button>
-        <p className="ml-auto text-xs text-[var(--text-3)]">
-          A clínica nasce em rascunho.
-        </p>
-      </div>
-    </form>
+      </form>
+    </Cartao>
   )
 }

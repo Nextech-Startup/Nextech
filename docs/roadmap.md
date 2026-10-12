@@ -20,8 +20,19 @@ Divisão decidida no documento de arquitetura (`docs/superpowers/specs/2026-09-1
 
 Ao fim de 3a: a clínica existe, tem perfil e equipe, e um agente configurado — que ainda não conversa. **Fase concluída em 2026-09-16** (PR #6), com 371 testes.
 
-### Fase 3b — Motor de conversa
-Spec escrita em `docs/specs/conversation-engine-v1.md`. Nada implementado.
+### Fase 3b — Motor de conversa 🟡 (partes 1 a 4 de 5)
+Spec escrita em `docs/specs/conversation-engine-v1.md`. Dividida em cinco partes, por dependência (decisão do Jhones, 2026-09-27):
+1. ✅ **Dados e recepção** (2026-09-27): conversas, mensagens cifradas, sessões de atendimento e eventos de conta, com RLS por clínica; webhook da Meta com assinatura, eco da coexistência e reenvio idempotente, contra mock. Plano em `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-1.md`.
+2. ✅ **Decisão e resposta da IA** (2026-09-27): retomada em 24h, janela e agente ativo; agrupamento de 10 s, OpenRouter com retenção zero, envio, contagem e fechamento por contagem, colunas de custo, status de entrega e prova de posse do número na conexão. Plano em `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-2.md`.
+3. ✅ **Urgência, opt-out e qualificação**, com o cron de timeout da sessão. **Pré-requisito do go-live.**
+   - ✅ Urgência, opt-out e manutenção (2026-09-27): triagem na recepção com o protocolo da própria clínica, escalada numa transação, opt-out que vale com o agente pausado, e o pg_cron fechando sessões vencidas e varrendo respostas órfãs a cada 5 min. Plano em `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3.md`.
+   - ✅ Qualificação (2026-09-27): a mesma chamada ao OpenRouter devolve a resposta e a intenção de agendar por saída estruturada (`require_parameters`, com o ZDR fixo). `qualified_at` é gravado uma vez por conversa e alimenta o funil. Plano em `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3-qualificacao.md`.
+4. ✅ **Tela real de Conversas** (2026-10-11): fila e conversa decifradas no servidor, só para owner e staff; tempo real por Broadcast privado da clínica, sem dado no aviso; assumir, devolver para a IA e resolver a urgência, com trilha em `conversation_events`; busca por POST, sem o termo na URL; aviso de desconexão do WhatsApp; e o acesso de suporte do painel interno, com justificativa, 30 min e trilha antes do conteúdo. Plano em `docs/superpowers/plans/2026-10-11-motor-de-conversa-parte-4-tela-de-conversas.md`.
+5. ⬜ **Preview do agente e áudio.**
+
+**Antes da parte 5, nesta ordem:** a correção da posse do WhatsApp (bloqueio de go-live que a tela de Conversas agrava) e o MFA no painel interno. Ver `docs/status.md`.
+
+Escopo completo da fase:
 - Webhook nativo de WhatsApp
 - `Conversation` com ownership ai/human (detecção de eco da coexistência)
 - Orquestração de IA (OpenRouter + Gemini 2.5 Flash)
@@ -51,7 +62,156 @@ O mapa das rotas virou dado em `lib/navigation/`, separado do markup: cada spec 
 
 Depende de 3a (o `role` vem de `requireClinicContext()`).
 
-**Consequência para a fase 3b e seguintes:** a tela de conversa do `(admin)` lê dado de saúde e exige justificativa obrigatória antes de abrir, registrada na trilha. Isso estende `admin_audit_log` com a ação `conversation.view` e um campo de justificativa.
+**Consequência para a fase 3b e seguintes:** a tela de conversa do `(admin)` lê dado de saúde e exige justificativa obrigatória antes de abrir, registrada na trilha. Isso estende `admin_audit_log` com a ação `conversation.view` e um campo de justificativa. *Atualização de 2026-09-26 (redesign, parte 4):* sem migration. A ação vai na coluna `action` (texto), e a justificativa, só motivo e número do chamado, no `metadata` (jsonb). A regra está em `lib/admin/acesso-de-suporte.ts`.
+
+### Redesign do painel — primeira parte ✅ (2026-09-26)
+O painel não agradava ao Jhones, nem no visual nem na estrutura, porque nunca tinha havido tarefa de design: cada spec foi implementada pelo comportamento e pelo teste, com a tela como subproduto. A direção veio de duas rodadas na v0 (brief em `docs/design/prompt-v0-design-system.md` e prompt mestre em `docs/design/prompt-mestre-v0.md`). A implementação foi feita na branch `design/app-redesign`, pelo plano `docs/superpowers/plans/2026-09-26-redesign-do-painel.md`.
+
+Entregue:
+- **Design system sobre shadcn/ui**, com a identidade da landing:
+  - tokens de estado (`success`, `warning`, `danger`, `info`, `neutral`);
+  - a folha `sheet` do shell;
+  - raios por hierarquia;
+  - 27 primitivos;
+  - o kit `components/patterns` (formulário, cartão, estado vazio, status, cabeçalho de página, KPI, bolha de conversa).
+- **Shell novo:**
+  - menu recolhível, que vira gaveta no celular (fecha a pendência de mobile da 3c);
+  - trilha de navegação;
+  - busca de telas (Ctrl K);
+  - troca de tema;
+  - menu do usuário.
+- **Telas atuais refeitas com dado real:**
+  - login com aurora;
+  - Visão geral com primeiros passos derivados do cadastro (`lib/onboarding`) e KPIs sem número inventado;
+  - Agentes com prévia da saudação ao lado do formulário;
+  - Perfil da clínica em subnavegação vertical;
+  - Clínicas no admin.
+- **Protótipos das telas futuras** em `/admin/design-system`. São as telas que a v0 tinha posto como rotas reais com dado inventado. Só a equipe as vê.
+- **Três travas por teste:**
+  - `tests/architecture/rotas.test.ts`: item "em breve" não tem rota;
+  - `tests/architecture/tokens.test.ts`: nada de `[var(--x)]` no painel;
+  - `tests/architecture/landing-scope.test.ts`: a landing mantém o verde.
+
+**`accent` mudou de significado.** No projeto, `accent` passa a ser o do shadcn: a superfície neutra de hover. O verde da marca é `brand`. A landing continua usando `accent` como verde por meio do escopo `.landing-scope` (`app/(marketing)/layout.tsx`), sem nenhum arquivo dela alterado.
+
+### Redesign do painel — segunda parte ✅ (2026-09-26)
+Plano: `docs/superpowers/plans/2026-09-26-redesign-do-painel-parte-2.md`, executado na `staging`.
+
+**Menu (decisão do Jhones):**
+- o terceiro grupo passa de "Configuração" a **"Gestão"**;
+- entra **Integrações** (só owner, "em breve"), por guardar credencial da clínica;
+- **"Métricas e consumo" não vira item**: o consumo fica em Plano e cobrança, e as métricas na Visão geral;
+- **"Conta"** continua no menu do usuário.
+
+**Protótipos completos** em `/admin/design-system/telas/*`. Cada tela é um componente de domínio em `components/<domínio>/` com props tipadas; o dado fictício fica em `app/(admin)/admin/design-system/_fixtures/`. Quando o backend da fase chegar, a rota real só troca a fonte do dado.
+- **Conversas:** fila por prioridade (urgente, aguardando, humano, IA), thread com bolhas que marcam IA e equipe, notas internas, eventos, painel do paciente, assumir e devolver, e a janela de 24h da Meta como linha que esvazia no cabeçalho.
+- **Pacientes:** tabela com busca e recortes; ficha com consentimento, opt-out, convênio e histórico só de metadado. Usa o tipo `Patient` real.
+- **Agenda:** dia por profissional e semana, conflitos marcados antes de confirmar e lista no celular.
+- **Templates:** categoria com custo escrito, validação das variáveis antes do envio, motivo de rejeição da Meta e prévia no WhatsApp.
+- **Sequências:** gatilho, regras de parada, passos com o dia acumulado, bloqueio por template não aprovado e inscritos com o motivo de parada.
+- **Equipe e acessos:** pessoas, convites com expiração, alterações de acesso e matriz de capacidades amarrada ao menu por teste.
+- **Plano e cobrança:** os dois limites (atendimentos por mês e agentes), projeção do ciclo, próxima cobrança e faturas.
+
+**Regras puras** que o backend vai reaproveitar, todas com teste:
+- `lib/conversations/janela.ts`: janela de 24h;
+- `lib/scheduling/conflitos.ts`: conflito de agenda;
+- `lib/whatsapp/corpo-do-template.ts`: regras da Meta para o corpo;
+- `lib/billing/plan-limits.ts` e `consumo.ts`: limites e projeção;
+- `lib/formatters`: datas no fuso da clínica, sem texto do Intl, para não quebrar a hidratação.
+
+**Padrões novos** em `components/patterns`:
+- filtro segmentado;
+- busca na URL;
+- linha do tempo;
+- lista de dados;
+- avatar;
+- medidor de uso;
+- prévia do WhatsApp.
+
+**Nova trava:** `tests/architecture/prototipos.test.ts` garante que só as telas de protótipo importam `_fixtures`, que componente e lib não importam de `app/` e que toda tela de protótipo mostra o aviso.
+
+Fica para a parte 3 (lista em "Próximo plano (parte 3)" do plano da parte 2):
+- **Integrações**;
+- **Minha conta** (a senha depende do Resend);
+- **Visão geral completa e Agentes com operação**, como protótipo;
+- **as cinco telas "em breve" do painel interno**;
+- **loading, erro e permissão negada** nas rotas reais.
+
+Fora do redesign:
+- **modelo de dados da seção 9 do prompt mestre** (fases 3b a 7);
+- **mover a landing para `components/marketing/`**.
+
+### Redesign do painel — terceira parte ✅ (2026-09-26)
+Plano: `docs/superpowers/plans/2026-09-26-redesign-do-painel-parte-3.md`, executado na `staging`.
+
+**Acesso por papel (decisão do Jhones):**
+- uma regra só, em `lib/navigation/acesso.ts`, derivada do `DASHBOARD_NAV`: o menu esconde e a página recusa a partir do mesmo dado;
+- o item "Agentes" saiu do menu do staff. Uma visão de operação em leitura pode voltar com a fase 3b, se o Jhones decidir.
+
+**Estados nas rotas reais:**
+- `loading.tsx` com o esqueleto da forma de cada tela;
+- `error.tsx` por painel, sem registrar o erro no console (o suporte usa o `digest`);
+- `not-found.tsx` dentro do shell do painel da clínica, e permissão negada;
+- a landing não ganhou `app/error.tsx` nem `app/not-found.tsx`.
+
+**Protótipos novos**, no padrão da parte 2:
+- **Visão geral:** alertas por prioridade, o agora do dia (quem espera, consultas restantes, agentes no ar), indicadores com comparação de período e funil;
+- **Agentes com operação:** lista ordenada pelo problema; detalhe com a saúde e o motivo, volume de 7 dias, o que a próxima publicação leva ao ar, histórico e teste seguro;
+- **Integrações:** triagem do que pede atenção, WhatsApp de cada agente (a conexão continua no editor), Google Calendar e CRMs sem credencial na tela;
+- **Minha conta:** perfil, acesso, tema e senha. A senha espera o Resend.
+
+**Regras puras**, todas com teste:
+- `lib/whatsapp/conexao.ts`;
+- `lib/agent-config/saude.ts` e `alteracoes.ts`;
+- `lib/overview/{alertas,funil,comparacao}.ts`;
+- `lib/integrations/estado.ts`.
+
+Fica para a parte 4 (itens 5 a 9 do "Próximo plano" da parte 2): o painel interno, com Consumo, Conexões, Saúde, Conversas de suporte e Auditoria.
+
+### Redesign do painel — quarta parte ✅ (2026-09-26)
+Plano: `docs/superpowers/plans/2026-09-26-redesign-do-painel-parte-4.md`, executado na `staging`.
+
+**Protótipos do painel interno**, no padrão das partes 2 e 3. Os cinco itens seguem "em breve" no menu do admin.
+- **Consumo:** atendimentos do ciclo contra o limite de cada clínica, com a projeção; quem estoura primeiro sobe. Só números agregados.
+- **Conexões:** números do WhatsApp e templates de cada clínica com a Meta, na ordem de gravidade.
+- **Saúde:** webhooks da Meta, erros da IA e tarefas agendadas, o que para todas as clínicas de uma vez.
+- **Conversas de suporte:** só números antes da justificativa; a lista, que tem nome de paciente, só com acesso vigente.
+- **Auditoria:** a trilha por dia, com os acessos a dado de paciente marcados e justificados.
+
+**Acesso de suporte (decisões do Jhones):**
+- a justificativa é por clínica e libera a lista por 30 min;
+- ver a lista (`conversation.list`) e abrir cada conversa (`conversation.view`) viram registros separados, com a mesma justificativa;
+- a justificativa é um motivo de lista fechada mais o número do chamado, só com dígitos. Sem texto livre, a trilha nunca guarda nome de paciente;
+- na fase 3b, `AcaoDeSuporte` se junta ao `AdminAction` de `lib/admin/audit.ts`, e o item "Conversas" (`/admin/conversations`) vira a escolha da clínica. *Feito na parte 4 da 3b (2026-10-11):* a clínica ficou em `/admin/conversations/[clinica]` e a conversa em `/admin/conversations/[clinica]/[conversa]`; cada leitura da lista também grava `conversation.list_view`, que não renova o acesso.
+
+**Regras puras** em `lib/admin/`, ao lado do `audit.ts` real, todas com teste: `consumo.ts`, `conexoes.ts`, `saude.ts`, `acesso-de-suporte.ts` e `auditoria.ts`.
+
+Com isto, o redesign cobre todas as telas do produto como protótipo. As telas reais chegam com cada fase.
+
+**Auditoria no ar (2026-09-27, `docs/specs/admin-audit-v1.md`).** Das cinco telas, a Auditoria era a única com dado real: `admin_audit_log` já registrava as ações de clínica. `/admin/audit` mostra a trilha real e deixou de ser "em breve". Decisões do Jhones:
+- aberturas seguidas da lista de clínicas pela mesma pessoa, no mesmo dia, viram uma linha;
+- 100 registros por página, com "Ver registros anteriores";
+- abrir a Auditoria não gera registro;
+- o recorte "Acessos de suporte" e o filtro por tipo chegam com a fase 3b.
+
+### Conta de demonstração ✅ (2026-09-27)
+Spec: `docs/specs/demo-account-v1.md`. Plano: `docs/superpowers/plans/2026-09-27-conta-de-demonstracao.md`.
+
+A "Clínica Demonstração Nextech" está marcada com `clinics.is_demo`, com o `clinica@nextech.ia.br` e o `admin@nextech.ia.br` como donos. Nela, todas as telas do painel abrem com o dado de exemplo dos protótipos, trazido para hoje, e um selo "Demonstração · dados fictícios". As outras contas não mudam: o menu segue com "em breve", e as rotas novas mostram a página de não encontrado.
+
+- **Para demonstrar:** entrar com o `clinica@nextech.ia.br`, que não mostra o atalho do painel interno.
+- **Preparo:** `npm run demo:preparar <id da clínica>`. É idempotente e recusa clínica de cliente.
+- **Quando entrar o primeiro cliente:** cada tela de protótipo vira real com a sua fase, e a demonstração continua com a fixture.
+
+### Canal de demonstração (Evolution) ✅ (2026-10-11)
+Spec: `docs/specs/evolution-demo-v1.md`. Plano: `docs/superpowers/plans/2026-10-11-canal-de-demonstracao-evolution.md`.
+
+Para a apresentação a investidor: um chip da Nextech, ligado à Evolution API no computador da apresentação, responde pelo WhatsApp com o motor de conversa real, e a conversa aparece ao vivo na tela de Conversas da demonstração, entre as de exemplo. Só existe com as variáveis `EVOLUTION_*` no `.env` local (nunca na Vercel), só na clínica de demonstração (travas NX004 e NX005 no banco) e só para os números da lista. Ensaio real feito com o chip (respostas em ~16 s, eco do celular calando a IA, protocolo de urgência em 1,3 s), e a limpeza conferida no banco.
+
+- **Para usar:** o roteiro em `docs/infra-setup.md` ("Canal de demonstração"): compose da Evolution, `scripts/canal-demo.ts conectar`, `next start -H 127.0.0.1` e, no fim, `scripts/canal-demo.ts limpar`.
+
+### Desempenho e segurança do painel (2026-10-11)
+A lentidão dos filtros de Conversas (~1,9 s por clique) vinha de idas em série ao Supabase, que está em us-west-2 (~300 ms por ida rodando do Brasil). O recorte da fila agora é do navegador (~50 ms), a leitura confere o token pela assinatura (`getClaims`), a fila sai numa RPC só e a conversa pedida sai junto da fila: abrir a conversa real caiu de 1,90 s para 0,72 s. Da revisão de segurança: a RLS das clínicas passou a exigir a sessão viva (logout e banimento valem na hora), o telefone do paciente saiu das URLs do PostgREST (RPC por POST) e as travas da demonstração fecharam duas brechas. Falta, no PR para a `main`: fixar as funções da Vercel em `pdx1`, junto do banco (`docs/infra-setup.md`).
 
 ## Fase 4 — Templates e sequências
 - `whatsapp-templates-v1.md`, `message-sequences-v1.md`
@@ -61,6 +221,11 @@ Depende de 3a (o `role` vem de `requireClinicContext()`).
 - Algoritmo de disponibilidade/conflito, integração Google Calendar
 - Consome `duration_minutes` de `Procedure` (`clinic-profile-v1.md`) — **já disponível** desde 2026-09-16, via `getDuracaoDoProcedimento()`, que cai na duração padrão da política quando o procedimento não tem a própria
 - `scheduling_policies` (antecedência mínima, prazo de cancelamento, política de falta) e `professionals.google_calendar_id` — cada profissional pode ter o próprio calendário — também já existem
+
+## CRM próprio — o funil comercial da clínica (spec escrita, 2026-10-11)
+- `docs/specs/crm-v1.md`: o que acontece depois da qualificação (Novo, Qualificado, Agendado, Compareceu, Ganho, Perdido), para a clínica que não tem CRM externo. Pro e HealthTech; o dado é gravado em todo plano.
+- Em duas partes: a 1 (oportunidades, automação no banco, quadro com arrastar e menu) e a 2 (números do funil). Falta o Jhones revisar a spec; o plano da parte 1 sai numa sessão nova.
+- É a fonte: na fase 6, o adaptador de CRM externo só espelha para fora, pela interface `CrmAdapter`.
 
 ## Fase 6 — Primeiro CRM adapter
 - Implementação da interface `CrmAdapter` (skill `integrations`) pro provider mais pedido pelos clientes atuais da NextTech

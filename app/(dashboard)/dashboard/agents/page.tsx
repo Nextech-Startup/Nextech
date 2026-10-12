@@ -1,7 +1,13 @@
 import type { Metadata } from "next"
 import { requireClinicContext } from "@/lib/auth/context"
+import { relogioDaDemonstracao } from "@/lib/demo/relogio"
+import { podeAcessar } from "@/lib/navigation/acesso"
 import { getClinicPlan, listAgents } from "@/lib/agent-config/queries"
 import { ListaDeAgentes } from "./lista"
+import { PermissaoNegada } from "@/components/patterns/permissao-negada"
+import { ListaDeAgentesEmOperacao } from "@/components/agents/lista-em-operacao"
+import { AGENTES } from "@/app/_fixtures/agentes"
+import { AGORA } from "@/app/_fixtures/agora"
 
 export const metadata: Metadata = {
   title: "Agentes",
@@ -11,29 +17,34 @@ export const metadata: Metadata = {
 // Lista que muda a cada ação da própria tela — nunca cacheia.
 export const dynamic = "force-dynamic"
 
-export default async function AgentsPage() {
-  const { role } = await requireClinicContext()
+const ROTA = "/dashboard/agents"
 
-  // A sidebar já esconde a criação de quem não é owner, e a RLS recusa a
+export default async function AgentsPage() {
+  const { role, isDemo } = await requireClinicContext()
+
+  // A sidebar já esconde o item de quem não é owner, e a RLS recusa a
   // escrita. Esta checagem é o que impede alguém de chegar aqui digitando
   // a URL e ver a configuração dos agentes.
-  if (role !== "owner") {
-    return <SemPermissao />
+  if (!podeAcessar(role, ROTA)) {
+    return <PermissaoNegada titulo="Agentes" rota={ROTA} role={role} demo={isDemo} />
+  }
+
+  // Conta de demonstração (spec demo-account-v1): os agentes em operação do
+  // protótipo, e nenhuma consulta ao dado real.
+  if (isDemo) {
+    const relogio = relogioDaDemonstracao(AGORA)
+    return (
+      <ListaDeAgentesEmOperacao
+        agentes={relogio.deslocar(AGENTES)}
+        plano="healthtech"
+        agora={relogio.agora}
+        hrefDoAgente={(id) => `${ROTA}/${id}`}
+        acaoDesabilitada="Protótipo: a ação ainda não existe"
+      />
+    )
   }
 
   const [agentes, plano] = await Promise.all([listAgents(), getClinicPlan()])
 
   return <ListaDeAgentes agentes={agentes} plano={plano} />
-}
-
-function SemPermissao() {
-  return (
-    <div className="max-w-md space-y-2">
-      <h1 className="text-2xl font-semibold">Agentes</h1>
-      <p className="text-[var(--text-2)]">
-        Só o responsável pela clínica configura os agentes. Fale com quem
-        administra a conta se precisar alterar algo aqui.
-      </p>
-    </div>
-  )
 }

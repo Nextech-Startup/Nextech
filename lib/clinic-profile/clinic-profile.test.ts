@@ -405,6 +405,18 @@ describe("urgencyRuleSchema", () => {
     expect(r.keywords).toEqual(["dor no peito", "aperto no peito"])
   })
 
+  it("recusa palavra-chave só de emoji ou símbolo, que a triagem nunca encontraria", () => {
+    for (const keywords of ["🆘", "dor no peito, 🚑", "!!!"]) {
+      const r = urgencyRuleSchema.safeParse({ label: "X", keywords, protocol_message: "texto" })
+      expect(r.success).toBe(false)
+      expect(JSON.stringify(r.error!.issues)).toContain("letras ou números")
+    }
+  })
+
+  it("deduplica pela forma da triagem", () => {
+    expect(parseKeywords("dor no peito\ndor no peito!\nDOR NO PEITO.")).toEqual(["dor no peito"])
+  })
+
   it("recusa regra sem palavra-chave nenhuma", () => {
     expect(() =>
       urgencyRuleSchema.parse({
@@ -503,6 +515,24 @@ describe("detectarUrgencia", () => {
 
   it("não dispara para mensagem vazia", () => {
     expect(detectarUrgencia("   ", [ativa])).toBeNull()
+  })
+
+  describe("o termo precisa começar uma palavra", () => {
+    const curta = { ...ativa, keywords: ["dor"] }
+
+    it.each(["estou com dor", "Dores fortes desde ontem", "uma dorzinha aqui", "dor!", "(dor) no braço", "tô com DOR 😣"])(
+      "%j dispara",
+      (mensagem) => expect(detectarUrgencia(mensagem, [curta])).toBe(curta),
+    )
+
+    it.each(["adorei o atendimento", "o doutor pode me atender?", "indolor?", "condor"])(
+      "%j não dispara",
+      (mensagem) => expect(detectarUrgencia(mensagem, [curta])).toBeNull(),
+    )
+
+    it("frase com pontuação no meio também casa", () => {
+      expect(detectarUrgencia("tenho dor, no peito", [ativa])).toBe(ativa)
+    })
   })
 })
 

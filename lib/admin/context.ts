@@ -72,16 +72,20 @@ export async function requireAdminContext(): Promise<AdminContext> {
 export async function isPlatformAdmin(): Promise<boolean> {
   const sessionClient = await createServerClient()
 
-  const {
-    data: { user },
-  } = await sessionClient.auth.getUser()
+  // Pergunta de interface, no layout de toda tela da clínica: basta o token
+  // conferido pela assinatura (getClaims), sem a ida ao servidor de Auth.
+  // Erro inesperado da conferência conta como sem sessão.
+  const sub = await sessionClient.auth.getClaims().then(
+    ({ data }) => data?.claims?.sub,
+    () => undefined,
+  )
 
-  if (!user) return false
+  if (!sub) return false
 
   const { data: registro } = await sessionClient
     .from("platform_admins")
     .select("user_id")
-    .eq("user_id", user.id)
+    .eq("user_id", sub)
     .maybeSingle()
 
   return registro !== null

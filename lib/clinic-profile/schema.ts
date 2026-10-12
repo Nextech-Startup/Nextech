@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { normalizarTexto } from "@/lib/formatters/texto"
 
 /**
  * Conselhos de classe reconhecidos. Espelha o enum
@@ -378,12 +379,18 @@ export const POLITICA_PADRAO: Omit<SchedulingPolicy, "clinic_id"> = {
  * justamente no caso em que não pode falhar.
  */
 export function normalizarTermo(valor: string): string {
-  return valor
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
+  return normalizarTexto(valor)
+}
+
+/**
+ * Forma de comparação da triagem: normalizada (sem acento, minúscula) e
+ * com pontuação e emoji virando espaço, entre espaços nas pontas.
+ */
+function paraTriagem(valor: string): string {
+  const limpo = normalizarTermo(valor)
+    .replace(/[^a-z0-9]+/g, " ")
     .trim()
+  return limpo ? ` ${limpo}` : ""
 }
 
 /**
@@ -401,9 +408,9 @@ export function parseKeywords(bruto: string): string[] {
     const termo = pedaco.trim()
     if (!termo) continue
 
-    // Deduplica pela forma normalizada: "Dor no peito" e "dor no peito"
-    // são o mesmo termo, e guardar os dois só engorda a lista.
-    const chave = normalizarTermo(termo)
+    // Deduplica pela forma da triagem: "Dor no peito", "dor no peito" e
+    // "dor no peito!" são o mesmo termo, e guardar os três só engorda a lista.
+    const chave = paraTriagem(termo)
     if (!chave || vistos.has(chave)) continue
 
     vistos.add(chave)
@@ -413,12 +420,29 @@ export function parseKeywords(bruto: string): string[] {
   return saida
 }
 
+/**
+ * Termos que, sem acento, pontuação e emoji, ficam vazios ("🆘", "!!!"):
+ * a triagem nunca os encontraria na mensagem, e a regra pareceria ativa
+ * sem nunca disparar.
+ */
+function termosSemLetraOuNumero(bruto: string): string[] {
+  return bruto
+    .split(/[\n,;]/)
+    .map((t) => t.trim())
+    .filter((t) => t && !paraTriagem(t))
+}
+
 export const urgencyRuleSchema = z
   .object({
     label: z.string().trim().min(1, "Dê um nome à regra").max(120),
     keywords: z
       .union([z.string(), z.array(z.string())])
-      .transform((v) => (Array.isArray(v) ? parseKeywords(v.join("\n")) : parseKeywords(v)))
+      .transform((v) => (Array.isArray(v) ? v.join("\n") : v))
+      .refine(
+        (v) => termosSemLetraOuNumero(v).length === 0,
+        "Cada palavra-chave precisa de letras ou números: emoji e símbolo sozinhos não são reconhecidos na mensagem",
+      )
+      .transform(parseKeywords)
       .refine((v) => v.length > 0, "Informe ao menos uma palavra-chave"),
     protocol_message: z
       .string()
@@ -451,22 +475,24 @@ export const URGENCY_RULE_COLUMNS =
  * Só olha regra ATIVA: regra não confirmada pela clínica não escala nada.
  * Devolve a primeira que casar — escalar é escalar, não há grau.
  *
- * Compara sobre a forma normalizada dos dois lados, e por substring: o
- * paciente escreve "estou com uma dor no peito forte", não a palavra-chave
- * isolada.
+ * O termo precisa começar uma palavra da mensagem (decisão do Jhones,
+ * 2026-09-27): "dor" casa "dor", "dores" e "dorzinha", mas não "adorei".
+ * Por substring, um "adorei o atendimento" mandaria o protocolo e calaria
+ * a IA. Frases valem igual: o paciente escreve "estou com uma dor no peito
+ * forte", não a palavra-chave isolada.
  */
 export function detectarUrgencia(
   mensagem: string,
   regras: readonly UrgencyRule[],
 ): UrgencyRule | null {
-  const texto = normalizarTermo(mensagem)
+  const texto = paraTriagem(mensagem)
   if (!texto) return null
 
   for (const regra of regras) {
     if (!regra.active) continue
 
     for (const keyword of regra.keywords) {
-      const termo = normalizarTermo(keyword)
+      const termo = paraTriagem(keyword)
       if (termo && texto.includes(termo)) return regra
     }
   }

@@ -1,6 +1,7 @@
 import { Suspense } from "react"
 import type { Metadata } from "next"
 import { requireClinicContext } from "@/lib/auth/context"
+import { podeAcessar } from "@/lib/navigation/acesso"
 import {
   getConsentText,
   getRegulatoryIdentity,
@@ -20,7 +21,9 @@ import {
   AbaProcedimentos,
 } from "./abas-cadastro"
 import { AbaConsentimento, AbaUrgencia } from "./abas-sensiveis"
-import { Selo } from "./ui"
+import { StatusBadge } from "@/components/patterns/status-badge"
+import { PageHeader } from "@/components/patterns/page-header"
+import { PermissaoNegada } from "@/components/patterns/permissao-negada"
 
 export const metadata: Metadata = {
   title: "Perfil da clínica",
@@ -30,14 +33,16 @@ export const metadata: Metadata = {
 // Cadastro que muda a cada ação da própria tela — nunca cacheia.
 export const dynamic = "force-dynamic"
 
+const ROTA = "/dashboard/settings"
+
 export default async function SettingsPage() {
   const { role } = await requireClinicContext()
 
   // A sidebar já esconde este item de quem não é owner, e a RLS recusa a
   // escrita. Esconder é usabilidade; esta checagem é o que impede alguém
   // de chegar aqui digitando a URL e ver a equipe e o responsável técnico.
-  if (role !== "owner") {
-    return <SemPermissao />
+  if (!podeAcessar(role, ROTA)) {
+    return <PermissaoNegada titulo="Perfil da clínica" rota={ROTA} role={role} />
   }
 
   // Em paralelo: sete consultas independentes, uma por seção. Em série,
@@ -59,6 +64,7 @@ export default async function SettingsPage() {
     {
       id: "identidade",
       label: "Identidade",
+      alertas: pendencias.length,
       conteudo: <AbaIdentidade clinic={clinic} pendencias={pendencias} />,
     },
     {
@@ -86,6 +92,7 @@ export default async function SettingsPage() {
     {
       id: "urgencia",
       label: "Urgência",
+      alertas: regras.filter((r) => r.confirmed_at === null).length,
       conteudo: <AbaUrgencia regras={regras} />,
     },
     {
@@ -96,47 +103,31 @@ export default async function SettingsPage() {
   ]
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Perfil da clínica</h1>
-          <p className="mt-1 text-sm text-[var(--text-2)]">
-            {clinic.legal_name}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {clinic.status === "active" ? (
-            <Selo tom="ativo">ativa</Selo>
-          ) : (
-            <Selo>rascunho</Selo>
-          )}
-          {pendencias.length > 0 && (
-            <Selo tom="alerta">
-              {pendencias.length}{" "}
-              {pendencias.length === 1 ? "pendência" : "pendências"}
-            </Selo>
-          )}
-        </div>
-      </header>
+    <div className="grid gap-8">
+      <PageHeader
+        title="Perfil da clínica"
+        description={clinic.legal_name}
+        status={
+          <>
+            {clinic.status === "active" ? (
+              <StatusBadge tone="success">ativa</StatusBadge>
+            ) : (
+              <StatusBadge>rascunho</StatusBadge>
+            )}
+            {pendencias.length > 0 && (
+              <StatusBadge tone="warning">
+                {pendencias.length} {pendencias.length === 1 ? "pendência" : "pendências"}
+              </StatusBadge>
+            )}
+          </>
+        }
+      />
 
       {/* useSearchParams exige limite de Suspense para não forçar a página
           inteira a renderizar no cliente. */}
       <Suspense fallback={<div className="h-10" />}>
         <Abas secoes={secoes} />
       </Suspense>
-    </div>
-  )
-}
-
-function SemPermissao() {
-  return (
-    <div className="max-w-md space-y-2">
-      <h1 className="text-2xl font-semibold">Perfil da clínica</h1>
-      <p className="text-[var(--text-2)]">
-        Só o responsável pela clínica edita o perfil. Fale com quem administra a
-        conta se precisar alterar algum dado aqui.
-      </p>
     </div>
   )
 }

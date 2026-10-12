@@ -58,7 +58,7 @@ Ative a skill `qa-testing` ou peça revisão do subagente `qa-reviewer`. "Deve f
 - `app/(dashboard)/agents` — painel da clínica para criar, configurar, testar e publicar agentes (uma clínica pode ter vários)
 - `app/(admin)` — painel interno Nextech
 - `app/api/*` — webhooks e rotas (whatsapp, ai, scheduling, calendar, crm, billing, agents, email)
-- `app/api/cron/*` — jobs agendados via Vercel Cron (enrollment e envio de sequências) — ver `docs/specs/message-sequences-v1.md`
+- `app/api/cron/*` — jobs agendados que precisam da aplicação (enrollment e envio de sequências) — ver `docs/specs/message-sequences-v1.md`. Job que só mexe no banco (fechar sessão vencida, varrer resposta órfã) é função SQL agendada pelo **pg_cron** na própria migration. Sem Vercel Pro (cron só diário), quem dispara `app/api/cron/*` também é o pg_cron, com `pg_net` (decidido em 2026-09-27). O segredo que a rota confere fica no Supabase Vault e é lido dentro do comando do job, nunca literal na migration (vira texto legível em `cron.job`)
 - `lib/clinic-profile/` — validação e regras do perfil da clínica (equipe, procedimentos, urgência, consentimento)
 - `lib/agent-config/` — validação, montagem de system prompt e regras de agente
 - `lib/ai/` — cliente OpenRouter + Gemini 2.5 Flash
@@ -70,3 +70,13 @@ Ative a skill `qa-testing` ou peça revisão do subagente `qa-reviewer`. "Deve f
 - `docs/infra-setup.md` — checklist de contas e configuração externa (OpenRouter, Resend, Zoho, Google Calendar, Meta)
 - `.claude/skills/*` — conhecimento de domínio carregado sob demanda
 - `.claude/agents/*` — subagentes de revisão (segurança, QA)
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

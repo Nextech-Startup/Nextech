@@ -28,8 +28,9 @@ Uma por par paciente + agente. É o estado de longo prazo do relacionamento, dif
 - `author` — `patient` | `ai` | `human`
 - `wa_message_id` — id da Meta; **único por clínica**, é a chave de idempotência
 - `content_encrypted` — conteúdo cifrado em repouso (PII de saúde)
-- `media_type` — `text` | `audio` | `image` | `document`
-- `created_at`
+- `media_type` — `text` | `audio` | `image` | `document` | `other` (vídeo, figurinha, localização, contato: ficam no histórico, sem conteúdo)
+- `occurred_at` — o carimbo da Meta. A ordem da conversa segue ele, e não o `created_at`: um reenvio horas depois não pode reordenar o histórico
+- `created_at` — quando o registro entrou
 
 O conteúdo nunca é logado em texto puro, nem em erro, nem em observabilidade (regra 3 do `CLAUDE.md` e item 1 de `lgpd-security`).
 
@@ -84,6 +85,10 @@ A conversa é marcada com `qualified_at` quando o paciente demonstra intenção 
 
 `qualified_at` é gravado uma única vez por conversa, no primeiro sinal — para o funil medir conversão, não recorrência.
 
+**Implementado na parte 3 (2026-09-27):** a mesma chamada que gera a resposta devolve `{ resposta, intencao_de_agendar }` por saída estruturada (decisão do Jhones). A gravação acontece logo depois da geração e vale mesmo que a resposta não saia. Limites:
+- conversa atendida só pela equipe nunca qualifica, porque o modelo não roda nela;
+- o paciente pode "se qualificar" por injeção de prompt. O impacto fica restrito ao funil da própria conversa.
+
 #### 7. Falha da IA
 **Decidido:** retry curto, depois handoff silencioso.
 
@@ -105,18 +110,105 @@ A conversa é marcada com `qualified_at` quando o paciente demonstra intenção 
 
 ## Critério de aceite
 
-- [ ] Mensagem do paciente gera resposta da IA coerente com a persona do agente.
-- [ ] `wa_message_id` duplicado não gera segunda resposta nem segundo atendimento.
-- [ ] Eco do app da clínica muda `handled_by` para `human` e silencia a IA.
-- [ ] Após 24h sem mensagem humana, a IA volta a responder.
-- [ ] Conversa marcada como urgente nunca é retomada automaticamente pela IA.
-- [ ] Palavra-chave de urgência dispara o `protocol_message` da clínica e escala.
-- [ ] Intenção de agendar grava `qualified_at` uma única vez.
-- [ ] Falha do OpenRouter após 3 tentativas escala para humano sem enviar nada ao paciente.
-- [ ] Opt-out interrompe todas as sequências do paciente, não só a que ele respondeu.
-- [ ] Conteúdo de mensagem nunca aparece em log — inclusive em caminho de erro.
-- [ ] RLS isola `Conversation` e `Message` por `clinic_id`.
-- [ ] Teste automatizado cobre: idempotência do webhook, eco da coexistência, retomada por inatividade, escalonamento de urgência, e isolamento entre clínicas.
+- [ ] Mensagem do paciente gera resposta da IA coerente com a persona do agente. *(Parte 2: a persona, a saudação, o horário, os procedimentos e os convênios entram no prompt, com teste de ponta a ponta. A coerência da resposta só se mede com modelo e tráfego reais.)*
+- [x] `wa_message_id` duplicado não gera segunda resposta nem segundo atendimento. *(Parte 1: não duplica mensagem nem sessão. Parte 2: o reenvio não agenda resposta, e duas execuções para a mesma mensagem respondem uma vez só (`reply_to_message_id` único).)*
+- [x] Eco do app da clínica muda `handled_by` para `human` e silencia a IA. *(Partes 1 e 2, com teste de ponta a ponta. Parte 4: o eco aparece na tela de Conversas em tempo real, sem recarregar, conferido no navegador.)*
+- [x] Após 24h sem mensagem humana, a IA volta a responder. *(Parte 2: `decidirResposta`, contando do mais recente entre `human_took_over_at` e `ai_failed_at`. Parte 4: a clínica também devolve antes, pelo painel ("Devolver para a IA"), e a IA responde a partir da próxima mensagem do paciente.)*
+- [x] Conversa marcada como urgente nunca é retomada automaticamente pela IA. *(Parte 2: `decidirResposta` e a reserva recusam a conversa urgente. Parte 3: a escalada derruba a resposta da IA que estava em curso, com teste de ponta a ponta. Parte 4: só a equipe desfaz, pelo painel ("Marcar como resolvida"), e a conversa urgente não pode ser devolvida para a IA sem isso.)*
+- [x] Palavra-chave de urgência dispara o `protocol_message` da clínica e escala. *(Parte 3: detectada na recepção, com o texto da regra ativa da própria clínica, também com a equipe atendendo. Um protocolo por escalada, com teste de ponta a ponta.)*
+- [x] Intenção de agendar grava `qualified_at` uma única vez. *(Parte 3: `is null` no filtro, com teste de ponta a ponta em `tests/conversations/resposta.test.ts`: grava a hora da detecção, uma segunda intenção não muda, e vale com a reserva recusada.)*
+- [x] Falha do OpenRouter após 3 tentativas escala para humano sem enviar nada ao paciente. *(Parte 2: 1 s e 4 s de espera, `fail_ai_reply`, com teste.)*
+- [ ] Opt-out interrompe todas as sequências do paciente, não só a que ele respondeu. *(Parte 3: a recepção grava `patients.opted_out`, que vale para todas as sequências, com o agente pausado e no reenvio. Parar a matrícula ativa é da fase 4, quando as sequências existirem.)*
+- [x] Conteúdo de mensagem nunca aparece em log — inclusive em caminho de erro. *(Recepção, parte 1: teste com a chave ausente confere que o log não tem texto, telefone nem nome. Cada parte seguinte reconfirma no seu caminho.)*
+- [x] RLS isola `Conversation` e `Message` por `clinic_id`. *(Parte 1: `tests/rls/conversations.test.ts`, contra o banco real, cobre também `attendance_sessions` e `whatsapp_account_events`. Parte 4: o painel, a busca, o canal de tempo real e `conversation_events`, também contra o banco real, em `tests/rls/conversation-panel.test.ts`, `tests/rls/conversas-realtime.test.ts` e `tests/conversations/leitura.test.ts`.)*
+- [x] Teste automatizado cobre: idempotência do webhook, eco da coexistência, retomada por inatividade, escalonamento de urgência, e isolamento entre clínicas. *(Partes 1 a 3, contra o banco real: `tests/whatsapp/webhook.test.ts`, `tests/conversations/resposta.test.ts`, `tests/conversations/urgencia.test.ts` e `tests/rls/*`.)*
+
+## Implementação
+
+A 3b foi dividida em cinco partes, por dependência (decisão do Jhones, 2026-09-27):
+1. ✅ dados e recepção;
+2. ✅ decisão e resposta da IA;
+3. ✅ urgência, opt-out e qualificação (a qualificação teve sessão própria, depois da urgência, do opt-out e da manutenção);
+4. ✅ tela real de Conversas;
+5. ⬜ preview do agente e áudio.
+
+### Parte 1: dados e recepção (2026-09-27)
+
+Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-1.md`.
+
+- **Grava antes do 200.** O comportamento 1 pede 200 imediato. A gravação leva milissegundos e vem antes da resposta; o que demora, a IA, roda depois dela (parte 2, com `after()`). Com a gravação falha, a rota devolve 500 e a Meta reenvia, o que é inofensivo pela idempotência. Um 200 com a gravação falha perderia a mensagem.
+- **Idempotência no banco.** `unique (clinic_id, wa_message_id)`, uma conversa por par e uma sessão aberta por conversa, dentro de uma função SQL só (`register_whatsapp_message`). Reenvio e corrida são caminho normal.
+- **Sessão vencida fecha na recepção.** Se a sessão aberta está parada há mais de 20 min quando o paciente volta, a recepção a fecha como `closed_by_timeout` e abre outra.
+- **Eventos de conta** em `whatsapp_account_events`, por agente do WABA. A desconexão guarda o status anterior; a reconexão devolve ao ar só quem a desconexão pausou.
+- **Conteúdo cifrado** com chave própria (`MESSAGE_CONTENT_ENCRYPTION_KEY`), com o `clinic_id` como dado autenticado.
+- **WABA conferido.** A mensagem só entra se o `entry.id` da Meta bater com o WABA do agente. A prova de posse do número na própria conexão fica para a parte 2 e é bloqueio de go-live (`docs/status.md`).
+- **Falha por evento.** Um evento com falha definitiva (validação, dado inválido) é logado e pulado; só a transitória devolve 500. Sem isso, um evento envenenado faria a Meta reenviar o lote por dias.
+- **Direito de exclusão.** `messages.content_redacted_at` e `redact_patient_messages`: o `anonymizePatient` apaga o conteúdo e mantém o metadado.
+- **Contra mock.** As credenciais da Meta ainda não chegaram. Os payloads de teste seguem o formato documentado (`tests/fixtures/meta-webhook.ts`).
+
+### Parte 2: decisão e resposta da IA (2026-09-27)
+
+Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-2.md`.
+
+- **Agrupamento no `after()`, "a mais recente vence".** Cada mensagem nova do paciente agenda uma resposta, que espera 10 s e só segue se ela ainda for a última do paciente. Sem fila externa.
+- **Reservar, enviar, confirmar.** A resposta entra como `pending`, com `reply_to_message_id` único (a trava contra resposta dupla). `confirm_ai_reply` grava o id da Meta, conta na sessão e fecha por contagem na quinta, numa transação.
+- **Falha da IA ou do envio** passa a conversa para a equipe (`ai_failed_at`), sem mandar nada ao paciente. A retomada em 24h conta a partir do mais recente entre a ação humana e a falha.
+- **O que vai para o modelo:** o system prompt da clínica (regras de segurança antes da persona) e as últimas 20 mensagens. Não vão telefone nem nome do paciente. Toda chamada ao OpenRouter exige `data_collection: "deny"` e `zdr: true`.
+- **Custo:** `category = SERVICE`, `within_24h_window` e `billable` gravados no envio. O serviço dentro da janela passa a ser cobrado em 1º/out/2026 (UTC).
+- **Status de entrega** só avança; `failed` só vale antes da entrega.
+- **Prova de posse na conexão:** `connectWhatsapp` confere na Graph API que o número pertence ao WABA antes de gravar.
+- **Revalidação sob trava.** A decisão é tomada antes da geração (para não gastar o modelo à toa) e de novo na reserva, que trava paciente e conversa e recusa se, nos até ~65 s de modelo, o paciente foi anonimizado, o agente pausado ou o número trocado, a conversa virou urgente, a janela fechou, o paciente escreveu de novo ou a equipe respondeu pelo app. A retomada em 24h acontece na reserva. Achado da revisão de segurança.
+- **Falha registrada:** `ai_failed_at` na conversa e log com o id da conversa e o código, nunca o conteúdo. Erro inesperado também passa a conversa para a equipe; `failed` avisado depois pela Meta também.
+- **Até a parte 3, a resposta sai sem triagem de urgência.** O webhook não está assinado na Meta, então não chega a paciente real; a parte 3 é pré-requisito do go-live.
+
+### Parte 3: urgência, opt-out e manutenção (2026-09-27)
+
+Planos: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3.md` (urgência, opt-out e manutenção) e `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3-qualificacao.md` (qualificação).
+
+- **Detecção na recepção, antes do 200.** O opt-out e a urgência não esperam a resposta da IA: se a gravação falhar, a rota devolve 500 e a Meta reenvia, e a marca nunca se perde num `after()` que morreu.
+- **Urgência:**
+  - O texto do paciente é comparado com as regras **ativas** da clínica (`detectarUrgencia`), por início de palavra: "dor" pega "dores", mas não "adorei" (decisão do Jhones; por substring, um elogio calaria a IA). Se casar, `escalate_urgent_conversation` marca `is_urgent`, passa a conversa para a equipe e reserva o `protocol_message` da clínica, numa transação, com a ordem de trava paciente, agente, conversa.
+  - O protocolo sai no `after()`, sem o agrupamento de 10 s, pelo mesmo caminho de enviar e confirmar da resposta da IA.
+  - Vale também com a equipe atendendo (decisão do Jhones): quem respondeu pelo celular pode não estar olhando agora.
+  - Um protocolo por escalada. Conversa já urgente, mensagem já respondida (reenvio) ou agente fora do ar não mandam de novo. Com a janela fechada (reenvio tardio), a marca fica e o protocolo não sai.
+  - A mensagem urgente nunca recebe resposta da IA, e uma resposta em curso para mensagem anterior cai na reserva.
+  - Agente pausado: sem triagem. Áudio: sem triagem até a transcrição (parte 5).
+- **Opt-out:** a mensagem inteira, normalizada, precisa ser `parar`, `pare`, `sair`, `stop` ou `descadastrar`. Grava `patients.opted_out` com o agente pausado, com a equipe atendendo e no reenvio. A mensagem não tem resposta, e o Nextech não manda texto próprio. Conversa que o paciente iniciar depois segue sendo respondida: o opt-out vale para as sequências.
+- **Manutenção pelo pg_cron, a cada 5 min** (a Vercel Hobby só roda cron uma vez por dia; decisão do Jhones):
+  - `close_stale_attendance_sessions` fecha a sessão parada há mais de 1h20 (20 min mais 1 h de folga para mensagem atrasada, decisão do Jhones), com `closed_at` = última mensagem + 20 min, a fórmula da recepção;
+  - `sweep_stale_ai_replies` passa a `failed` (`sem-confirmacao`) a resposta `pending` há mais de 5 min e a conversa para a equipe, travando a conversa antes das mensagens e com `skip locked`.
+  - a confirmação da resposta (`confirm_ai_reply`) não conta a resposta na sessão vencida que o cron ainda não fechou, e não a fecha: quem fecha é a recepção, pelo `occurred_at` da mensagem, ou o cron. Fechar pelo relógio do envio faria a mensagem atrasada abrir outro atendimento.
+- **Qualificação (decisões do Jhones):**
+  - **Mesma chamada, com saída estruturada**, e não uma segunda chamada: o dado de saúde sai uma vez só. O pedido leva `response_format` com `json_schema` estrito e `provider.require_parameters: true`, para que um provedor que ignore o schema nunca seja escolhido. O `zdr: true` e o `data_collection: "deny"` continuam fixos. Em 2026-09-27, os 4 endpoints ZDR do Gemini 2.5 Flash (Google Vertex) aceitavam saída estruturada.
+  - **O JSON é validado do nosso lado** (`lerSaidaDoModelo`): o rigor do `strict` varia por provedor. Fora do formato é falha passageira da IA (`saida-invalida`), com as mesmas tentativas e o mesmo caminho para a equipe. Resposta cortada pelo limite de tokens (`finish_reason: "length"`) também é falha (`resposta-truncada`), e o texto cortado nunca sai.
+  - **Gravação logo depois da geração**, com `where qualified_at is null`: mede a intenção do paciente, e não a nossa resposta. A falha ao gravar loga só o código, e a resposta segue.
+- **Reenvio sem resposta:** se a recepção falha depois de gravar a mensagem, o reenvio da Meta agenda a resposta enquanto a mensagem não tiver resposta nem reserva (decisão do Jhones). No caso raro de o lote ter voltado 500 por outro evento, o modelo pode ser chamado duas vezes; a reserva garante um envio só.
+
+### Parte 4: tela real de Conversas (2026-10-11)
+
+Plano: `docs/superpowers/plans/2026-10-11-motor-de-conversa-parte-4-tela-de-conversas.md`. A conta de demonstração continua com a fixture.
+
+- **Leitura no servidor.** A fila e a conversa são lidas pelo client da sessão, com RLS e com o filtro explícito de `clinic_id`, e decifradas só no servidor. A conversão das linhas na forma da tela é função pura (`lib/conversations/tela.ts`).
+  - A fila traz as 100 conversas mais recentes e todas as urgentes.
+  - A conversa aberta traz as 200 mensagens mais recentes, com um aviso quando o histórico foi cortado.
+  - A resposta da IA que não chegou (`failed`) aparece como "não chegou ao paciente" e não conta como última mensagem.
+- **Só para quem tem a tela.** Owner e staff, a mesma regra do menu. A trava fica na lib (`lib/conversations/queries.ts`), e não só na página: a server action da busca é um POST que qualquer membro logado alcança.
+- **Ações do painel** (assumir, devolver para a IA e resolver a urgência): três RPCs `security definer`, cada uma com um único `update … where <estado esperado>` e o evento em `conversation_events` (quem agiu e quando) na mesma transação.
+  - O papel é conferido no banco.
+  - A resposta é `ok`, `sem-mudanca` ou `nao-encontrada`, e sem permissão também volta `nao-encontrada`.
+  - A RPC trava só a linha da conversa, então não entra na ordem de trava da reserva da IA.
+- **Tempo real por Broadcast privado** (`conversas:<clinic_id>`): um trigger avisa o canal da clínica, com policy em `realtime.messages`. O aviso não leva conteúdo nem telefone: a tela só relê do servidor (`router.refresh()`). Ela relê também ao entrar e ao voltar ao canal, e o evento de conta da Meta avisa do mesmo jeito.
+  - O `postgres_changes` foi descartado porque mandava ao anônimo um envelope vazio a cada mudança de qualquer clínica. Decisão do Jhones.
+- **Busca por POST**, por nome ou telefone, também fora das 100 mais recentes (`search_conversations`, `security invoker`). O termo nunca vai para URL, log nem console, e o `next dev` não imprime os argumentos das server actions (`logging.serverFunctions: false`).
+- **Responder pelo celular.** No lugar do compositor, a tela diz como responder: pelo WhatsApp Business, na coexistência, com o eco aparecendo ao vivo. Responder e nota interna pelo painel ficam para a fase 4.
+- **Aviso de desconexão** (`ACCOUNT_OFFBOARDED`) na tela de Conversas, com o link para reconectar só para o owner.
+- **Acesso de suporte** (`/admin/conversations`), pelo `service_role` com o filtro de clínica explícito:
+  - abrir a lista exige justificativa (motivo de lista fechada e número do chamado) e vale 30 min;
+  - cada leitura da lista grava `conversation.list_view`, e cada conversa aberta grava `conversation.view` antes de aparecer. Se a gravação falha, nada aparece;
+  - a trava do acesso vigente fica na lib e vale por pessoa e por clínica;
+  - o telefone sai mascarado do servidor;
+  - os links não fazem prefetch.
+- **Bloqueios de go-live que a tela agrava** (`docs/status.md`): a posse do WhatsApp, porque quem desviar o número de outra clínica passa a ler as mensagens decifradas e ao vivo, e o MFA no painel interno.
 
 ## Planos afetados
 O motor é a base do produto — existe em Starter, Pro e HealthTech. O que varia por plano é o limite de atendimentos (`atendimento-billing-v1.md`) e o processamento de áudio, que a landing promete a partir do Pro.
@@ -142,5 +234,9 @@ mensagem do histórico.
 - **Agrupamento de mensagens**: a janela de ~10s é um chute inicial. Precisa de ajuste com conversa real — curta demais responde em duplicidade, longa demais parece lento.
 - **Tamanho do histórico** enviado ao modelo: afeta custo por atendimento e qualidade. Medir antes de fixar.
 - **Cache de prompt do Gemini via OpenRouter**: mecanismo diferente do `cache_control` da Anthropic. Confirmar a sintaxe atual antes de implementar (skill `integrations`).
-- **Detecção de qualificação**: sai da mesma chamada que gera a resposta, ou de uma segunda chamada? Uma só é mais barata; duas são mais confiáveis. Decidir medindo.
+- **Qualidade da qualificação:** decidida pela mesma chamada (parte 3). Com tráfego real, medir a taxa de `saida-invalida` e `resposta-truncada` no log e conferir por amostragem, na tela de Conversas, se a marcação bate com a intenção.
+- **Raciocínio do Gemini dentro dos 600 tokens:** na maioria dos provedores, o `max_tokens` soma raciocínio e saída. Se o raciocínio esgotar o limite, a resposta volta cortada (`resposta-truncada`) e a conversa vai para a equipe. Medir antes de configurar o `reasoning`.
+- **`billable` contra o `pricing` da Meta:** o status de entrega traz `pricing.billable` e a categoria que a Meta cobrou. Conferir o que gravamos com isso quando houver tráfego real, antes de fechar o preço dos planos.
+- **Lista de opt-out:** fixa no código (`parar`, `pare`, `sair`, `stop`, `descadastrar`, como mensagem inteira). Revisar com conversa real: pedido escrito como frase ("não quero mais receber") hoje não conta.
+- **Triagem de áudio:** só com a transcrição (parte 5). Até lá, áudio com relato de urgência não escala.
 - **Retomada em conversa urgente**: hoje nunca é automática. Se na prática isso deixar conversas presas, revisitar.

@@ -23,7 +23,7 @@ Fora do escopo v1: histórico de atendimento estruturado, prontuário, observaç
 
 ## Edge cases
 - Paciente muda de número de telefone — sem reconciliação automática na v1; vira um `Patient` novo. Limitação conhecida.
-- Paciente pede exclusão do próprio dado (direito LGPD) — remove ou anonimiza `Patient` e desmatricula de qualquer `SequenceEnrollment` ativo.
+- Paciente pede exclusão do próprio dado (direito LGPD) — remove ou anonimiza `Patient` e desmatricula de qualquer `SequenceEnrollment` ativo. Desde a parte 1 do motor de conversa (2026-09-27), o `anonymizePatient` também apaga o conteúdo das mensagens das conversas dele (`redact_patient_messages`, só para o owner), mantendo o metadado que sustenta contagem e custo.
 
 ## Critério de aceite
 - [ ] Paciente é criado automaticamente no primeiro contato, sem duplicar por número já existente na clínica.

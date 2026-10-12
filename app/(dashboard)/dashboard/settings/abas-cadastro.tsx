@@ -14,18 +14,11 @@ import {
   salvarProcedimentoAction,
   salvarProfissionalAction,
 } from "./actions"
-import {
-  Aviso,
-  Botao,
-  Campo,
-  Cartao,
-  EscolhaDeConvenios,
-  Input,
-  Select,
-  Selo,
-  Vazio,
-  estadoInicial,
-} from "./ui"
+import { Aviso, Botao, Campo, Input, Select, estadoInicial } from "@/components/patterns/formulario"
+import { Cartao } from "@/components/patterns/cartao"
+import { Vazio } from "@/components/patterns/vazio"
+import { StatusBadge } from "@/components/patterns/status-badge"
+import { EscolhaDeConvenios } from "./escolha-de-convenios"
 import {
   CONSELHOS,
   NO_SHOW_POLICIES,
@@ -90,16 +83,16 @@ export function AbaIdentidade({
   return (
     <div className="space-y-5">
       {pendencias.length > 0 && (
-        <div className="rounded-2xl border border-[var(--warn)]/30 bg-[var(--warn)]/8 p-5">
+        <div className="rounded-card border border-warning-border bg-warning-bg p-5 text-warning-fg">
           <p className="text-sm font-medium">
             Falta preencher para a clínica sair do rascunho
           </p>
-          <ul className="mt-2 list-inside list-disc space-y-0.5 text-sm text-[var(--text-2)]">
+          <ul className="mt-2 list-inside list-disc space-y-0.5 text-sm text-ink-2">
             {pendencias.map((p) => (
               <li key={p}>{p}</li>
             ))}
           </ul>
-          <p className="mt-3 text-sm text-[var(--text-3)]">
+          <p className="mt-3 text-sm text-ink-3">
             Enquanto isso, o primeiro agente não pode ser publicado.
           </p>
         </div>
@@ -127,7 +120,7 @@ export function AbaIdentidade({
             </Campo>
           </div>
 
-          <p className="text-sm text-[var(--text-3)]">
+          <p className="text-sm text-ink-3">
             Razão social e CNPJ são ajustados pela equipe Nextech. Fale com o
             suporte se algum estiver errado.
           </p>
@@ -155,7 +148,7 @@ export function AbaIdentidade({
             />
           </div>
 
-          <p className="text-sm text-[var(--text-3)]">
+          <p className="text-sm text-ink-3">
             O conselho do responsável técnico é o dele, não da clínica. Cada
             profissional da equipe tem o próprio, na aba Equipe.
           </p>
@@ -231,15 +224,15 @@ function LinhaConvenio({ convenio }: { convenio: Insurance }) {
 
   if (!editando) {
     return (
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--hairline)] bg-[var(--surface-1)] px-4 py-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-hairline bg-surface-1 px-4 py-3">
         <span className="font-medium">{convenio.name}</span>
-        {!convenio.active && <Selo>inativo</Selo>}
+        {!convenio.active && <StatusBadge>inativo</StatusBadge>}
 
         <div className="ml-auto flex items-center gap-3">
           <button
             type="button"
             onClick={() => setEditando(true)}
-            className="text-sm text-[var(--accent-on-light)] transition hover:underline dark:text-[var(--accent-dim)]"
+            className="text-sm text-brand-on-light transition hover:underline dark:text-brand-dim"
           >
             Editar
           </button>
@@ -249,7 +242,7 @@ function LinhaConvenio({ convenio }: { convenio: Insurance }) {
               <button
                 type="submit"
                 disabled={desativarPending}
-                className="text-sm text-[var(--text-2)] transition hover:text-[var(--warn)] disabled:opacity-60"
+                className="text-sm text-ink-2 transition hover:text-warn disabled:opacity-60"
               >
                 Desativar
               </button>
@@ -263,7 +256,7 @@ function LinhaConvenio({ convenio }: { convenio: Insurance }) {
   return (
     <form
       action={action}
-      className="space-y-4 rounded-xl border border-[var(--hairline)] bg-[var(--surface-1)] p-4"
+      className="space-y-4 rounded-xl border border-hairline bg-surface-1 p-4"
     >
       <input type="hidden" name="id" value={convenio.id} />
 
@@ -274,12 +267,12 @@ function LinhaConvenio({ convenio }: { convenio: Insurance }) {
           </Campo>
         </div>
 
-        <label className="flex items-center gap-2 pb-3 text-sm text-[var(--text-2)]">
+        <label className="flex items-center gap-2 pb-3 text-sm text-ink-2">
           <input
             type="checkbox"
             name="active"
             defaultChecked={convenio.active}
-            className="size-4 accent-[var(--accent)]"
+            className="size-4 accent-brand"
           />
           Ativo
         </label>
@@ -347,7 +340,7 @@ export function AbaEquipe({
             </div>
           </form>
         ) : (
-          <p className="text-sm text-[var(--text-2)]">
+          <p className="text-sm text-ink-2">
             Clínica multi-especialidade tem CRM, CRO e CREFITO na mesma equipe —
             o conselho é de cada pessoa, não da clínica.
           </p>
@@ -413,7 +406,7 @@ function CamposDoProfissional({
       </div>
 
       <div className="space-y-2">
-        <p className="text-sm font-medium text-[var(--text-2)]">
+        <p className="text-sm font-medium text-ink-2">
           Convênios que atende
         </p>
         <EscolhaDeConvenios
@@ -448,21 +441,21 @@ function LinhaProfissional({
 
   if (!editando) {
     return (
-      <div className="rounded-xl border border-[var(--hairline)] bg-[var(--surface-1)] px-4 py-3">
+      <div className="rounded-xl border border-hairline bg-surface-1 px-4 py-3">
         <div className="flex flex-wrap items-center gap-3">
           <span className="font-medium">{profissional.name}</span>
           {profissional.council && (
-            <Selo>
+            <StatusBadge>
               {profissional.council} {profissional.registration_number}
-            </Selo>
+            </StatusBadge>
           )}
-          {!profissional.active && <Selo tom="alerta">inativo</Selo>}
+          {!profissional.active && <StatusBadge tone="warning">inativo</StatusBadge>}
 
           <div className="ml-auto flex items-center gap-3">
             <button
               type="button"
               onClick={() => setEditando(true)}
-              className="text-sm text-[var(--accent-on-light)] transition hover:underline dark:text-[var(--accent-dim)]"
+              className="text-sm text-brand-on-light transition hover:underline dark:text-brand-dim"
             >
               Editar
             </button>
@@ -472,7 +465,7 @@ function LinhaProfissional({
                 <button
                   type="submit"
                   disabled={desativarPending}
-                  className="text-sm text-[var(--text-2)] transition hover:text-[var(--warn)] disabled:opacity-60"
+                  className="text-sm text-ink-2 transition hover:text-warn disabled:opacity-60"
                 >
                   Desativar
                 </button>
@@ -481,7 +474,7 @@ function LinhaProfissional({
           </div>
         </div>
 
-        <p className="mt-1 text-sm text-[var(--text-2)]">
+        <p className="mt-1 text-sm text-ink-2">
           {profissional.specialty ?? "Sem especialidade informada"}
           {nomesDosConvenios.length > 0 && ` · ${nomesDosConvenios.join(", ")}`}
         </p>
@@ -492,17 +485,17 @@ function LinhaProfissional({
   return (
     <form
       action={action}
-      className="space-y-5 rounded-xl border border-[var(--hairline)] bg-[var(--surface-1)] p-4"
+      className="space-y-5 rounded-xl border border-hairline bg-surface-1 p-4"
     >
       <input type="hidden" name="id" value={profissional.id} />
       <CamposDoProfissional profissional={profissional} convenios={convenios} />
 
-      <label className="flex items-center gap-2 text-sm text-[var(--text-2)]">
+      <label className="flex items-center gap-2 text-sm text-ink-2">
         <input
           type="checkbox"
           name="active"
           defaultChecked={profissional.active}
-          className="size-4 accent-[var(--accent)]"
+          className="size-4 accent-brand"
         />
         Ativo na equipe
       </label>
@@ -569,7 +562,7 @@ export function AbaProcedimentos({
             </div>
           </form>
         ) : (
-          <p className="text-sm text-[var(--text-2)]">
+          <p className="text-sm text-ink-2">
             O preço é opcional — deixe em branco para não divulgar.
           </p>
         )}
@@ -632,7 +625,7 @@ function CamposDoProcedimento({
       </div>
 
       <div className="space-y-2">
-        <p className="text-sm font-medium text-[var(--text-2)]">
+        <p className="text-sm font-medium text-ink-2">
           Convênios que cobrem
         </p>
         <EscolhaDeConvenios
@@ -667,25 +660,25 @@ function LinhaProcedimento({
 
   if (!editando) {
     return (
-      <div className="rounded-xl border border-[var(--hairline)] bg-[var(--surface-1)] px-4 py-3">
+      <div className="rounded-xl border border-hairline bg-surface-1 px-4 py-3">
         <div className="flex flex-wrap items-center gap-3">
           <span className="font-medium">{procedimento.name}</span>
-          <Selo>{procedimento.duration_minutes} min</Selo>
+          <StatusBadge>{procedimento.duration_minutes} min</StatusBadge>
           {procedimento.price !== null && (
-            <Selo>
+            <StatusBadge>
               {procedimento.price.toLocaleString("pt-BR", {
                 style: "currency",
                 currency: "BRL",
               })}
-            </Selo>
+            </StatusBadge>
           )}
-          {!procedimento.active && <Selo tom="alerta">inativo</Selo>}
+          {!procedimento.active && <StatusBadge tone="warning">inativo</StatusBadge>}
 
           <div className="ml-auto flex items-center gap-3">
             <button
               type="button"
               onClick={() => setEditando(true)}
-              className="text-sm text-[var(--accent-on-light)] transition hover:underline dark:text-[var(--accent-dim)]"
+              className="text-sm text-brand-on-light transition hover:underline dark:text-brand-dim"
             >
               Editar
             </button>
@@ -695,7 +688,7 @@ function LinhaProcedimento({
                 <button
                   type="submit"
                   disabled={desativarPending}
-                  className="text-sm text-[var(--text-2)] transition hover:text-[var(--warn)] disabled:opacity-60"
+                  className="text-sm text-ink-2 transition hover:text-warn disabled:opacity-60"
                 >
                   Desativar
                 </button>
@@ -704,7 +697,7 @@ function LinhaProcedimento({
           </div>
         </div>
 
-        <p className="mt-1 text-sm text-[var(--text-2)]">
+        <p className="mt-1 text-sm text-ink-2">
           {procedimento.specialty ?? "Sem especialidade informada"}
           {nomesDosConvenios.length > 0 && ` · ${nomesDosConvenios.join(", ")}`}
         </p>
@@ -715,17 +708,17 @@ function LinhaProcedimento({
   return (
     <form
       action={action}
-      className="space-y-5 rounded-xl border border-[var(--hairline)] bg-[var(--surface-1)] p-4"
+      className="space-y-5 rounded-xl border border-hairline bg-surface-1 p-4"
     >
       <input type="hidden" name="id" value={procedimento.id} />
       <CamposDoProcedimento procedimento={procedimento} convenios={convenios} />
 
-      <label className="flex items-center gap-2 text-sm text-[var(--text-2)]">
+      <label className="flex items-center gap-2 text-sm text-ink-2">
         <input
           type="checkbox"
           name="active"
           defaultChecked={procedimento.active}
-          className="size-4 accent-[var(--accent)]"
+          className="size-4 accent-brand"
         />
         Oferecido pela clínica
       </label>
@@ -808,7 +801,7 @@ export function AbaPolitica({ politica }: { politica: SchedulingPolicy }) {
           </Campo>
         </div>
 
-        <p className="text-sm text-[var(--text-3)]">
+        <p className="text-sm text-ink-3">
           A duração padrão vale para procedimento sem duração própria. Zero hora
           de antecedência aceita agendamento para agora.
         </p>

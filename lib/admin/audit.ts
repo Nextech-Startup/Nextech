@@ -1,3 +1,4 @@
+import type { AcaoDeSuporte } from "./acesso-de-suporte"
 import type { AdminContext } from "./context"
 
 export type AdminAction =
@@ -5,6 +6,13 @@ export type AdminAction =
   | "clinic.create"
   | "clinic.update_status"
   | "member.invite"
+  /** O script da conta de demonstração (scripts/conta-demo.ts), fora do painel. */
+  | "clinic.prepare_demo"
+  /** Os scripts do canal de demonstração pela Evolution (scripts/canal-demo.ts), fora do painel. */
+  | "clinic.demo_channel_connect"
+  | "clinic.demo_channel_clear"
+  /** Acesso de suporte às conversas de uma clínica: a lista e cada conversa aberta. */
+  | AcaoDeSuporte
 
 type RegistroAuditoria = {
   action: AdminAction
@@ -25,11 +33,14 @@ type RegistroAuditoria = {
  * Nunca lança: uma falha de auditoria não pode derrubar a operação que o
  * usuário pediu. Mas registra o problema, porque trilha com buraco silencioso
  * é pior que trilha ausente.
+ *
+ * Devolve se gravou. Para o acesso de suporte, a trilha é condição: sem o
+ * registro, a conversa não aparece (lgpd-security, regra 4).
  */
 export async function registrarAcao(
   ctx: AdminContext,
   registro: RegistroAuditoria,
-): Promise<void> {
+): Promise<boolean> {
   const { error } = await ctx.supabase.from("admin_audit_log").insert({
     actor_user_id: ctx.userId,
     action: registro.action,
@@ -44,5 +55,7 @@ export async function registrarAcao(
       action: registro.action,
       code: error.code,
     })
+    return false
   }
+  return true
 }

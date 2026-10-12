@@ -1,5 +1,6 @@
 import { serviceContext } from "@/lib/auth/service-context"
-import { requireClinicContext } from "@/lib/auth/context"
+import { requireClinicContextForWrite } from "@/lib/auth/context"
+import { pacientePeloTelefone } from "./por-telefone"
 import {
   patientIdentifySchema,
   patientUpdateSchema,
@@ -26,6 +27,9 @@ const UNIQUE_VIOLATION = "23505"
  * isso a violação de unique é tratada como caminho normal, não como erro:
  * significa que a corrida foi perdida, e o vencedor já criou o cadastro
  * que queríamos.
+ *
+ * A busca pelo telefone vai por POST (`pacientePeloTelefone`): o número
+ * nunca entra na URL do PostgREST, que cai no log.
  */
 export async function identifyPatient(
   clinicId: string,
@@ -34,14 +38,8 @@ export async function identifyPatient(
   const { whatsapp_phone_number, name } = patientIdentifySchema.parse(input)
   const { supabase } = serviceContext()
 
-  const existente = await supabase
-    .from("patients")
-    .select(PATIENT_COLUMNS)
-    .eq("clinic_id", clinicId)
-    .eq("whatsapp_phone_number", whatsapp_phone_number)
-    .maybeSingle()
-
-  if (existente.data) return existente.data as Patient
+  const existente = await pacientePeloTelefone(supabase, clinicId, whatsapp_phone_number)
+  if (existente) return existente
 
   const { data, error } = await supabase
     .from("patients")
@@ -58,15 +56,9 @@ export async function identifyPatient(
   if (error) {
     if (error.code === UNIQUE_VIOLATION) {
       // Corrida perdida: outra requisição criou entre o select e o insert.
-      const { data: vencedor, error: erroLeitura } = await supabase
-        .from("patients")
-        .select(PATIENT_COLUMNS)
-        .eq("clinic_id", clinicId)
-        .eq("whatsapp_phone_number", whatsapp_phone_number)
-        .single()
-
-      if (erroLeitura) throw erroLeitura
-      return vencedor as Patient
+      const vencedor = await pacientePeloTelefone(supabase, clinicId, whatsapp_phone_number)
+      if (!vencedor) throw error
+      return vencedor
     }
     throw error
   }
@@ -152,7 +144,7 @@ export async function optOut(clinicId: string, patientId: string): Promise<void>
  * clínica. Por isso não roda com service_role, ao contrário de `optOut`.
  */
 export async function undoOptOut(patientId: string): Promise<void> {
-  const { supabase, clinicId, role } = await requireClinicContext()
+  const { supabase, clinicId, role } = await requireClinicContextForWrite()
 
   if (role !== "owner") {
     throw new Error("Apenas o owner reverte o opt-out de um paciente.")
@@ -175,7 +167,7 @@ export async function updatePatient(
   patientId: string,
   input: PatientUpdateInput,
 ): Promise<Patient> {
-  const { supabase, clinicId } = await requireClinicContext()
+  const { supabase, clinicId } = await requireClinicContextForWrite()
   const parsed = patientUpdateSchema.parse(input)
 
   const { data, error } = await supabase
@@ -203,9 +195,15 @@ export async function updatePatient(
  * (a coluna é `not null`) nem repetido (a restrição unique), e precisa
  * não parecer um telefone real para ninguém tentar escrever para ele.
  * `opted_out` fica true para que nenhuma sequência futura o alcance.
+ *
+ * Tudo numa transação só, pela função `anonymize_patient`, que também apaga
+ * o conteúdo das conversas (o histórico pode ter nome, CPF e sintomas) e
+ * trava o paciente: uma mensagem em trânsito não grava conteúdo no meio.
+ * A checagem de owner vale lá dentro também; a daqui só poupa a ida ao
+ * banco.
  */
 export async function anonymizePatient(patientId: string): Promise<void> {
-  const { supabase, clinicId, role } = await requireClinicContext()
+  const { supabase, role } = await requireClinicContextForWrite()
 
   if (role !== "owner") {
     throw new Error("Apenas o owner atende a um pedido de exclusão de dado.")
@@ -220,18 +218,12 @@ export async function anonymizePatient(patientId: string): Promise<void> {
     .padStart(11, "0")
     .slice(0, 11)
 
-  const { error } = await supabase
-    .from("patients")
-    .update({
-      // O + e os dígitos satisfazem o check de E.164; o prefixo 999 não é
-      // país nenhum, então nunca colide com número real.
-      whatsapp_phone_number: `+999${marcador}`,
-      name: null,
-      consent_given_at: null,
-      opted_out: true,
-    })
-    .eq("id", patientId)
-    .eq("clinic_id", clinicId)
+  const { error } = await supabase.rpc("anonymize_patient", {
+    p_patient_id: patientId,
+    // O + e os dígitos satisfazem o check de E.164; o prefixo 999 não é
+    // país nenhum, então nunca colide com número real.
+    p_phone_marker: `+999${marcador}`,
+  })
 
   if (error) throw error
 }

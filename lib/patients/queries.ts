@@ -1,5 +1,6 @@
 import { requireClinicContext } from "@/lib/auth/context"
 import { serviceContext } from "@/lib/auth/service-context"
+import { pacientePeloTelefone } from "./por-telefone"
 import { normalizarTelefone, PATIENT_COLUMNS, type Patient } from "./schema"
 
 /**
@@ -48,15 +49,8 @@ export async function findPatientByPhone(
   const e164 = normalizarTelefone(telefone)
   if (!e164) return null
 
-  const { data, error } = await supabase
-    .from("patients")
-    .select(PATIENT_COLUMNS)
-    .eq("clinic_id", clinicId)
-    .eq("whatsapp_phone_number", e164)
-    .maybeSingle()
-
-  if (error) throw error
-  return (data as Patient) ?? null
+  // Por POST: o número nunca entra na URL do PostgREST, que cai no log.
+  return pacientePeloTelefone(supabase, clinicId, e164)
 }
 
 /**

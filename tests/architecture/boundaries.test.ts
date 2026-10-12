@@ -22,7 +22,7 @@ const normalizar = (f: string) => f.replace(/\\/g, "/")
 // middleware.ts é exceção justificada: roda no edge, antes do React, e não
 // tem acesso ao cookies() do Next — precisa montar o client com os cookies
 // da própria request. Ele não lê dado de clínica, só renova a sessão.
-const FABRICAS_AUTORIZADAS = ["lib/supabase/server.ts", "middleware.ts"]
+const FABRICAS_AUTORIZADAS = ["lib/supabase/server.ts", "lib/supabase/browser.ts", "middleware.ts"]
 
 describe("fronteiras de arquitetura", () => {
   it("apenas lib/supabase/server.ts instancia client do Supabase", () => {
@@ -48,6 +48,62 @@ describe("fronteiras de arquitetura", () => {
       .map(normalizar)
 
     expect(infratores).toEqual([])
+  })
+
+  // A leitura confere o token só pela assinatura (getClaims, sem ida ao
+  // Auth); a escrita confirma no Auth que a sessão ainda existe, porque o
+  // token segue válido até vencer mesmo depois de um logout.
+  it("toda mutation com sessão grava pela porta que confirma a sessão no Auth", () => {
+    const mutations = walk("lib")
+      .map(normalizar)
+      .filter((f) => f.endsWith("/mutations.ts"))
+      .filter((f) => /from\s+["']@\/lib\/auth\/context["']/.test(readFileSync(f, "utf8")))
+
+    // agentes, perfil, clínica, conversas e pacientes
+    expect(mutations.length).toBeGreaterThanOrEqual(5)
+    const pelaLeitura = mutations.filter((f) => /\brequireClinicContext\(\)/.test(readFileSync(f, "utf8")))
+    const semEscrita = mutations.filter((f) => !/\brequireClinicContextForWrite\(\)/.test(readFileSync(f, "utf8")))
+    expect(pelaLeitura).toEqual([])
+    expect(semEscrita).toEqual([])
+  })
+
+  // A trava acima olha as mutations pelo nome do arquivo. Esta olha o que
+  // o arquivo faz: quem resolve a sessão pela porta de leitura só lê.
+  it("quem usa a porta de leitura não grava: nem tabela, nem RPC que não seja de leitura", () => {
+    const LEITURAS = new Set(["search_conversations", "conversation_previews", "conversation_queue", "patient_by_phone"])
+    const usamALeitura = [...walk("app"), ...walk("lib")]
+      .map(normalizar)
+      .filter((f) => !/\.test\.tsx?$/.test(f))
+      .filter((f) => /\brequireClinicContext\(\)/.test(readFileSync(f, "utf8")))
+    expect(usamALeitura.length).toBeGreaterThan(5)
+
+    const gravam = usamALeitura.filter((f) => {
+      const fonte = readFileSync(f, "utf8")
+      const rpcs = [...fonte.matchAll(/\.rpc\(\s*["'`]([a-z_]+)/g)].map((m) => m[1])
+      return (
+        /\.(insert|update|upsert|delete)\(/.test(fonte) ||
+        /\.rpc\(\s*[^"'`\s]/.test(fonte) ||
+        rpcs.some((r) => !LEITURAS.has(r))
+      )
+    })
+    expect(gravam).toEqual([])
+  })
+
+  it("o middleware confere o token pela assinatura, sem ida ao Auth", () => {
+    const fonte = readFileSync("middleware.ts", "utf8")
+    expect(fonte).toMatch(/\.auth\.getClaims\(\)/)
+    expect(fonte).not.toMatch(/\.auth\.getUser\(\)/)
+  })
+
+  // O client do navegador existe só para o Realtime da tela de Conversas:
+  // dado de clínica se lê no servidor, com requireClinicContext().
+  it("o client do navegador só é importado pela assinatura do Realtime", () => {
+    const importadores = [...walk("app"), ...walk("lib"), ...walk("components")]
+      .filter((f) => /from\s+["']@\/lib\/supabase\/browser["']/.test(readFileSync(f, "utf8")))
+      .map(normalizar)
+
+    expect(importadores).toEqual(["lib/conversations/ao-vivo.ts"])
+    expect(readFileSync("lib/supabase/browser.ts", "utf8")).not.toMatch(/SERVICE_ROLE/)
   })
 
   it("service-context não é importado por página nem componente", () => {
@@ -97,5 +153,34 @@ describe("LGPD: log nunca carrega objeto de erro inteiro", () => {
     }
 
     expect(infratores).toEqual([])
+  })
+
+  it("nenhuma migration carrega segredo de cabeçalho HTTP literal", () => {
+    // O pg_cron que dispara app/api/cron/* com pg_net lê o segredo do
+    // Supabase Vault dentro do comando do job. Literal na migration, ele
+    // iria para o repositório e ficaria legível em cron.job (regra 6 da
+    // lgpd-security).
+    const pasta = join(process.cwd(), "supabase", "migrations")
+    const literal = [/["']authorization["']\s*:/i, /bearer\s+[A-Za-z0-9._~+/-]{8,}/i]
+    const comSegredo = readdirSync(pasta)
+      .filter((f) => f.endsWith(".sql"))
+      .filter((f) => {
+        const sql = readFileSync(join(pasta, f), "utf8")
+        return literal.some((r) => r.test(sql))
+      })
+    expect(comSegredo).toEqual([])
+  })
+
+  it("migration que chama HTTP pelo pg_net lê o segredo do Vault", () => {
+    // Pega também o cabeçalho de outro nome (x-cron-secret...), que a
+    // checagem de literal acima não reconhece.
+    const pasta = join(process.cwd(), "supabase", "migrations")
+    const semVault = readdirSync(pasta)
+      .filter((f) => f.endsWith(".sql"))
+      .filter((f) => {
+        const sql = readFileSync(join(pasta, f), "utf8")
+        return /net\.http_/i.test(sql) && !/vault\.decrypted_secrets/i.test(sql)
+      })
+    expect(semVault).toEqual([])
   })
 })

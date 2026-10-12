@@ -1,0 +1,170 @@
+import type { Metadata } from "next"
+import Link from "next/link"
+import { ChevronRight } from "lucide-react"
+import { PageHeader } from "@/components/patterns/page-header"
+
+export const metadata: Metadata = {
+  title: "Protótipos",
+  robots: { index: false, follow: false },
+}
+
+const TELAS = [
+  {
+    slug: "visao-geral",
+    nome: "Visão geral",
+    mostra: "Alertas por prioridade, o agora do dia, indicadores com comparação de período e funil do contato à consulta",
+    entrega: "motor de conversa (fase 3b) e agenda (fase 5)",
+  },
+  {
+    slug: "conversas",
+    nome: "Conversas",
+    mostra: "Fila por prioridade, janela de 24h da Meta, passar para humano e devolver, notas internas",
+    entrega: "motor de conversa (fase 3b)",
+  },
+  {
+    slug: "pacientes",
+    nome: "Pacientes",
+    mostra: "Busca e recortes; ficha com consentimento, opt-out, convênio e histórico de contato",
+    entrega: "tela de pacientes (o dado já existe)",
+  },
+  {
+    slug: "agenda",
+    nome: "Agenda",
+    mostra: "Dia por profissional e semana, com conflitos visíveis antes de confirmar",
+    entrega: "agendamento (fase 5)",
+  },
+  {
+    slug: "agentes",
+    nome: "Agentes com operação",
+    mostra: "Saúde com motivo, volume de 7 dias, o que a próxima publicação leva ao ar, histórico e teste seguro",
+    entrega: "motor de conversa (fase 3b)",
+  },
+  {
+    slug: "templates",
+    nome: "Templates",
+    mostra: "Categoria e custo, variáveis validadas, motivo de rejeição da Meta e prévia no WhatsApp",
+    entrega: "templates do WhatsApp (fase 4)",
+  },
+  {
+    slug: "sequencias",
+    nome: "Sequências",
+    mostra: "Gatilho, passos com atraso e template aprovado, inscritos e motivo de parada",
+    entrega: "sequências (fase 4)",
+  },
+  {
+    slug: "equipe",
+    nome: "Equipe e acessos",
+    mostra: "Pessoas, convites com expiração, matriz de capacidades e alterações de acesso",
+    entrega: "convite de equipe por e-mail",
+  },
+  {
+    slug: "integracoes",
+    nome: "Integrações",
+    mostra: "Triagem do que pede atenção, WhatsApp de cada agente, Google Calendar e CRMs sem credencial na tela",
+    entrega: "Google Calendar (fase 5), CRM (fase 6) e eventos da Meta (fase 3b)",
+  },
+  {
+    slug: "cobranca",
+    nome: "Plano e cobrança",
+    mostra: "Os dois limites do plano (atendimentos e agentes), próxima cobrança e faturas",
+    entrega: "cobrança (fase 7)",
+  },
+  {
+    slug: "minha-conta",
+    nome: "Minha conta",
+    mostra: "Perfil, papel e último acesso, escolha de tema e troca de senha",
+    entrega: "e-mail transacional (Resend)",
+  },
+] as const
+
+const TELAS_INTERNAS = [
+  {
+    slug: "consumo",
+    nome: "Consumo",
+    mostra: "Atendimentos do ciclo contra o limite de cada clínica, com projeção; quem estoura primeiro sobe",
+    entrega: "contagem de atendimentos (fase 3b) e cobrança (fase 7)",
+  },
+  {
+    slug: "conexoes",
+    nome: "Conexões",
+    mostra: "Números do WhatsApp e templates de cada clínica com a Meta, na ordem de gravidade",
+    entrega: "eventos da Meta (fase 3b) e templates (fase 4)",
+  },
+  {
+    slug: "saude",
+    nome: "Saúde",
+    mostra: "Webhooks da Meta, erros da IA e tarefas agendadas: o que para todas as clínicas de uma vez",
+    entrega: "motor de conversa (fase 3b) e sequências (fase 4)",
+  },
+  {
+    slug: "suporte",
+    nome: "Conversas de suporte",
+    mostra: "Só números antes da justificativa; motivo e chamado liberam a lista por 30 min, e cada acesso vira registro",
+    entrega: "motor de conversa (fase 3b) e a trilha de acesso de suporte",
+  },
+  {
+    slug: "auditoria",
+    nome: "Auditoria",
+    mostra: "A trilha por dia, com os acessos a dado de paciente marcados e justificados",
+    entrega: "acesso de suporte (fase 3b); a trilha de clínicas já existe",
+  },
+] as const
+
+type Tela = { slug: string; nome: string; mostra: string; entrega: string }
+
+function ListaDeTelas({ id, titulo, telas }: { id: string; titulo: string; telas: readonly Tela[] }) {
+  return (
+    <section aria-labelledby={id} className="grid gap-3">
+      <h2 id={id} className="text-[0.9375rem] font-semibold text-ink-1">
+        {titulo}
+      </h2>
+      <ul className="divide-y divide-hairline overflow-hidden rounded-card border border-hairline">
+        {telas.map((t) => (
+          <li key={t.slug}>
+            <Link
+              href={`/admin/design-system/telas/${t.slug}`}
+              className="flex items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-accent"
+            >
+              <div className="grid gap-0.5">
+                <p className="text-sm font-medium text-ink-1">{t.nome}</p>
+                <p className="text-sm text-ink-2">{t.mostra}</p>
+                <p className="text-xs text-ink-3">Entra no ar com: {t.entrega}</p>
+              </div>
+              <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-ink-3" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+/**
+ * Telas desenhadas que ainda não existem para as clínicas. Vivem aqui, e
+ * não em app/(dashboard), para que dado fictício nunca apareça numa rota
+ * que uma clínica alcance — nem digitando a URL.
+ */
+export default function PrototiposPage() {
+  return (
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        title="Protótipos"
+        description="Telas desenhadas que ainda não existem para as clínicas. Todas usam dados fictícios e só a equipe Nextech as vê."
+      />
+      <ListaDeTelas id="telas-clinica" titulo="Painel da clínica" telas={TELAS} />
+      <ListaDeTelas id="telas-internas" titulo="Painel interno" telas={TELAS_INTERNAS} />
+      <Link
+        href="/admin/design-system/estados"
+        className="flex items-center justify-between gap-3 rounded-card border border-hairline px-5 py-4 transition-colors hover:bg-accent"
+      >
+        <div className="grid gap-0.5">
+          <p className="text-sm font-medium text-ink-1">Estados das rotas reais</p>
+          <p className="text-sm text-ink-2">
+            Carregamento, falha e permissão negada. Já estão no ar; aqui ficam lado a lado para revisão.
+          </p>
+        </div>
+        <ChevronRight aria-hidden="true" className="size-4 text-ink-3" />
+      </Link>
+    </div>
+  )
+}

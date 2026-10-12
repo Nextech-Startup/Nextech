@@ -2,6 +2,12 @@
 
 > Mapa completo de rotas, sidebar e telas do produto. Gerado com a skill `superpowers:brainstorming` (caminho arquitetural) em 2026-09-16.
 
+> **Atualização 2026-09-26 (redesign, parte 2), decidida pelo Jhones:**
+> - o grupo "Configuração" passa a se chamar **"Gestão"**;
+> - entra **Integrações** (`/dashboard/integrations`, só owner, "em breve"): guarda credencial da clínica (regra 8), por isso fica no grupo só do owner, e não em Automação. A conexão do WhatsApp continua no editor do agente;
+> - **"Métricas e consumo" não vira item**: o consumo (os dois limites) fica em Plano e cobrança, e as métricas de operação na Visão geral;
+> - **"Conta"** (Minha conta, tema, sair) continua no menu do usuário, no pé do sidebar.
+
 ## Por que este documento existe
 
 O roadmap organiza o trabalho por **domínio** (multi-tenant, conversa, agendamento, billing). Isso funciona para ordem de dependência, mas não responde a uma pergunta prática: quais telas o produto vai ter, e como alguém navega entre elas.
@@ -39,13 +45,14 @@ Configura uma vez, roda sozinho.
 | Sequências | `/dashboard/sequences` | 4 | Recall, reativação, follow-up: passos e gatilhos |
 | Templates | `/dashboard/templates` | 4 | Ciclo de vida do template na Meta, com estado da aprovação |
 
-### Configuração
-Só `owner`.
+### Gestão
+Só `owner`. (Até 2026-09-26 se chamava "Configuração".)
 
 | Item | Rota | Fase | O que faz |
 |---|---|---|---|
 | Perfil da clínica | `/dashboard/settings` | 3a | 7 abas (abaixo) |
 | Equipe e acessos | `/dashboard/settings/team` | 3a | Convidar staff, vincular profissional |
+| Integrações | `/dashboard/integrations` | 5 / 6 | Estado das conexões da clínica: Google Calendar, CRM e WhatsApp de cada agente |
 | Plano e cobrança | `/dashboard/billing` | 7 | Consumo do mês, limite, faturas |
 
 ### As 7 abas do perfil
@@ -65,12 +72,14 @@ Decidido: **esconder o que o papel não acessa**. Interface limpa, e ninguém cl
 | Papel | Vê |
 |---|---|
 | `owner` | Tudo |
-| `staff` | Operação + Automação. Sem Configuração, sem billing |
+| `staff` | Operação + Automação, menos Agentes (configurar agente é do owner). Sem Gestão, sem billing |
 | `professional` | Só Agenda e Pacientes — os próprios |
 
 **Esconder é usabilidade, não segurança.** A barreira real continua sendo a RLS e a checagem de papel em `lib/`. Um sidebar filtrado sem RLS por trás seria segurança por obscuridade; aqui é o contrário — a RLS já existe e foi testada, e o sidebar só evita frustração.
 
 O filtro usa o `role` que `requireClinicContext()` já devolve. Nenhuma consulta nova.
+
+**Menu e página leem a mesma regra** (decidido em 2026-09-26, parte 3 do redesign): `podeAcessar(role, rota)`, em `lib/navigation/acesso.ts`, deriva dos `roles` do `DASHBOARD_NAV`. Antes, o staff via "Agentes" no menu e a página o recusava. Rota fora do mapa é recusada para todos, e `tests/architecture/estados.test.ts` exige que toda página do painel tenha regra no menu e, se nem todo papel a abre, confira o papel.
 
 ---
 

@@ -19,6 +19,7 @@ Este projeto nasceu como landing page (nextech.ia.br) e o SaaS é construído no
 - Assunção de v1: cada agente está vinculado a um único `phone_number_id` da API oficial da Meta (WhatsApp Business Platform) — não existe roteamento de intenção entre agentes dentro do mesmo número. Se surgir caso de múltiplos agentes num único número, essa assunção precisa ser revisitada antes de codar (ver `docs/specs/agent-config-v1.md`).
 - Agente tem `status` (`draft` | `active` | `paused`). Só agente `active` com `phone_number_id` conectado responde tráfego real.
 - Mensagem enviada fora da janela de atendimento de 24h exige template aprovado pela Meta — não é texto livre como era com o Evolution API. Ver skill `integrations` e `docs/specs/whatsapp-templates-v1.md`.
+- A Evolution API continua fora do produto. Ela só existe como canal de demonstração da apresentação a investidor (`docs/specs/evolution-demo-v1.md`), isolado na clínica de demonstração e desligado em produção e na staging. Nenhuma feature do produto pode depender dela.
 - Credencial da Meta de cada clínica (`whatsapp_access_token`, `whatsapp_waba_id`) é dado por tenant, criptografado em repouso — nunca um `.env` de infraestrutura. Ver skill `lgpd-security`.
 - O preview de conversa nunca depende do registro salvo no banco — roda com o payload atual do formulário, sem persistir nada. Isso existe pra permitir testar antes de salvar/publicar.
 
@@ -34,6 +35,7 @@ Este projeto nasceu como landing page (nextech.ia.br) e o SaaS é construído no
 - Regra de negócio pura → `lib/<dominio>/` (ex: `lib/scheduling/`).
 - Rota HTTP → `app/api/<recurso>/route.ts`, fina, só orquestra chamadas pro `lib`.
 - Cliente de serviço externo (WhatsApp, provider de CRM, OpenRouter, Resend, Google Calendar, Asaas) → `lib/<provider>/client.ts`, nunca instanciado direto num componente ou rota.
+- Job agendado → se só mexe no banco, função SQL com `cron.schedule` na mesma migration (pg_cron do Supabase), testada contra o banco real; se precisa da aplicação (Meta, modelo, e-mail), `app/api/cron/<job>/route.ts`, disparado pelo pg_cron com `pg_net` enquanto não houver Vercel Pro. O segredo que a rota confere (com `comparacaoSegura`) fica no Supabase Vault e é lido dentro do comando do job (`vault.decrypted_secrets`), nunca literal na migration: o comando do job é texto legível em `cron.job` e `cron.job_run_details`, e a migration vai para o repositório. O `clinic_id` vem do próprio dado, como no webhook.
 - UI do painel da clínica → `app/(dashboard)`. UI interna da Nextech (métricas, suporte, onboarding de clínica) → `app/(admin)`.
 
 ## Quando criar um adapter novo

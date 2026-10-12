@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { DASHBOARD_NAV, resolveDashboardNav, isItemActive } from "./dashboard-nav"
+import { DASHBOARD_NAV, hrefDaMinhaConta, resolveDashboardNav, isItemActive } from "./dashboard-nav"
 import { ADMIN_NAV, resolveAdminNav } from "./admin-nav"
 import { primeiraRotaVisivel, ROTULO_DO_PAPEL } from "./landing"
 import type { ClinicRole } from "@/lib/auth/context"
@@ -20,7 +20,7 @@ describe("mapa do painel da clínica", () => {
     expect(DASHBOARD_NAV.map((g) => g.label)).toEqual([
       "Operação",
       "Automação",
-      "Configuração",
+      "Gestão",
     ])
   })
 
@@ -42,13 +42,19 @@ describe("mapa do painel da clínica", () => {
     ])
   })
 
-  it("Configuração lista perfil, equipe e cobrança", () => {
-    const config = DASHBOARD_NAV.find((g) => g.label === "Configuração")!
-    expect(config.items.map((i) => i.label)).toEqual([
+  it("Gestão lista perfil, equipe, integrações e cobrança", () => {
+    const gestao = DASHBOARD_NAV.find((g) => g.label === "Gestão")!
+    expect(gestao.items.map((i) => i.label)).toEqual([
       "Perfil da clínica",
       "Equipe e acessos",
+      "Integrações",
       "Plano e cobrança",
     ])
+  })
+
+  it("Integrações ainda não tem tela", () => {
+    const item = DASHBOARD_NAV.flatMap((g) => g.items).find((i) => i.label === "Integrações")!
+    expect(item).toMatchObject({ href: "/dashboard/integrations", status: "em-breve" })
   })
 
   it("cada item aponta para uma rota interna única", () => {
@@ -68,22 +74,27 @@ describe("filtro por papel", () => {
     expect(rotulos("owner")).toHaveLength(total)
   })
 
-  it("staff não vê o grupo Configuração", () => {
+  it("staff não vê o grupo Gestão", () => {
     const grupos = resolveDashboardNav("staff", "/dashboard").map((g) => g.label)
     expect(grupos).toEqual(["Operação", "Automação"])
+  })
+
+  it("Integrações é só do owner: guarda credencial da clínica", () => {
+    expect(rotulos("owner")).toContain("Integrações")
+    expect(rotulos("staff")).not.toContain("Integrações")
+    expect(rotulos("professional")).not.toContain("Integrações")
   })
 
   it("staff não vê plano e cobrança", () => {
     expect(rotulos("staff")).not.toContain("Plano e cobrança")
   })
 
-  it("staff vê Operação e Automação inteiras", () => {
+  it("staff vê Operação e Automação, menos Agentes", () => {
     expect(rotulos("staff")).toEqual([
       "Visão geral",
       "Conversas",
       "Agenda",
       "Pacientes",
-      "Agentes",
       "Sequências",
       "Templates",
     ])
@@ -121,6 +132,8 @@ describe("itens de tela não construída", () => {
     // ponto — obriga a decidir se ela está mesmo pronta.
     expect(prontos).toEqual([
       "/dashboard",
+      // conversation-engine-v1, parte 4 (2026-10-11).
+      "/dashboard/conversations",
       "/dashboard/agents",
       "/dashboard/settings",
     ])
@@ -192,11 +205,20 @@ describe("mapa do painel interno", () => {
     ])
   })
 
-  it("só a listagem de clínicas está construída", () => {
+  it("só a listagem de clínicas, as conversas de suporte e a auditoria estão construídas", () => {
     const prontos = ADMIN_NAV.flatMap((g) =>
       g.items.filter((i) => i.status === "pronto").map((i) => i.href),
     )
-    expect(prontos).toEqual(["/admin"])
+    // Auditoria: admin-audit-v1. Conversas: conversation-engine-v1, parte 4.
+    expect(prontos).toEqual(["/admin", "/admin/conversations", "/admin/audit"])
+  })
+
+  it("na auditoria, só ela fica ativa: /admin é prefixo, mas não acende Clínicas", () => {
+    const ativos = resolveAdminNav("/admin/audit")
+      .flatMap((g) => g.items)
+      .filter((i) => i.active)
+      .map((i) => i.label)
+    expect(ativos).toEqual(["Auditoria"])
   })
 
   it("todo item aponta para dentro do painel interno", () => {
@@ -255,5 +277,72 @@ describe("rótulo do papel", () => {
     expect(ROTULO_DO_PAPEL.owner).toBe("Responsável")
     expect(ROTULO_DO_PAPEL.staff).toBe("Equipe")
     expect(ROTULO_DO_PAPEL.professional).toBe("Profissional")
+  })
+})
+
+describe("conta de demonstração", () => {
+  const itens = (role: ClinicRole, demo: boolean, pathname = "/dashboard") =>
+    resolveDashboardNav(role, pathname, { demo }).flatMap((g) => g.items)
+
+  it("todo item é navegável e nenhum fica em breve", () => {
+    const todos = itens("owner", true)
+    expect(todos).toHaveLength(DASHBOARD_NAV.flatMap((g) => g.items).length)
+    expect(todos.filter((i) => i.status !== "pronto")).toEqual([])
+  })
+
+  it("o filtro por papel continua valendo", () => {
+    for (const role of ["owner", "staff", "professional"] as const) {
+      expect(itens(role, true).map((i) => i.label)).toEqual(itens(role, false).map((i) => i.label))
+    }
+    expect(itens("professional", true).map((i) => i.label)).toEqual(["Agenda", "Pacientes"])
+  })
+
+  it("o item que era em breve acende na própria rota", () => {
+    const ativos = itens("owner", true, "/dashboard/patients/p-01").filter((i) => i.active)
+    expect(ativos.map((i) => i.label)).toEqual(["Pacientes"])
+  })
+
+  it("fora da demonstração o menu não muda", () => {
+    expect(resolveDashboardNav("owner", "/dashboard", { demo: false })).toEqual(
+      resolveDashboardNav("owner", "/dashboard"),
+    )
+    expect(itens("owner", false).filter((i) => i.status === "em-breve").map((i) => i.label)).toEqual([
+      "Agenda",
+      "Pacientes",
+      "Sequências",
+      "Templates",
+      "Equipe e acessos",
+      "Integrações",
+      "Plano e cobrança",
+    ])
+  })
+
+  it("Minha conta só tem destino na demonstração", () => {
+    expect(hrefDaMinhaConta(true)).toBe("/dashboard/account")
+    expect(hrefDaMinhaConta(false)).toBeNull()
+  })
+
+  it("na demonstração, a primeira tela do profissional é a Agenda", () => {
+    expect(primeiraRotaVisivel("professional", true)).toBe("/dashboard/schedule")
+    expect(primeiraRotaVisivel("professional")).toBeNull()
+    expect(primeiraRotaVisivel("owner", true)).toBe("/dashboard")
+  })
+})
+
+describe("item ativo mais específico", () => {
+  // Na demonstração, Perfil da clínica e Equipe e acessos são os dois
+  // navegáveis, e /dashboard/settings é prefixo de /dashboard/settings/team.
+  it("em Equipe e acessos, só Equipe acende", () => {
+    const ativos = resolveDashboardNav("owner", "/dashboard/settings/team", { demo: true })
+      .flatMap((g) => g.items)
+      .filter((i) => i.active)
+    expect(ativos.map((i) => i.label)).toEqual(["Equipe e acessos"])
+  })
+
+  it("no Perfil da clínica, só o Perfil acende", () => {
+    const ativos = resolveDashboardNav("owner", "/dashboard/settings", { demo: true })
+      .flatMap((g) => g.items)
+      .filter((i) => i.active)
+    expect(ativos.map((i) => i.label)).toEqual(["Perfil da clínica"])
   })
 })
