@@ -275,7 +275,7 @@ Spec `docs/specs/evolution-demo-v1.md`; plano `docs/superpowers/plans/2026-10-11
   - [x] o número do ensaio, na lista de permitidos (ensaio feito em 2026-10-11);
   - [ ] o número do investidor na lista de permitidos, antes da apresentação;
   - [ ] apagar no celular do chip a conversa do ensaio (o banco já foi limpo)
-- [ ] **Funções da Vercel em `pdx1`**, junto do Supabase (us-west-2): hoje, provavelmente `iad1`, a ~70 ms por ida. Conferir em Settings → Functions e fixar no PR para a `main` (`docs/infra-setup.md`)
+- [x] **Funções da Vercel em `pdx1`**, junto do Supabase (us-west-2): fixadas pelo `vercel.json` no PR para a `main` (`docs/infra-setup.md`)
 - [ ] **Revisar a spec do CRM próprio** (`docs/specs/crm-v1.md`), antes do plano da parte 1
 - [x] ~~**Prova de posse do número na conexão**~~: entrou na parte 2 da 3b. `connectWhatsapp` confere na Graph API que o número pertence ao WABA
 - [ ] **Antes de assinar o webhook da Meta em produção (bloqueio de go-live):**
