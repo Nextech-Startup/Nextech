@@ -1,11 +1,7 @@
 import type { Metadata } from "next"
 import { AvisoDePrototipo } from "@/components/patterns/aviso-de-prototipo"
 import { CaixaDeConversas } from "@/components/conversations/caixa-de-conversas"
-import {
-  contarPorEstado,
-  filtrarConversas,
-  lerFiltroDeEstado,
-} from "@/components/conversations/estado"
+import { filtrarConversas, lerFiltroDeEstado } from "@/components/conversations/estado"
 import { AGORA } from "@/app/_fixtures/agora"
 import { CONVERSAS } from "@/app/_fixtures/conversas"
 
@@ -37,8 +33,7 @@ export default async function ConversasPrototipo({
     <div className="grid gap-6">
       <AvisoDePrototipo entrega="motor de conversa (fase 3b)" />
       <CaixaDeConversas
-        conversas={conversas}
-        contagens={contarPorEstado(CONVERSAS)}
+        todas={CONVERSAS}
         filtro={filtro}
         aberta={aberta}
         celularNaConversa={Boolean(pedida)}

@@ -7,7 +7,8 @@ import { PermissaoNegada } from "@/components/patterns/permissao-negada"
 import { AoVivo } from "@/components/conversations/ao-vivo"
 import { AvisoDeDesconexao } from "@/components/conversations/aviso-de-desconexao"
 import { CaixaDeConversas } from "@/components/conversations/caixa-de-conversas"
-import { contarPorEstado, filtrarConversas } from "@/components/conversations/estado"
+import { filtrarConversas } from "@/components/conversations/estado"
+import type { ConversaResumo } from "@/components/conversations/tipos"
 import { TelaDeVisaoGeral } from "@/components/overview/tela-de-visao-geral"
 import { ListaDeAgentesEmOperacao } from "@/components/agents/lista-em-operacao"
 import { OperacaoDoAgente } from "@/components/agents/operacao-do-agente"
@@ -299,7 +300,8 @@ describe("numa clínica comum", () => {
     expect(tela.type).toBe(CaixaDeConversas)
     const props = tela.props as Record<string, unknown>
     expect((props.modo as { tipo: string }).tipo).toBe("clinica")
-    expect(props.conversas).toEqual(conversasReais.fila)
+    // A fila inteira: o recorte é do navegador (FilaDaCaixa).
+    expect(props.todas).toEqual(conversasReais.fila)
     expect(props.aberta).toEqual(conversasReais.aberta)
   })
 
@@ -439,8 +441,7 @@ describe("na conta de demonstração", () => {
   // A conversa real do canal de demonstração entra na fila de exemplo.
   describe("Conversas com o canal de demonstração (evolution-demo-v1)", () => {
     type Props = {
-      conversas: unknown[]
-      contagens: unknown
+      todas: unknown[]
       filtro: { busca: string }
       aberta: unknown
       modo?: { tipo: string }
@@ -451,13 +452,18 @@ describe("na conta de demonstração", () => {
     const conversas = async (busca: Record<string, string> = {}) =>
       (await abrir({ ...rota("/dashboard/conversations"), busca })).props as Props
 
-    it("a fila junta a real e as de exemplo, na ordem de sempre e com a contagem das duas", async () => {
-      const props = await conversas()
-      const todas = [...conversasReais.fila, ...m(CONVERSAS)]
-      expect(props.conversas).toEqual(filtrarConversas(todas, { estado: "todas", busca: "" }))
-      expect(props.conversas).toContainEqual(conversasReais.fila[0])
-      expect(props.conversas).toHaveLength(CONVERSAS.length + 1)
-      expect(props.contagens).toEqual(contarPorEstado(todas))
+    // O recorte e a contagem saem da fila inteira no navegador (FilaDaCaixa).
+    it("a fila junta a real e as de exemplo, inteira, para o recorte do navegador", async () => {
+      const props = await conversas({ status: "ia" })
+      expect(props.todas).toEqual([...conversasReais.fila, ...m(CONVERSAS)])
+      expect(props.todas).toHaveLength(CONVERSAS.length + 1)
+    })
+
+    it("sem conversa pedida, abre a primeira do recorte da URL", async () => {
+      const todas = [...conversasReais.fila, ...m(CONVERSAS)] as ConversaResumo[]
+      const primeira = filtrarConversas(todas, { estado: "aguardando", busca: "" })[0]
+      const props = await conversas({ status: "aguardando" })
+      expect((props.aberta as { id: string }).id).toBe(primeira.id)
     })
 
     it("a real abre pela leitura real, com as ações reais e sem a ficha", async () => {
@@ -482,7 +488,7 @@ describe("na conta de demonstração", () => {
     it("o ?q= não é lido: a busca é por POST, também na demonstração", async () => {
       const props = await conversas({ q: conversa.paciente.nome ?? "Maria" })
       expect(props.filtro.busca).toBe("")
-      expect(props.conversas).toHaveLength(CONVERSAS.length + 1)
+      expect(props.todas).toHaveLength(CONVERSAS.length + 1)
       expect(typeof props.buscar).toBe("function")
     })
 

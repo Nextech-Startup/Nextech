@@ -1,27 +1,17 @@
 import type { ReactNode } from "react"
-import Link from "next/link"
-import { Busca } from "@/components/patterns/busca"
-import { FiltroSegmentado } from "@/components/patterns/filtro-segmentado"
 import { PageHeader } from "@/components/patterns/page-header"
-import { Vazio } from "@/components/patterns/vazio"
 import { cn } from "@/lib/utils"
-import { BuscaDaFila, type ResultadoDaBusca } from "./busca-da-fila"
+import type { ResultadoDaBusca } from "./busca-da-fila"
 import { Conversa, type ModoDaConversa } from "./conversa"
 import { hrefDaFila, type FiltroDeEstado } from "./estado"
-import { ListaDeConversas } from "./lista-de-conversas"
+import { FilaDaCaixa } from "./fila-da-caixa"
 import type { ConversaAberta, ConversaResumo } from "./tipos"
-
-const SEGMENTOS: { valor: FiltroDeEstado; rotulo: string }[] = [
-  { valor: "todas", rotulo: "Todas" },
-  { valor: "urgente", rotulo: "Urgentes" },
-  { valor: "aguardando", rotulo: "Aguardando" },
-  { valor: "humano", rotulo: "Humano" },
-  { valor: "ia", rotulo: "IA" },
-]
 
 /**
  * A caixa de conversas: a fila à esquerda, a conversa aberta à direita.
  * Filtro, busca e conversa aberta vivem na URL (`?status=`, `?q=`, `?c=`).
+ * A página manda a fila inteira (`todas`); o recorte é aplicado no navegador
+ * (`FilaDaCaixa`), sem ir ao servidor. Abrir uma conversa vai.
  *
  * No celular cabe uma coisa por vez: sem `?c` mostra a fila; com `?c`,
  * só a conversa, com o caminho de volta.
@@ -35,8 +25,7 @@ const SEGMENTOS: { valor: FiltroDeEstado; rotulo: string }[] = [
  * em `?q=` sobre fixture.
  */
 export function CaixaDeConversas({
-  conversas,
-  contagens,
+  todas,
   filtro,
   aberta,
   celularNaConversa,
@@ -48,8 +37,9 @@ export function CaixaDeConversas({
   aviso,
   buscar,
 }: {
-  conversas: readonly ConversaResumo[]
-  contagens: Record<FiltroDeEstado, number>
+  /** A fila inteira, sem recorte: quem recorta é a `FilaDaCaixa`. */
+  todas: readonly ConversaResumo[]
+  /** O da URL quando a página foi desenhada: o recorte vale para o "voltar" do celular. */
   filtro: { estado: FiltroDeEstado; busca: string }
   aberta: ConversaAberta | null
   celularNaConversa: boolean
@@ -66,42 +56,6 @@ export function CaixaDeConversas({
   // Na tela real, a busca não vive na URL.
   const q = buscar ? undefined : filtro.busca || undefined
   const href = (params: Record<string, string | undefined>) => hrefDaFila(caminho, params)
-
-  const hrefDa = Object.fromEntries(conversas.map((c) => [c.id, href({ status, q, c: c.id })]))
-
-  const segmentos = (
-    <FiltroSegmentado
-      rotulo="Filtrar por estado"
-      atual={filtro.estado}
-      quebrar
-      segmentos={SEGMENTOS.map((s) => ({
-        ...s,
-        contagem: contagens[s.valor],
-        href: href({ status: s.valor === "todas" ? undefined : s.valor, q }),
-      }))}
-    />
-  )
-
-  const lista =
-    conversas.length > 0 ? (
-      <ListaDeConversas conversas={conversas} selecionada={aberta?.id ?? null} agora={agora} hrefDa={hrefDa} />
-    ) : (
-      <div className="p-4">
-        {contagens.todas === 0 && !filtro.busca ? (
-          <Vazio>Nenhuma conversa ainda. Quando um paciente escrever para o WhatsApp da clínica, ela aparece aqui.</Vazio>
-        ) : (
-          <Vazio
-            acao={
-              <Link href={caminho} className="text-sm text-ink-1 underline underline-offset-4">
-                Ver todas
-              </Link>
-            }
-          >
-            Nenhuma conversa neste filtro.
-          </Vazio>
-        )}
-      </div>
-    )
 
   return (
     <div className="grid gap-6">
@@ -120,25 +74,14 @@ export function CaixaDeConversas({
             celularNaConversa && "hidden md:flex",
           )}
         >
-          {buscar ? (
-            <BuscaDaFila
-              buscar={buscar}
-              estado={filtro.estado}
-              caminho={caminho}
-              selecionada={aberta?.id ?? null}
-              agora={agora}
-              segmentos={segmentos}
-              lista={lista}
-            />
-          ) : (
-            <>
-              <div className="grid gap-3 border-b border-hairline p-3">
-                <Busca rotulo="Buscar por nome ou telefone" valor={filtro.busca} preservar={{ status }} />
-                {segmentos}
-              </div>
-              {lista}
-            </>
-          )}
+          <FilaDaCaixa
+            todas={todas}
+            busca={filtro.busca}
+            selecionada={aberta?.id ?? null}
+            agora={agora}
+            caminho={caminho}
+            buscar={buscar}
+          />
         </div>
 
         <div className={cn("min-h-0", !celularNaConversa && "hidden md:block")}>

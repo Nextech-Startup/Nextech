@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import { AvatarDeIniciais } from "./avatar-de-iniciais"
 import { Busca } from "./busca"
-import { FiltroSegmentado } from "./filtro-segmentado"
+import { FiltroSegmentado, cliqueSimples } from "./filtro-segmentado"
 import { LinhaDoTempo } from "./linha-do-tempo"
 import { ListaDeDados } from "./lista-de-dados"
 
@@ -26,6 +26,25 @@ describe("FiltroSegmentado", () => {
   it("mostra a contagem e nomeia a navegação", () => {
     expect(html).toContain('aria-label="Filtrar conversas"')
     expect(html).toContain(">7<")
+  })
+})
+
+// Com `aoEscolher`, a tela troca o recorte sem ir ao servidor; o clique com
+// modificador continua do navegador (abrir em outra aba, por exemplo).
+describe("cliqueSimples", () => {
+  const clique = { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, defaultPrevented: false }
+
+  it("o clique comum com o botão principal fica com a tela", () => {
+    expect(cliqueSimples(clique)).toBe(true)
+  })
+
+  it.each(["metaKey", "ctrlKey", "shiftKey", "altKey"] as const)("com %s, fica com o navegador", (tecla) => {
+    expect(cliqueSimples({ ...clique, [tecla]: true })).toBe(false)
+  })
+
+  it("o botão do meio e o clique já tratado ficam com o navegador", () => {
+    expect(cliqueSimples({ ...clique, button: 1 })).toBe(false)
+    expect(cliqueSimples({ ...clique, defaultPrevented: true })).toBe(false)
   })
 })
 

@@ -7,11 +7,7 @@ import { podeAcessar } from "@/lib/navigation/acesso"
 import { AoVivo } from "@/components/conversations/ao-vivo"
 import { AvisoDeDesconexao } from "@/components/conversations/aviso-de-desconexao"
 import { CaixaDeConversas } from "@/components/conversations/caixa-de-conversas"
-import {
-  contarPorEstado,
-  filtrarConversas,
-  lerFiltroDeEstado,
-} from "@/components/conversations/estado"
+import { filtrarConversas, lerFiltroDeEstado } from "@/components/conversations/estado"
 import { PermissaoNegada } from "@/components/patterns/permissao-negada"
 import { AGORA } from "@/app/_fixtures/agora"
 import { CONVERSAS } from "@/app/_fixtures/conversas"
@@ -78,8 +74,7 @@ export default async function ConversasPage({
 
     return (
       <CaixaDeConversas
-        conversas={conversas}
-        contagens={contarPorEstado(todas)}
+        todas={todas}
         filtro={filtro}
         aberta={aberta}
         celularNaConversa={Boolean(pedida)}
@@ -103,8 +98,7 @@ export default async function ConversasPage({
 
   return (
     <CaixaDeConversas
-      conversas={conversas}
-      contagens={contarPorEstado(todas)}
+      todas={todas}
       filtro={filtro}
       aberta={aberta}
       celularNaConversa={Boolean(pedida)}
