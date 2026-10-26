@@ -99,7 +99,7 @@ Em `components/footer.tsx`, os quatro rótulos de "Legal" viram `Link` (do `next
 - Segurança → `/privacidade#seguranca`;
 - Cookies → `/privacidade#cookies`.
 
-As colunas "Recursos" e "Empresa" continuam inertes; o resto do rodapé não muda.
+As colunas "Recursos" e "Empresa" continuam inertes; o resto do rodapé não muda, com uma exceção decidida na implementação (2026-10-26): o e-mail do rodapé passa de `nextech.reunioes@gmail.com` para o `contato@`. O rodapé aparece nas páginas legais, e o Gmail seria um fornecedor recebendo pedido de titular fora da lista da política (achado da revisão de segurança). Fora da home, os links do rodapé e o logo usam a URL absoluta da landing, porque em `app.nextech.ia.br` o `/` vai para o dashboard.
 
 ### 6. Estrutura e visual
 - Rotas em `app/(marketing)/privacidade`, `app/(marketing)/termos` e `app/(marketing)/exclusao-de-dados`, estáticas (sem dado dinâmico) e com o tema da landing (skill `ui-ux`).
@@ -144,7 +144,7 @@ Nenhuma. A regra de fornecedor novo muda a skill `lgpd-security`.
 
 ## Critério de aceite
 1. `/privacidade`, `/termos` e `/exclusao-de-dados` respondem 200 em `www.nextech.ia.br` e em `app.nextech.ia.br`, sem redirecionar para o login.
-2. As quatro entradas de "Legal" no rodapé são links com os destinos da seção 5. Na home, nada mais no rodapé muda.
+2. As quatro entradas de "Legal" no rodapé são links com os destinos da seção 5. Na home, nada mais no rodapé muda além do e-mail de contato (seção 5).
 3. `/privacidade#cookies` e `/privacidade#seguranca` existem como `id` no HTML e rolam até a seção.
 4. Cada página tem `title`, `description` e canonical próprios. Se existir `sitemap`, as três rotas estão nele.
 5. Nas duas larguras (390 px e 1440 px) e nos dois temas, não há rolagem horizontal.

@@ -4,6 +4,7 @@ import { Manrope } from "next/font/google"
 import localFont from "next/font/local"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
+import { SITE_URL } from "@/lib/site-url"
 import "./globals.css"
 
 const manrope = Manrope({
@@ -33,7 +34,6 @@ const instrumentSans = localFont({
   fallback: ["system-ui", "sans-serif"],
 })
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://www.nextech.ia.br"
 const DESCRIPTION =
   "Assistentes de WhatsApp com IA que automatizam conversas de clínicas, recuperam consultas perdidas e oferecem atendimento 24/7. Desenvolvido para todas as clínicas e consultórios do Brasil."
 

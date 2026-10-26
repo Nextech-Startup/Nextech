@@ -53,6 +53,20 @@ describe("middleware", () => {
     expect(new URL(resposta.headers.get("location")!).pathname).toBe("/login")
   })
 
+  // A Meta acessa a política pelo domínio que estiver no app; no painel,
+  // só a raiz redireciona (docs/specs/legal-pages-v1.md, edge cases).
+  it.each(["/privacidade", "/termos", "/exclusao-de-dados"])(
+    "%s abre no host do painel sem login e sem conferir sessão",
+    async (caminho) => {
+      const { middleware } = await import("@/middleware")
+
+      const resposta = await middleware(pedir(caminho, "app.nextech.ia.br"))
+
+      expect(resposta.headers.get("location")).toBeNull()
+      expect(mockGetClaims).not.toHaveBeenCalled()
+    },
+  )
+
   it("rota pública não confere sessão", async () => {
     const { middleware } = await import("@/middleware")
 

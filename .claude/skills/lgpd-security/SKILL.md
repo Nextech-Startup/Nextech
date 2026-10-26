@@ -21,4 +21,6 @@ Dado de paciente é dado sensível de saúde. O rigor prometido no plano HealthT
 Rejeitar qualquer PR que:
 - imprima ou logue conteúdo de mensagem/paciente sem mascarar;
 - adicione tabela com dado de paciente sem RLS por `clinic_id`;
-- adicione integração externa sem revisar quais dados saem da nossa infraestrutura.
+- adicione integração externa sem revisar quais dados saem da nossa infraestrutura;
+- coloque em uso um fornecedor que trate dado pessoal (Resend, Google Calendar, Asaas, um CRM...) sem atualizar no mesmo PR a seção "Com quem compartilhamos" de `app/(marketing)/privacidade/page.tsx` e a data de atualização em `components/legal/empresa.ts`. O teste `tests/legal/paginas-legais.test.tsx` falha para Resend, Asaas e Google Calendar; fornecedor fora dessa lista entra nela junto;
+- mude o que a política de privacidade afirma (cifra, isolamento, retenção, cookies, IA) sem mudar o texto dela.

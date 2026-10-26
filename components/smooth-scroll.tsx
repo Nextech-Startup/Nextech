@@ -18,8 +18,11 @@ const SCROLL_GAP = 16
 function getScrollOffset(): number {
   const header = document.querySelector("header")
   if (!header) return -112
-  const rect = header.getBoundingClientRect()
-  return -(rect.height + rect.top + SCROLL_GAP)
+  // `top` do CSS e altura de layout, e não o getBoundingClientRect: durante a
+  // entrada animada da navbar (translateY de -100px), o retângulo ainda está
+  // fora da tela, e quem chega por `/#Secao` rola nesse instante.
+  const top = parseFloat(getComputedStyle(header).top) || 0
+  return -(header.offsetHeight + top + SCROLL_GAP)
 }
 
 type ScrollApi = {
@@ -100,6 +103,29 @@ export function SmoothScroll({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  // Quem chega de outra página por `/#Secao` (o rodapé das páginas legais)
+  // cai no salto nativo do navegador, que esconde o título atrás da navbar
+  // fixa. Depois do Lenis montado, refaz o salto com o offset certo.
+  useEffect(() => {
+    let id: string
+    try {
+      id = decodeURIComponent(window.location.hash.slice(1))
+    } catch {
+      // Hash malformado (`/#%`): não há seção para achar, e a home não pode cair.
+      return
+    }
+    if (!id) return
+    // O navegador repete o salto nativo até a página terminar de carregar:
+    // rolar antes do `load` seria desfeito por ele (medido no celular).
+    const rolar = () => api.scrollToSection(id)
+    if (document.readyState === "complete") {
+      rolar()
+      return
+    }
+    window.addEventListener("load", rolar, { once: true })
+    return () => window.removeEventListener("load", rolar)
+  }, [api])
+
   return <ScrollContext.Provider value={api}>{children}</ScrollContext.Provider>
 }
 
@@ -110,4 +136,13 @@ export function useScrollTo(): ScrollApi {
     throw new Error("useScrollTo precisa estar dentro de <SmoothScroll>")
   }
   return ctx
+}
+
+/**
+ * Como `useScrollTo`, mas devolve `null` fora de `<SmoothScroll>`: para o
+ * componente que aparece na home e em outras páginas (o rodapé) trocar a
+ * rolagem por um link para `/#Secao`.
+ */
+export function useOptionalScrollTo(): ScrollApi | null {
+  return useContext(ScrollContext)
 }

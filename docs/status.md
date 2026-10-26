@@ -1,6 +1,6 @@
 # Status do Projeto — Nextech SaaS
 
-> Atualizado em 2026-10-11. Documento de acompanhamento: o que está pronto, o que falta e o que bloqueia.
+> Atualizado em 2026-10-26. Documento de acompanhamento: o que está pronto, o que falta e o que bloqueia.
 
 ## Onde estamos
 
@@ -13,15 +13,16 @@
 | **3c — Shell de navegação** | ✅ concluída |
 | **Conta de demonstração** | ✅ concluída (`docs/specs/demo-account-v1.md`): todas as telas do painel na "Clínica Demonstração Nextech", com dado de exemplo e selo |
 | **Canal de demonstração (Evolution)** | ✅ concluído e ensaiado com o chip (`docs/specs/evolution-demo-v1.md`) |
+| **Páginas legais** | ✅ concluídas (`docs/specs/legal-pages-v1.md`): `/privacidade`, `/termos` e `/exclusao-de-dados`, com a exclusão dos leads em 12 meses pelo pg_cron |
 | **CRM próprio** | 📝 spec escrita (`docs/specs/crm-v1.md`), à espera da revisão do Jhones |
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**1767 testes passando** (138 arquivos) · 34 migrations aplicadas · em produção em `app.nextech.ia.br`
+**1818 testes passando** (141 arquivos) · 35 migrations aplicadas · em produção em `app.nextech.ia.br`
 
-**Prioridade atual (decisão do Jhones, 2026-10-11): a apresentação para investidor.** O canal de demonstração está pronto e ensaiado: num login só (`clinica@`), as telas da conta de demonstração mais a IA conversando pelo WhatsApp de verdade, pela Evolution API no computador da apresentação. Roteiro em `docs/infra-setup.md` ("Canal de demonstração"); antes, pôr o número do investidor na lista de permitidos e, no fim, `scripts/canal-demo.ts limpar`.
+**Prioridade atual (2026-10-26): o desenvolvimento do produto**, spec por spec. A apresentação ao investidor está resolvida: o Jhones concluiu os passos pendentes (número do investidor e limpeza).
 
-**Próximas sessões, nesta ordem:** (1) as páginas legais (`docs/specs/legal-pages-v1.md`), que destravam o App Review da Meta, depois que o Jhones passar a identidade da empresa; (2) a correção da posse do WhatsApp; (3) o MFA no painel interno; (4) o plano da parte 1 do CRM, depois da revisão da spec; (5) a parte 5 da 3b (preview e áudio). O PR `staging` → `main` (#7, com as funções em `pdx1`) entrou em 2026-10-12. A posse e o MFA são bloqueios de go-live (Pendências, abaixo), não da apresentação.
+**Próximas sessões, nesta ordem:** (1) a correção da posse do WhatsApp; (2) o MFA no painel interno; (3) o plano da parte 1 do CRM, depois da revisão da spec; (4) a parte 5 da 3b (preview e áudio). A posse e o MFA são bloqueios de go-live (Pendências, abaixo).
 
 ---
 
@@ -207,6 +208,21 @@ Decisões já tomadas: retomada da IA por inatividade de 24h; urgência responde
 
 ---
 
+## Páginas legais ✅ (2026-10-26)
+
+Spec `docs/specs/legal-pages-v1.md`. Destravam o App Review da Meta, que exige a URL da política e a de instruções de exclusão.
+
+- **Rotas estáticas** em `app/(marketing)/privacidade`, `termos` e `exclusao-de-dados`, com a moldura `components/legal/pagina-legal.tsx` (logo, tema, texto e o rodapé da landing) e a identidade da empresa num lugar só, `components/legal/empresa.ts`. Abrem também em `app.nextech.ia.br`, sem login (teste do middleware).
+- **Rodapé:** os quatro itens de "Legal" viram links. Fora da home, os links de seção e o logo usam a URL absoluta da landing (`lib/site-url.ts`), porque em `app.nextech.ia.br` o `/` vai para o dashboard (achado do QA); a home refaz o salto até a seção com o offset da navbar. O e-mail do rodapé passou de `nextech.reunioes@gmail.com` para o `contato@`, o do encarregado: o Gmail seria um fornecedor a mais recebendo pedido de titular, fora da lista da política.
+- **Exclusão dos leads:** `delete_expired_chatbot_leads()`, diária às 4h UTC pelo pg_cron (`nextech-apagar-leads-vencidos`). Apaga o lead com mais de 12 meses ou sem `created_at`. Em 2026-10-26 havia 7 leads, o mais antigo de 11/02/2026: nada foi apagado na aplicação.
+- **O texto é conferido pelo teste** (`tests/legal/paginas-legais.test.tsx`): fornecedor citado só com código dele (Resend, Asaas e Google Calendar), o prazo dos leads igual ao da migration, o ZDR do cliente de IA, os cookies, o "Desconectar", a retomada da IA em 24 h e a urgência por palavra-chave.
+- **A revisão de segurança corrigiu o texto em quatro pontos:**
+  - a IA não "para" quando a equipe assume, ela volta em 24 h ou quando a equipe devolve a conversa;
+  - a urgência é decidida pelas palavras-chave da clínica, não pelo assistente, e o aviso é o alerta do painel;
+  - o acesso de suporte com justificativa vale para o painel de suporte;
+  - as métricas de acesso medem o painel também.
+- **Desvio da spec:** ela pedia "o paciente pode pedir atendimento humano a qualquer momento". O `handoff_enabled` do agente existe, mas o motor não o usa. O texto diz o que existe: a equipe assume pelo painel ou pelo celular, e o paciente pode pedir isso à clínica.
+
 ## Fase 3c — Shell de navegação
 
 Desenho em `docs/superpowers/specs/2026-09-16-navegacao-e-rotas-design.md`. **Implementada** — 29 testes.
@@ -263,6 +279,9 @@ Spec `docs/specs/evolution-demo-v1.md`; plano `docs/superpowers/plans/2026-10-11
 ## Pendências
 
 ### Precisam de ação do Jhones
+
+- [ ] **Páginas legais, depois do deploy em produção (PR `staging` → `main`):** pôr as três URLs (`https://www.nextech.ia.br/privacidade`, `/termos`, `/exclusao-de-dados`) nos campos do app na Meta (Configurações do app > Básico). Antes da primeira clínica: a revisão do texto, de preferência com advogado. Na revisão, confirmar o data center da conta do Zoho (a política diz "exterior") e o fundamento da transferência internacional (art. 33)
+- [ ] **Caminho de exclusão do paciente, bloqueio de go-live** (achado da revisão de segurança das páginas legais): a política promete que o pedido do paciente é atendido em até 15 dias, com o cadastro anonimizado. A `anonymize_patient` existe e é testada, mas nada a chama: as telas de paciente só abrem na demonstração, e a função exige owner com sessão viva, então nem o `service_role` a roda. Antes da primeira clínica, entregar a ação do owner na ficha do paciente (ou uma rota interna auditada). Sem cliente, nenhum titular depende disso hoje
 
 - [ ] **Prioridade (segurança, alto, anterior à conta de demonstração): conexão do WhatsApp sem prova de posse pelo PostgREST.** O `authenticated` tem insert e update em `whatsapp_phone_number_id`, `whatsapp_waba_id` e `whatsapp_access_token_encrypted` de `agents` (`20260916240000_agent_config.sql`). Assim, o dono de uma clínica grava direto o número de outra, sem o `conferirPosse`, que só existe na aplicação. Se essa outra estiver desconectada, as mensagens dos pacientes dela passam a ser gravadas na clínica dele, mesmo com o agente em rascunho. Correção proposta: revogar as três colunas do `authenticated` e gravar a conexão no servidor, depois da prova de posse (contexto de serviço ou RPC). Muda grant de tabela existente, por isso pede confirmação. Achado da conferência de segurança da conta de demonstração (2026-09-27); é bloqueio de go-live. **A tela de Conversas (parte 4) agrava o impacto:** quem desviar o número de outra clínica passa a ler as mensagens dos pacientes dela decifradas e ao vivo. É a próxima sessão, e precisa vir antes de qualquer número real
 - [ ] **MFA (aal2) no painel interno, bloqueio de go-live** (revisão de segurança da parte 4, sessão própria por decisão do Jhones): sem MFA, quem roubar a senha de um admin lê dado de saúde de todas as clínicas pelo acesso de suporte. Plano: TOTP do Supabase Auth, com cadastro por QR code, desafio no login e um `requireSupportContext()` que exige aal2
