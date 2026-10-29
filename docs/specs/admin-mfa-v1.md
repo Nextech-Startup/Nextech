@@ -39,7 +39,7 @@ Só membros de `platform_admins`. Não depende de plano: o painel interno não �
 
 ## Edge cases
 
-- **Código errado:** mensagem genérica ("Código inválido ou expirado"), sem dizer se o fator existe. O limite de tentativas é o do Supabase Auth. A tela trata o erro de limite com uma mensagem própria, sem repetir o texto do Supabase.
+- **Código errado:** mensagem genérica ("Código inválido ou expirado"), sem dizer se o fator existe. **O limite de tentativas é por pessoa, na aplicação** (achado da revisão de segurança): o `verify` sai do servidor, e o limite do Supabase Auth enxerga o IP da Vercel, não o de quem digita. São 5 códigos errados em 15 minutos, contados em `admin_mfa_failures` (sem o código nem o fator). Travado, nem o desafio nem o cadastro chamam o Auth. O código certo zera a contagem. Se a conferência falhar, trava. O limite do próprio Auth, quando dispara, tem mensagem própria e não conta como tentativa
 - **Relógio do celular dessincronizado:** se o código for recusado, a tela sugere conferir a hora automática do aparelho.
 - **Sessão expira no meio do cadastro:** o fator fica `unverified` e é descartado na próxima tentativa (comportamento 4).
 - **Admin removido de `platform_admins` com sessão `aal2` aberta:** a próxima chamada a `requireAdminContext()` recusa, porque o vínculo é conferido antes do `aal`.

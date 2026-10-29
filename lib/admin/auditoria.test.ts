@@ -55,6 +55,26 @@ describe("descreverRegistro", () => {
     })
   })
 
+  it("o segundo fator diz se é o primeiro dispositivo ou a reserva, sem clínica", () => {
+    expect(descreverRegistro(registro({ id: "m1", acao: "mfa.factor_enroll", metadata: { reserva: false } }))).toEqual({
+      acao: "Cadastrou um autenticador",
+      detalhe: "Primeiro dispositivo.",
+      suporte: false,
+    })
+    expect(descreverRegistro(registro({ id: "m2", acao: "mfa.factor_enroll", metadata: { reserva: true } })).detalhe).toBe(
+      "Dispositivo de reserva.",
+    )
+    expect(descreverRegistro(registro({ id: "m3", acao: "mfa.factor_remove" }))).toEqual({
+      acao: "Removeu um autenticador",
+      detalhe: undefined,
+      suporte: false,
+    })
+    expect(descreverRegistro(registro({ id: "m5", acao: "mfa.factor_remove", metadata: { reset_manual: true } })).detalhe).toBe(
+      "Reset manual, fora do painel.",
+    )
+    expect(clinicaDoRegistro(registro({ id: "m4", acao: "mfa.factor_remove", clinica: null }))).toBeNull()
+  })
+
   it("o acesso de suporte traz o motivo e o chamado", () => {
     const metadata = { motivo: "ia-nao-respondeu", chamado: "4821" }
     expect(descreverRegistro(registro({ id: "6", acao: "conversation.list", metadata }))).toEqual({

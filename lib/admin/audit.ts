@@ -11,6 +11,9 @@ export type AdminAction =
   /** Os scripts do canal de demonstração pela Evolution (scripts/canal-demo.ts), fora do painel. */
   | "clinic.demo_channel_connect"
   | "clinic.demo_channel_clear"
+  /** Segundo fator do painel interno (spec admin-mfa-v1): dispositivo cadastrado ou removido. */
+  | "mfa.factor_enroll"
+  | "mfa.factor_remove"
   /** Acesso de suporte às conversas de uma clínica: a lista e cada conversa aberta. */
   | AcaoDeSuporte
 
