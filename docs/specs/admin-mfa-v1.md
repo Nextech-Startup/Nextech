@@ -14,6 +14,7 @@ Só membros de `platform_admins`. Não depende de plano: o painel interno não �
 
 | Tema | Decisão |
 |---|---|
+| Fator | **TOTP** (aplicativo autenticador), já ligado no projeto (`mfa_totp_enroll_enabled` e `mfa_totp_verify_enabled`, conferidos pela API de gestão em 2026-10-29). A chave de acesso (WebAuthn/passkey) resiste a phishing e foi considerada, mas ficou para depois: o suporte do Supabase ainda está em beta. SMS foi descartado (clonagem de chip e custo por mensagem) |
 | Escopo | **O painel inteiro.** `requireAdminContext()` exige `aal2`. Toda página, server action e query do `(admin)` já passa por ela, então nenhuma rota fica de fora por esquecimento |
 | Cadastro | **Obrigatório no primeiro acesso**, sem carência. Admin sem fator verificado cai na tela do QR code e não vê nada do painel até confirmar o primeiro código |
 | Recuperação | **Segundo fator de reserva + reset manual.** O admin pode cadastrar um segundo dispositivo TOTP. Se perder todos, o fator é removido pelo Supabase Dashboard, seguindo o passo a passo em `docs/infra-setup.md`. Não há códigos de recuperação próprios |
