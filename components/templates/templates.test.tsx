@@ -1,6 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
-import { PreviewDeConversa } from "@/components/agents/preview-de-conversa"
 import { EditorDeTemplate } from "./editor-de-template"
 import type { TemplateDoWhatsApp } from "./tipos"
 
@@ -43,13 +42,5 @@ describe("editor de template", () => {
 
   it("o custo da categoria está escrito, não escondido", () => {
     expect(render({})).toContain("sem desconto de volume")
-  })
-})
-
-describe("prévia do agente", () => {
-  it("continua na moldura do WhatsApp depois da extração", () => {
-    const html = renderToStaticMarkup(<PreviewDeConversa nome="Recepção" saudacao="Olá!" />)
-    expect(html).toContain("Prévia no WhatsApp")
-    expect(html).toContain('aria-labelledby="previa-titulo"')
   })
 })

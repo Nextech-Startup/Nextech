@@ -1,13 +1,13 @@
 import { serviceContext } from "@/lib/auth/service-context"
+import { contextoDoAgente } from "@/lib/agent-config/contexto"
 import {
   montarConversa,
   TAMANHO_DO_HISTORICO,
-  type ContextoDoAgente,
   type ItemDoHistorico,
   type MensagemDoModelo,
 } from "@/lib/agent-config/prompt"
 import { FORMATO_DA_RESPOSTA, lerSaidaDoModelo, type SaidaDoModelo } from "@/lib/agent-config/saida"
-import { lerBusinessHours, type MedicalSpecialty } from "@/lib/agent-config/schema"
+import type { MedicalSpecialty } from "@/lib/agent-config/schema"
 import { gerarResposta, IaError } from "@/lib/ai/client"
 import { comRetentativas, dormir, ESPERAS_DA_IA_MS } from "@/lib/ai/retentativa"
 import { erroParaLog } from "@/lib/security/erro-para-log"
@@ -355,45 +355,6 @@ async function marcarQualificada(
     if (error) throw error
   } catch (erro) {
     console.error(ROTULO, { etapa: "qualificacao", conversa: conversationId, ...erroParaLog(erro) })
-  }
-}
-
-async function contextoDoAgente(
-  supabase: Supabase,
-  clinicId: string,
-  agente: {
-    specialty: MedicalSpecialty
-    persona_instructions: string | null
-    greeting_message: string | null
-    business_hours: unknown
-  },
-): Promise<ContextoDoAgente> {
-  const [clinica, procedimentos, convenios] = await Promise.all([
-    supabase.from("clinics").select("legal_name").eq("id", clinicId).single(),
-    supabase
-      .from("procedures")
-      .select("name, duration_minutes, price")
-      .eq("clinic_id", clinicId)
-      .eq("active", true)
-      .order("name"),
-    supabase.from("insurances").select("name").eq("clinic_id", clinicId).eq("active", true).order("name"),
-  ])
-  if (clinica.error) throw clinica.error
-  if (procedimentos.error) throw procedimentos.error
-  if (convenios.error) throw convenios.error
-
-  return {
-    nomeDaClinica: clinica.data.legal_name,
-    especialidade: agente.specialty,
-    persona: agente.persona_instructions,
-    saudacao: agente.greeting_message,
-    horario: lerBusinessHours(agente.business_hours),
-    procedimentos: procedimentos.data.map((p) => ({
-      nome: p.name,
-      duracaoMinutos: p.duration_minutes,
-      preco: p.price === null ? null : Number(p.price),
-    })),
-    convenios: convenios.data.map((c) => c.name),
   }
 }
 

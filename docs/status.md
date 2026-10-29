@@ -9,7 +9,7 @@
 | 1 — Specs do MVP | ✅ concluída — 9 specs |
 | 2 — Repo, CLAUDE.md, skills | ✅ concluída |
 | **3a — Fundação multi-tenant** | ✅ concluída |
-| **3b — Motor de conversa** | 🟡 partes 1 a 4 de 5 ✅ (dados e recepção; decisão e resposta da IA; urgência, opt-out, manutenção pelo pg_cron e qualificação; tela real de Conversas e acesso de suporte); falta: parte 5 (preview e áudio) |
+| **3b — Motor de conversa** | 🟡 partes 1 a 4 de 5 ✅ (dados e recepção; decisão e resposta da IA; urgência, opt-out, manutenção pelo pg_cron e qualificação; tela real de Conversas e acesso de suporte); parte 5a (teste de conversa do agente) ✅; falta: parte 5b (áudio) |
 | **3c — Shell de navegação** | ✅ concluída |
 | **Conta de demonstração** | ✅ concluída (`docs/specs/demo-account-v1.md`): todas as telas do painel na "Clínica Demonstração Nextech", com dado de exemplo e selo |
 | **Canal de demonstração (Evolution)** | ✅ concluído e ensaiado com o chip (`docs/specs/evolution-demo-v1.md`) |
@@ -18,11 +18,11 @@
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**1884 testes passando** (144 arquivos) · 37 migrations aplicadas · em produção em `app.nextech.ia.br`
+**1907 testes passando** (147 arquivos) · 38 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 **Prioridade atual (2026-10-26): o desenvolvimento do produto**, spec por spec. A apresentação ao investidor está resolvida: o Jhones concluiu os passos pendentes (número do investidor e limpeza).
 
-**Próximas sessões, nesta ordem:** (1) o plano da parte 1 do CRM, depois da revisão da spec; (2) a parte 5 da 3b (preview e áudio). A posse do WhatsApp e o MFA do painel interno ficaram prontos em 2026-10-29.
+**Próximas sessões, nesta ordem:** (1) o plano da parte 1 do CRM, depois da revisão da spec; (2) a parte 5b da 3b (áudio), com o plano em `docs/superpowers/plans/2026-10-29-motor-de-conversa-parte-5b-audio.md`. A posse do WhatsApp e o MFA do painel interno ficaram prontos em 2026-10-29.
 
 ---
 
@@ -207,6 +207,15 @@ Decisões já tomadas: retomada da IA por inatividade de 24h; urgência responde
 **Bloqueio externo:** credenciais da Meta não existem. Dá para construir e testar com mock, mas WhatsApp real depende de aprovação da Meta — vale iniciar esse processo em paralelo, porque não trava código.
 
 ---
+
+### Parte 5a: teste de conversa do agente ✅ (2026-10-29)
+
+O cartão "Testar" da tela do agente virou conversa de verdade com a IA. Detalhes em `docs/specs/conversation-engine-v1.md` (Parte 5a).
+- **Configuração e prompt:** usa a configuração da tela, mesmo sem salvar, e o mesmo `montarConversa` da resposta no WhatsApp. O contexto da clínica saiu de `resposta.ts` para `lib/agent-config/contexto.ts`.
+- **Nada é salvo:** o histórico fica no navegador, com até 8 mensagens do paciente fictício e 500 caracteres cada, validados no servidor.
+- **Teto de custo:** 60 chamadas por clínica por hora (`agent_preview_calls`), contadas antes do modelo.
+- **Testes:** `lib/agent-config/preview.test.ts`, mais `tests/rls/teste-de-agente.test.ts` contra o banco real, que confere o contexto lido pela sessão do owner e o teto fechado para a sessão.
+- **Não foi conferido no navegador**, só por teste.
 
 ## Páginas legais ✅ (2026-10-26)
 
