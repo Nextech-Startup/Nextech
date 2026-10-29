@@ -315,16 +315,87 @@ describe("token do WhatsApp nunca é legível pela aplicação", () => {
     expect(comoAgente(data).whatsapp_phone_number_id).toBe(NUMERO_DE_A)
     expect(data).not.toHaveProperty("whatsapp_access_token_encrypted")
   })
+})
 
-  it("o owner consegue GRAVAR o token, só não lê de volta", async () => {
-    // A clínica cola a credencial na tela: o token entra pelo
-    // authenticated. Ele está no grant de update, fora do de select.
+// ---------------------------------------------------------------------------
+// Conexão só pelo servidor (20261029120000_agents_whatsapp_server_only.sql)
+//
+// A prova de posse do número existe só na aplicação. Com grant nas colunas,
+// o dono de uma clínica gravaria pelo PostgREST o número de outra — e, se
+// ela estivesse desconectada, passaria a receber as mensagens dos pacientes
+// dela. O privilégio de coluna é conferido antes de qualquer trigger ou
+// constraint, então a recusa é 42501 e não 23505: o banco não chega a
+// revelar se o número já está em uso.
+// ---------------------------------------------------------------------------
+
+describe("as colunas do WhatsApp não aceitam escrita da sessão", () => {
+  const NUMERO_LIVRE = `3${Date.now().toString().slice(-12)}`
+
+  it("o owner não grava o token no próprio agente", async () => {
     const client = await comoUsuario(ownerA)
     const { error } = await client
       .from("agents")
       .update({ whatsapp_access_token_encrypted: "outro-blob-cifrado" })
       .eq("id", agenteA)
+    expect(error?.code).toBe("42501")
+  })
 
+  it("o owner não conecta um número livre no próprio agente", async () => {
+    // O ataque do achado: o número de uma clínica desconectada está livre,
+    // e o UNIQUE não teria o que recusar.
+    const client = await comoUsuario(ownerB)
+    for (const update of [
+      { whatsapp_phone_number_id: NUMERO_LIVRE },
+      { whatsapp_waba_id: "999888777666555" },
+    ]) {
+      const { error } = await client.from("agents").update(update).eq("id", agenteB)
+      expect(error?.code).toBe("42501")
+    }
+    const { data } = await admin
+      .from("agents")
+      .select("whatsapp_phone_number_id, whatsapp_waba_id")
+      .eq("id", agenteB)
+      .single()
+    expect(data).toEqual({ whatsapp_phone_number_id: null, whatsapp_waba_id: null })
+  })
+
+  it("o owner não cria agente já conectado", async () => {
+    const client = await comoUsuario(ownerB)
+    for (const conexao of [
+      { whatsapp_phone_number_id: NUMERO_LIVRE },
+      { whatsapp_waba_id: "999888777666555" },
+      { whatsapp_access_token_encrypted: "blob" },
+    ]) {
+      const { error } = await client.from("agents").insert({
+        clinic_id: clinicB,
+        name: `Conectado na criação ${Object.keys(conexao)[0]}`,
+        specialty: "odontologia",
+        greeting_message: "Olá!",
+        ...conexao,
+      })
+      expect(error?.code).toBe("42501")
+    }
+  })
+
+  it("o owner também não desconecta pelo PostgREST", async () => {
+    // Desconectar é escrita nas mesmas colunas: vai pelo servidor também.
+    const client = await comoUsuario(ownerA)
+    const { error } = await client
+      .from("agents")
+      .update({ whatsapp_phone_number_id: null, whatsapp_waba_id: null, whatsapp_access_token_encrypted: null })
+      .eq("id", agenteA)
+    expect(error?.code).toBe("42501")
+
+    const { data } = await admin.from("agents").select("whatsapp_phone_number_id").eq("id", agenteA).single()
+    expect(data?.whatsapp_phone_number_id).toBe(NUMERO_DE_A)
+  })
+
+  it("o resto do cadastro segue editável pelo owner", async () => {
+    const client = await comoUsuario(ownerA)
+    const { error } = await client
+      .from("agents")
+      .update({ greeting_message: "Olá! Como posso ajudar?" })
+      .eq("id", agenteA)
     expect(error).toBeNull()
   })
 })
@@ -458,8 +529,9 @@ describe("publicar exige WhatsApp conectado", () => {
 
 describe("um número de WhatsApp pertence a um agente só", () => {
   it("outra clínica não conecta o mesmo número", async () => {
-    const client = await comoUsuario(ownerB)
-    const { error } = await client
+    // Pelo service_role, que é o caminho da conexão desde que as colunas
+    // saíram do grant da sessão.
+    const { error } = await admin
       .from("agents")
       .update({
         whatsapp_phone_number_id: NUMERO_DE_A,
