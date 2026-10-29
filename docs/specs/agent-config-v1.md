@@ -37,7 +37,7 @@ Fora do escopo v1 (fica pra depois): perguntas de qualificação estruturadas, b
 ## Critério de aceite
 - [x] Clínica autenticada consegue criar, editar e publicar um agente.
 - [x] RLS garante que uma clínica não lista/edita agente de outra.
-- [ ] ~~Preview roda uma conversa simulada de pelo menos 3 turnos~~ — **adiado para a fase 3b**: depende do motor de IA, que não existe. A tela mostra o cartão "Testar conversa" como inerte em vez de esconder o que esta spec promete.
+- [x] Preview roda uma conversa simulada de pelo menos 3 turnos. *(Entregue em 2026-10-29, na parte 5 do motor de conversa: até 8 mensagens do paciente fictício, com a configuração da tela mesmo sem salvar, o mesmo `montarConversa` da resposta real e nada persistido. Ver `conversation-engine-v1.md`, parte 5.)*
 - [x] Publicar sem WhatsApp conectado é bloqueado com mensagem clara — por trigger no banco, não só pela aplicação.
 - [x] Teste automatizado cobre: isolamento entre clínicas, bloqueio de publish sem instância conectada.
 

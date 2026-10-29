@@ -1,4 +1,5 @@
 import { requireClinicContextForWrite } from "@/lib/auth/context"
+import { serviceContext } from "@/lib/auth/service-context"
 import { cifrarSegredo } from "@/lib/security/tenant-secrets"
 import { ehErroDoPostgrest } from "@/lib/supabase/errors"
 import { MetaError, numeroPertenceAoWaba } from "@/lib/whatsapp/client"
@@ -258,18 +259,27 @@ export async function deleteAgent(agentId: string): Promise<void> {
  *
  * Antes de gravar, a Meta confirma que o número pertence ao WABA e que o
  * token enxerga os dois (conferirPosse).
+ *
+ * A gravação é pelo service_role, porque o `authenticated` não tem mais
+ * insert nem update nas colunas do WhatsApp
+ * (20261029120000_agents_whatsapp_server_only.sql): a prova de posse só
+ * existe aqui, e pelo PostgREST qualquer owner gravaria o número de outra
+ * clínica. O papel de owner já foi conferido na sessão viva
+ * (contextoDeEdicao) e o `clinic_id` vem dela — o filtro é manual porque
+ * o service_role ignora a RLS.
  */
 export async function connectWhatsapp(
   agentId: string,
   input: WhatsappCredentialsInput,
 ): Promise<Agent> {
-  const { supabase, clinicId, isDemo } = await contextoDeEdicao()
+  const { clinicId, isDemo } = await contextoDeEdicao()
   // A barreira é o trigger `agents_block_demo`; recusar aqui evita mandar
   // o token de uma clínica de demonstração para a Meta.
   if (isDemo) throw new AgentMutationError(DEMONSTRACAO)
   const parsed = whatsappCredentialsSchema.parse(input)
   await conferirPosse(parsed)
 
+  const { supabase } = serviceContext()
   const { data, error } = await supabase
     .from("agents")
     .update({
@@ -332,9 +342,13 @@ async function conferirPosse(c: {
  * Um agente ativo é despublicado junto, porque o trigger de publish
  * recusaria um `active` sem credencial. Pausar aqui é o que torna a
  * desconexão possível sem um passo extra para o usuário.
+ *
+ * Também pelo service_role, como a conexão: o revoke das colunas vale
+ * para gravar `null` tanto quanto para gravar um número.
  */
 export async function disconnectWhatsapp(agentId: string): Promise<Agent> {
-  const { supabase, clinicId } = await contextoDeEdicao()
+  const { clinicId } = await contextoDeEdicao()
+  const { supabase } = serviceContext()
 
   const { data, error } = await supabase
     .from("agents")

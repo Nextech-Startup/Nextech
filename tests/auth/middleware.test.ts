@@ -53,6 +53,57 @@ describe("middleware", () => {
     expect(new URL(resposta.headers.get("location")!).pathname).toBe("/login")
   })
 
+  // A Meta acessa a política pelo domínio que estiver no app; no painel,
+  // só a raiz redireciona (docs/specs/legal-pages-v1.md, edge cases).
+  it.each(["/privacidade", "/termos", "/exclusao-de-dados"])(
+    "%s abre no host do painel sem login e sem conferir sessão",
+    async (caminho) => {
+      const { middleware } = await import("@/middleware")
+
+      const resposta = await middleware(pedir(caminho, "app.nextech.ia.br"))
+
+      expect(resposta.headers.get("location")).toBeNull()
+      expect(mockGetClaims).not.toHaveBeenCalled()
+    },
+  )
+
+  // Painel interno exige aal2 (spec admin-mfa-v1): a sessão só com senha
+  // vai ao segundo fator antes de qualquer página do /admin renderizar.
+  it.each(["/admin", "/admin/conversations/abc", "/admin/audit"])(
+    "%s em aal1 vai para /mfa",
+    async (caminho) => {
+      mockGetClaims.mockResolvedValue({ data: { claims: { sub: "user-1", aal: "aal1" } }, error: null })
+      const { middleware } = await import("@/middleware")
+
+      const resposta = await middleware(pedir(`${caminho}?x=1`))
+
+      const destino = new URL(resposta.headers.get("location")!)
+      expect(destino.pathname).toBe("/mfa")
+      expect(destino.search).toBe("")
+    },
+  )
+
+  it("/admin em aal2 segue", async () => {
+    mockGetClaims.mockResolvedValue({ data: { claims: { sub: "user-1", aal: "aal2" } }, error: null })
+    const { middleware } = await import("@/middleware")
+
+    const resposta = await middleware(pedir("/admin"))
+
+    expect(resposta.headers.get("location")).toBeNull()
+  })
+
+  it("/mfa exige sessão, mas não aal2; /dashboard e /administracao não pedem aal2", async () => {
+    mockGetClaims.mockResolvedValue({ data: { claims: { sub: "user-1", aal: "aal1" } }, error: null })
+    const { middleware } = await import("@/middleware")
+
+    for (const caminho of ["/mfa", "/dashboard", "/administracao"]) {
+      expect((await middleware(pedir(caminho))).headers.get("location")).toBeNull()
+    }
+
+    mockGetClaims.mockResolvedValue({ data: null, error: null })
+    expect(new URL((await middleware(pedir("/mfa"))).headers.get("location")!).pathname).toBe("/login")
+  })
+
   it("rota pública não confere sessão", async () => {
     const { middleware } = await import("@/middleware")
 

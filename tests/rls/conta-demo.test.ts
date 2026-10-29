@@ -54,8 +54,9 @@ afterAll(async () => {
   // A trilha prende o usuário (on delete restrict): sai antes dele.
   await db.from("admin_audit_log").delete().in("actor_user_id", usuarios)
   await db.from("clinics").delete().in("id", clinicas)
-  for (const id of usuarios) await db.auth.admin.deleteUser(id)
-})
+  // Em paralelo: um por vez, as idas ao Auth em Oregon passavam dos 10 s.
+  await Promise.all(usuarios.map((id) => db.auth.admin.deleteUser(id)))
+}, 60_000)
 
 describe("prepararContaDeDemonstracao", () => {
   let clinica: string

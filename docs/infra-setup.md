@@ -35,6 +35,13 @@ Duas classes de segredo, que não se misturam:
 - [ ] Configurar as mesmas chaves na Vercel, por ambiente (Production / Preview / Development).
 - [x] Confirmar a região do projeto existente: **us-west-2 (Oregon)**, verificada em 2026-10-11 (`supabase projects list`). Do Brasil, cada ida ao banco ou ao Auth custa ~300 ms: a borda da Cloudflare no Rio (GIG, ~85 ms) e mais ~200 ms até Oregon. Migrar de região é trocar de projeto, e fica mais caro depois que houver dado de paciente; por ora, o código evita idas em série (filtro de Conversas no navegador, `getClaims` na leitura e a fila numa RPC só, 2026-10-11).
 - [x] **Região das funções da Vercel junto do banco.** Fixada em `pdx1` (Portland) pelo `vercel.json` (`"regions": ["pdx1"]`), no PR de `staging` → `main`. Na região padrão do projeto (provavelmente `iad1`, leste dos EUA), cada ida a Oregon custava ~70 ms; em `pdx1`, poucos ms. O arquivo vale sobre o que estiver em Settings > Functions. Não ajuda a demonstração local, que fala direto com Oregon.
+- [x] **MFA por TOTP ligado no Auth**, que o painel interno exige (spec `admin-mfa-v1`). Conferido em 2026-10-29 pela API de gestão: `mfa_totp_enroll_enabled` e `mfa_totp_verify_enabled` em `true`, com até 10 fatores por pessoa. No Dashboard: Authentication → Multi-Factor → TOTP (App Authenticator) = Enabled. Se alguém desligar, o painel interno para de abrir (a tela do segundo fator mostra "indisponível"), e a correção é ligar de novo.
+- **Reset manual do segundo fator** (quem perdeu todos os dispositivos):
+  1. Confirmar a identidade da pessoa por outro canal (ligação ou presencialmente). Nunca só por e-mail ou mensagem.
+  2. Supabase Dashboard → Authentication → Users → abrir o usuário → seção de fatores de MFA → remover os fatores TOTP. Pela API, com a `service_role`: `auth.admin.mfa.listFactors({ userId })` e depois `auth.admin.mfa.deleteFactor({ userId, id })` em cada um.
+  3. Encerrar as sessões abertas da pessoa (Users → "Sign out user"). Um celular perdido pode estar com o painel aberto.
+  4. Registrar na trilha, pelo SQL Editor (o reset não passa pelo painel e não grava sozinho): `insert into public.admin_audit_log (actor_user_id, action, target_table, target_id, metadata) values ('<id de quem fez o reset>', 'mfa.factor_remove', 'auth.mfa_factors', '<id do fator>', '{"reset_manual": true}');`
+  5. No próximo acesso a `/admin`, a pessoa cai no cadastro e lê um QR code novo.
 - [ ] Auditar a tabela `chatbot_leads` que já existe: tem RLS? Ela guarda nome, e-mail e WhatsApp de lead — é PII, mesmo sem ser dado de saúde.
 - [ ] Instalar a Supabase CLI e rodar `supabase init` para versionar migrations em `supabase/migrations/`.
 - [ ] **Importar o schema que já existe** para a primeira migration (`supabase db pull`), antes de criar tabela nova. Sem isso as migrations partem de um banco que não corresponde ao real.
@@ -67,7 +74,11 @@ Duas classes de segredo, que não se misturam:
 - [ ] Cada clínica autoriza o próprio calendário — não existe uma conta Google única do Nextech (ver skill `integrations`).
 
 ## Meta / WhatsApp (referência — já coberto em detalhe na skill `integrations`)
-- [ ] App do Nextech registrado na Meta com permissão de Embedded Signup (fluxo com coexistência).
+- [x] App do Nextech criado na conta de developer do Jhones, conectado a um portfólio empresarial **próprio da Nextech**, nunca ao de outro projeto (2026-10-12). A conta de developer é do perfil pessoal; o portfólio é escolhido por app.
+- [ ] Verificação do negócio no portfólio da Nextech (Central de segurança): nome empresarial exatamente como no cartão CNPJ (`65.406.075 JHONES BONIFACIO DA SILVA`, CNPJ `65.406.075/0001-12`), site `nextech.ia.br`, e-mail `contato@nextech.ia.br`. "Nextech" é o nome de exibição, não o nome legal. Se pedir verificação de domínio, o TXT na raiz convive com o SPF do Zoho.
+- [ ] Use cases > Customize for WhatsApp > **Tech Provider onboarding**. A coexistência só vale para Tech Provider ou Solution Partner, e a verificação vem antes do App Review.
+- [ ] App Review: ícone 1024×1024, URL da política de privacidade (bloqueada até `docs/specs/legal-pages-v1.md`) e dois vídeos (envio de mensagem e gestão de template, gravados com o número de teste da API Setup).
+- [ ] Embedded Signup na **v4**: a Meta desliga a v2 em 2026-10-15. Construir o fluxo já na v4.
 - [ ] Permissões `whatsapp_business_messaging` e `whatsapp_business_management` com advanced access.
 
 ### Quando as credenciais chegarem (webhook já construído contra mock)

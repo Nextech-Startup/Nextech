@@ -8,11 +8,12 @@ import {
   pausarAgenteAction,
   publicarAgenteAction,
   salvarAgenteAction,
+  testarConversaAction,
 } from "./actions"
 import { Aviso, Botao, Campo, Input, Select, Textarea, estadoInicial } from "@/components/patterns/formulario"
 import { Cartao } from "@/components/patterns/cartao"
 import { StatusDoAgente } from "@/components/agents/status-do-agente"
-import { PreviewDeConversa } from "@/components/agents/preview-de-conversa"
+import { TesteDeConversa } from "@/components/agents/teste-de-conversa"
 import { PageHeader } from "@/components/patterns/page-header"
 import { StatusBadge } from "@/components/patterns/status-badge"
 import {
@@ -26,6 +27,9 @@ import {
   recomendacoesAntesDePublicar,
   type Agent,
 } from "@/lib/agent-config/schema"
+
+/** O teste de conversa lê a configuração ainda não salva deste formulário. */
+const FORMULARIO_DE_CONFIGURACAO = "configuracao-do-agente"
 
 export function FormularioDeAgente({ agente }: { agente: Agent }) {
   const pendencias = pendenciasParaPublicar(agente)
@@ -50,7 +54,7 @@ export function FormularioDeAgente({ agente }: { agente: Agent }) {
           <ZonaDeRisco agente={agente} />
         </div>
         <aside className="lg:sticky lg:top-20">
-          <PreviewDeConversa nome={agente.name} saudacao={agente.greeting_message} />
+          <TesteDeConversa nome={agente.name} formulario={FORMULARIO_DE_CONFIGURACAO} testar={testarConversaAction} />
         </aside>
       </div>
     </div>
@@ -168,7 +172,7 @@ function Configuracao({ agente }: { agente: Agent }) {
       titulo="Configuração"
       descricao="Como o agente se apresenta e se comporta na conversa."
     >
-      <form action={action} className="space-y-6">
+      <form id={FORMULARIO_DE_CONFIGURACAO} action={action} className="space-y-6">
         <input type="hidden" name="agent_id" value={agente.id} />
         <Aviso state={state} />
 

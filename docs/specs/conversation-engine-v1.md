@@ -130,7 +130,7 @@ A 3b foi dividida em cinco partes, por dependência (decisão do Jhones, 2026-09
 2. ✅ decisão e resposta da IA;
 3. ✅ urgência, opt-out e qualificação (a qualificação teve sessão própria, depois da urgência, do opt-out e da manutenção);
 4. ✅ tela real de Conversas;
-5. ⬜ preview do agente e áudio.
+5. 🟡 preview do agente ✅ (2026-10-29); áudio ⬜.
 
 ### Parte 1: dados e recepção (2026-09-27)
 
@@ -209,6 +209,17 @@ Plano: `docs/superpowers/plans/2026-10-11-motor-de-conversa-parte-4-tela-de-conv
   - o telefone sai mascarado do servidor;
   - os links não fazem prefetch.
 - **Bloqueios de go-live que a tela agrava** (`docs/status.md`): a posse do WhatsApp, porque quem desviar o número de outra clínica passa a ler as mensagens decifradas e ao vivo, e o MFA no painel interno.
+
+### Parte 5a: teste de conversa do agente (2026-10-29)
+
+Cumpre o comportamento 3 da `agent-config-v1`: o botão "Testar" vira uma conversa de verdade com a IA, ao lado do formulário do agente.
+
+- **A configuração é a da tela, sem salvar.** O teste lê o formulário de configuração e valida pelo mesmo `agentSchema` de salvar. Procedimentos, convênios e nome da clínica vêm do banco pela sessão do owner, por `contextoDoAgente` (extraído de `resposta.ts` para `lib/agent-config/contexto.ts`, e usado pelos dois caminhos).
+- **O que a clínica vê é o que o paciente veria.** O prompt sai do mesmo `montarConversa`, e a saída é lida pelo mesmo `lerSaidaDoModelo`. A tela avisa quando a conversa seria marcada como interessada em agendar.
+- **Nada é persistido.** O histórico mora na memória da página e vem inteiro a cada turno. O servidor valida a conversa: alternância, até 500 caracteres por mensagem e até 8 mensagens do paciente. O conteúdo nunca é logado.
+- **Teto de custo no banco.** São 60 chamadas por clínica por hora (`agent_preview_calls`, só `service_role`, sem conteúdo), contadas antes do modelo. O limite de turnos da tela se contorna com "Recomeçar"; este teto, não.
+- **Só o owner testa**, como só ele configura. Uma retentativa da IA, não duas: quem espera é uma pessoa olhando a tela.
+- **A clínica de demonstração também testa:** o teste não conecta número nem publica.
 
 ## Planos afetados
 O motor é a base do produto — existe em Starter, Pro e HealthTech. O que varia por plano é o limite de atendimentos (`atendimento-billing-v1.md`) e o processamento de áudio, que a landing promete a partir do Pro.

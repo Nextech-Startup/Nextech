@@ -5,7 +5,8 @@ vi.mock("@/lib/auth/context", () => ({ requireClinicContextForWrite: vi.fn() }))
 vi.mock("@/lib/auth/service-context", () => ({ serviceContext: vi.fn() }))
 
 import { requireClinicContextForWrite } from "@/lib/auth/context"
-import { AgentMutationError, connectWhatsapp, publishAgent } from "./mutations"
+import { serviceContext } from "@/lib/auth/service-context"
+import { AgentMutationError, connectWhatsapp, disconnectWhatsapp, publishAgent } from "./mutations"
 
 /**
  * Prova de posse do número na conexão (achado S1 da revisão de segurança da
@@ -37,13 +38,18 @@ function supabaseDeMentira() {
 const json = (status: number, corpo: unknown) =>
   new Response(JSON.stringify(corpo), { status, headers: { "content-type": "application/json" } })
 
+// Dois clients separados: o da sessão (authenticated) não tem mais grant nas
+// colunas do WhatsApp, e a gravação tem de sair pelo service_role.
 let supabase: ReturnType<typeof supabaseDeMentira>
+let daSessao: ReturnType<typeof supabaseDeMentira>
 
 beforeEach(() => {
   process.env.WHATSAPP_API_VERSION = "v99.0"
   supabase = supabaseDeMentira()
+  daSessao = supabaseDeMentira()
+  vi.mocked(serviceContext).mockReturnValue({ supabase } as unknown as ReturnType<typeof serviceContext>)
   vi.mocked(requireClinicContextForWrite).mockResolvedValue({
-    supabase,
+    supabase: daSessao,
     clinicId: "clinica",
     role: "owner",
   } as unknown as Awaited<ReturnType<typeof requireClinicContextForWrite>>)
@@ -77,6 +83,32 @@ describe("connectWhatsapp com prova de posse", () => {
     expect(JSON.stringify(update.args[0])).not.toContain(TOKEN)
   })
 
+  it("grava pelo service_role, filtrando pela clínica da sessão", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => json(200, { data: [{ id: PHONE }] })))
+    await conectar()
+
+    expect(daSessao.chamadas).toEqual([])
+    const filtros = supabase.chamadas.filter((c) => c.metodo === "eq").map((c) => c.args)
+    expect(filtros).toEqual([
+      ["id", "agente"],
+      ["clinic_id", "clinica"],
+    ])
+  })
+
+  it("staff não conecta: recusa antes da Meta e sem gravar", async () => {
+    vi.mocked(requireClinicContextForWrite).mockResolvedValue({
+      supabase: daSessao,
+      clinicId: "clinica",
+      role: "staff",
+    } as unknown as Awaited<ReturnType<typeof requireClinicContextForWrite>>)
+    const fetch = vi.fn()
+    vi.stubGlobal("fetch", fetch)
+
+    await expect(conectar()).rejects.toThrow(/responsável pela clínica/)
+    expect(fetch).not.toHaveBeenCalled()
+    expect(supabase.chamadas).toEqual([])
+  })
+
   it("número de outro WABA: recusa sem gravar nada", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => json(200, { data: [{ id: "999999999999" }] })))
     await expect(conectar()).rejects.toMatchObject({
@@ -106,6 +138,37 @@ describe("connectWhatsapp com prova de posse", () => {
       message: "A conexão com a Meta ainda não está configurada no Nextech. Fale com o suporte.",
     })
     expect(fetch).not.toHaveBeenCalled()
+    expect(supabase.chamadas).toEqual([])
+  })
+})
+
+describe("disconnectWhatsapp", () => {
+  it("limpa os três campos e pausa, pelo service_role e só na clínica da sessão", async () => {
+    await disconnectWhatsapp("agente")
+
+    expect(daSessao.chamadas).toEqual([])
+    const update = supabase.chamadas.find((c) => c.metodo === "update")!
+    expect(update.args[0]).toEqual({
+      whatsapp_phone_number_id: null,
+      whatsapp_waba_id: null,
+      whatsapp_access_token_encrypted: null,
+      status: "paused",
+    })
+    const filtros = supabase.chamadas.filter((c) => c.metodo === "eq").map((c) => c.args)
+    expect(filtros).toEqual([
+      ["id", "agente"],
+      ["clinic_id", "clinica"],
+    ])
+  })
+
+  it("staff não desconecta", async () => {
+    vi.mocked(requireClinicContextForWrite).mockResolvedValue({
+      supabase: daSessao,
+      clinicId: "clinica",
+      role: "staff",
+    } as unknown as Awaited<ReturnType<typeof requireClinicContextForWrite>>)
+
+    await expect(disconnectWhatsapp("agente")).rejects.toThrow(/responsável pela clínica/)
     expect(supabase.chamadas).toEqual([])
   })
 })
