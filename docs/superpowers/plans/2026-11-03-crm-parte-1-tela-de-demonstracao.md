@@ -1007,7 +1007,7 @@ git commit -m "feat(crm): números do funil, regras do cartão, filtros e busca"
 
 O conjunto cobre cada caso da tela: duas oportunidades em Novo (uma sem nome, outra com opt-out e parada há semanas), uma qualificada pela IA e urgente, uma qualificada pela IA com valor, uma qualificada à mão com próxima ação, uma qualificada e parada há 6 dias, duas agendadas, uma em Compareceu e parada, quatro ganhas (duas nos últimos 7 dias ou perto disso, uma em 30 e uma só em 90) e três perdidas com motivos diferentes. Os ids das conversas são os de `app/_fixtures/conversas.ts`: `c-urgente` (pac-04), `c-falha` (pac-05), `c-humano` (pac-01), `c-fechada` (pac-09), `c-quase` (pac-06), `c-agendando` (pac-02) e `c-audio` (pac-07).
 
-- [ ] **Passo 1: escrever o teste que falha**, em `app/_fixtures/crm.test.ts`
+- [x] **Passo 1: escrever o teste que falha**, em `app/_fixtures/crm.test.ts`
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -1077,9 +1077,9 @@ describe("oportunidades de exemplo", () => {
 })
 ```
 
-- [ ] **Passo 2: rodar** `npx vitest run app/_fixtures/crm.test.ts`. Esperado: FALHA, com "Failed to resolve import ./crm".
+- [x] **Passo 2: rodar** `npx vitest run app/_fixtures/crm.test.ts`. Esperado: FALHA, com "Failed to resolve import ./crm".
 
-- [ ] **Passo 3: escrever `app/_fixtures/crm.ts`**
+- [x] **Passo 3: escrever `app/_fixtures/crm.ts`**
 
 ```ts
 import type { Etapa, MotivoDePerda, Oportunidade, Referencia } from "@/lib/crm/tipos"
@@ -1290,11 +1290,11 @@ export const OPORTUNIDADES: Oportunidade[] = [
 
 Nota: `op-14` e `op-09` são do mesmo paciente (pac-09). Uma está encerrada (Ganho) e a outra aberta, o que a regra "uma aberta por vez" permite. O mesmo vale para `op-12`/`op-08` (pac-01), `op-13`/`op-06` (pac-06), `op-16`/`op-10` (pac-03) e `op-17`/`op-07` (pac-12). Se `CONVERSAS` não tiver `urgente` no topo de cada item, ou não tiver `paciente.id`, leia `app/_fixtures/conversas.ts` e ajuste só as duas leituras dentro de `oportunidade()` e do teste.
 
-- [ ] **Passo 4: registrar a fixture nas travas da demonstração.** Em `tests/demo/fixtures.test.ts`, importe `OPORTUNIDADES` de `@/app/_fixtures/crm` e acrescente `OPORTUNIDADES,` ao objeto `FIXTURES`, em ordem alfabética, depois de `MINHA_CONTA`.
+- [x] **Passo 4: registrar a fixture nas travas da demonstração.** Em `tests/demo/fixtures.test.ts`, importe `OPORTUNIDADES` de `@/app/_fixtures/crm` e acrescente `OPORTUNIDADES,` ao objeto `FIXTURES`, em ordem alfabética, depois de `MINHA_CONTA`.
 
-- [ ] **Passo 5: rodar** `npx vitest run app/_fixtures/crm.test.ts tests/demo/fixtures.test.ts tests/architecture/prototipos.test.ts`. Esperado: PASSA. Se a trava "nenhuma data escrita por extenso" falhar, reescreva a nota em vez de afrouxar a trava.
+- [x] **Passo 5: rodar** `npx vitest run app/_fixtures/crm.test.ts tests/demo/fixtures.test.ts tests/architecture/prototipos.test.ts`. Esperado: PASSA. Se a trava "nenhuma data escrita por extenso" falhar, reescreva a nota em vez de afrouxar a trava.
 
-- [ ] **Passo 6: commit**
+- [x] **Passo 6: commit**
 
 ```bash
 git add app/_fixtures/crm.ts app/_fixtures/crm.test.ts tests/demo/fixtures.test.ts
