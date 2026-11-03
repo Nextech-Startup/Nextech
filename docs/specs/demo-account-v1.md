@@ -47,6 +47,7 @@ Cada rota usa o componente de domínio que o protótipo já usa (`components/<do
 |---|---|---|
 | Visão geral | `/dashboard` | O protótipo completo (alertas, o agora do dia, indicadores, funil) |
 | Conversas | `/dashboard/conversations` | Fila e thread do protótipo |
+| CRM | `/dashboard/crm` | Funil com ~17 oportunidades de exemplo: faixa, resumo do período, quadro com arrastar e "Mover para…", painel, encerradas e busca por POST (spec `crm-v1`, parte 1; sem backend, mover não grava) |
 | Agenda | `/dashboard/schedule` | Dia e semana do protótipo |
 | Pacientes | `/dashboard/patients` e `/dashboard/patients/[id]` | Tabela e ficha do protótipo |
 | Agentes | `/dashboard/agents` e `/dashboard/agents/[id]` | Lista e detalhe com operação do protótipo |

@@ -1,6 +1,6 @@
 # Status do Projeto — Nextech SaaS
 
-> Atualizado em 2026-10-26. Documento de acompanhamento: o que está pronto, o que falta e o que bloqueia.
+> Atualizado em 2026-11-03. Documento de acompanhamento: o que está pronto, o que falta e o que bloqueia.
 
 ## Onde estamos
 
@@ -14,15 +14,22 @@
 | **Conta de demonstração** | ✅ concluída (`docs/specs/demo-account-v1.md`): todas as telas do painel na "Clínica Demonstração Nextech", com dado de exemplo e selo |
 | **Canal de demonstração (Evolution)** | ✅ concluído e ensaiado com o chip (`docs/specs/evolution-demo-v1.md`) |
 | **Páginas legais** | ✅ concluídas (`docs/specs/legal-pages-v1.md`): `/privacidade`, `/termos` e `/exclusao-de-dados`, com a exclusão dos leads em 12 meses pelo pg_cron |
-| **CRM próprio** | 📝 spec escrita (`docs/specs/crm-v1.md`), à espera da revisão do Jhones |
+| **CRM próprio** | 🟡 parte 1 pronta (protótipo na demonstração, `/dashboard/crm`); parte 2 (backend) a planejar — `docs/specs/crm-v1.md` |
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**2028 testes passando** (152 arquivos, suíte inteira em 2026-11-03) · 41 migrations aplicadas · em produção em `app.nextech.ia.br`
+**2149 testes passando** (163 arquivos, suíte inteira em 2026-11-03, depois da parte 1 do CRM) · 41 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 **Prioridade atual (2026-10-26): o desenvolvimento do produto**, spec por spec. A apresentação ao investidor está resolvida: o Jhones concluiu os passos pendentes (número do investidor e limpeza).
 
-**Próxima sessão:** o plano da parte 1 do CRM, depois da revisão da spec. A parte 5b (áudio) ficou pronta em 2026-11-03, e com ela a fase 3b.
+**Próxima sessão:** o plano da parte 2 do CRM (backend: tabelas, automação no banco, RPC de movimento, tela real, trava de plano). A parte 1 ficou pronta em 2026-11-03 (PR de `staging` para `main`).
+
+### CRM, parte 1 — pendências com o Jhones
+- **404 fora da demonstração** não conferido no navegador (o script de captura só tem a conta de demonstração); coberto pelo teste da página (`notFound`) e por `tests/architecture/rotas.test.ts`.
+- **Celular:** os três números do resumo empilham e empurram a faixa e o quadro ~650 px para baixo (layout do `KpiCard`). Decidir na parte 2: faixa antes do resumo no celular, ou KPIs compactos.
+- **`npm run lint` quebrado** antes desta sessão: o Next 16 removeu o `next lint`. Trocar o script pelo ESLint direto numa sessão de infra.
+- **`app/(dashboard)/dashboard/conversations/acoes.ts`** engole o `redirect("/login")` no `catch` (o do CRM já usa `unstable_rethrow`). Corrigir junto com a próxima mexida em Conversas.
+- Para a parte 2, das revisões: a server action de mover precisa conferir `ehEtapa(para)` (input não confiável); o teste do log da busca real tem de usar erro do PostgREST com o termo; o `useReducer` da tela precisa ressincronizar com as props no `router.refresh()`; decidir se o selo "IA" vale para toda oportunidade aberta pelo sistema; "atividade hoje" hoje significa "nas últimas 24 h".
 
 ---
 

@@ -140,16 +140,16 @@ Pro e HealthTech. Starter vê o convite. O dado é gravado em todos.
 ## Critério de aceite
 
 ### Parte 1: a tela com dado de exemplo
-- [ ] Na conta de demonstração, "CRM" aparece em Operação, abaixo de Conversas, para owner e staff; o profissional vê a permissão negada.
-- [ ] Fora da demonstração, `/dashboard/crm` responde 404 e o item fica "em breve".
-- [ ] A faixa do funil mostra, por etapa aberta, a contagem, o valor e a taxa de passagem, calculados das oportunidades de exemplo (regra pura em `lib/crm`, com teste).
-- [ ] O resumo mostra valor ganho, conversão e tempo médio até fechar do período escolhido (7, 30 ou 90 dias), com o cálculo testado.
-- [ ] O cartão mostra procedimento, valor, responsável, próxima ação ou "parado há N dias" (alerta depois de 3 dias), e os selos IA, opt-out e urgência.
-- [ ] Arrastar e "Mover para…" movem o cartão no protótipo; Ganho pede procedimento e valor, Perdido pede o motivo da lista; as transições permitidas são regra pura testada.
-- [ ] O painel lateral mostra campos, linha do tempo e "Abrir conversa".
-- [ ] A busca não lê `?q=`; o termo vai por POST.
-- [ ] As fixtures passam pelas travas de `tests/demo/fixtures.test.ts` (sem identificador real, datas deslocadas para hoje).
-- [ ] Capturas da tela nos dois temas, em 1440 e 390 px, sem rolagem horizontal; o arrastar funciona pelo teclado.
+- [x] Na conta de demonstração, "CRM" aparece em Operação, abaixo de Conversas, para owner e staff; o profissional vê a permissão negada.
+- [x] Fora da demonstração, `/dashboard/crm` responde 404 e o item fica "em breve". *(Teste da página com `notFound` e trava `rotas.test.ts`; não conferido no navegador por falta de credencial de clínica comum no script de captura.)*
+- [x] A faixa do funil mostra, por etapa aberta, a contagem, o valor e a taxa de passagem, calculados das oportunidades de exemplo (regra pura em `lib/crm`, com teste).
+- [x] O resumo mostra valor ganho, conversão e tempo médio até fechar do período escolhido (7, 30 ou 90 dias), com o cálculo testado.
+- [x] O cartão mostra procedimento, valor, responsável, próxima ação ou "parado há N dias" (alerta depois de 3 dias), e os selos IA, opt-out e urgência.
+- [x] Arrastar e "Mover para…" movem o cartão no protótipo; Ganho pede procedimento e valor, Perdido pede o motivo da lista; as transições permitidas são regra pura testada.
+- [x] O painel lateral mostra campos, linha do tempo e "Abrir conversa".
+- [x] A busca não lê `?q=`; o termo vai por POST.
+- [x] As fixtures passam pelas travas de `tests/demo/fixtures.test.ts` (sem identificador real, datas deslocadas para hoje).
+- [x] Capturas da tela nos dois temas, em 1440 e 390 px, sem rolagem horizontal; o arrastar funciona pelo teclado.
 
 ### Parte 2: backend e tela real
 - [ ] Migration aditiva, com `--dry-run`: tabelas, enums, índice único parcial, *triggers*, RPC e RLS.

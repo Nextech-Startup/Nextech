@@ -2892,18 +2892,19 @@ Carregue `ui-ux` e `frontend-design` antes.
 **Arquivos:**
 - Modificar: `docs/status.md`, `docs/specs/crm-v1.md` (marcar o critério da parte 1), `docs/specs/demo-account-v1.md` (tela nova na tabela), `docs/roadmap.md` (CRM próprio antes da fase 6, se ainda não estiver lá) e `.claude/skills/architecture/SKILL.md` (módulo `lib/crm`, uma linha)
 
-- [ ] **Passo 1: verificação completa**, nesta ordem e lendo cada saída:
+- [x] **Passo 1: verificação completa**, nesta ordem e lendo cada saída:
   - `npx vitest run` inteiro, em segundo plano e com timeout longo, gravando num arquivo do scratchpad com o commit no topo e `echo exit=$?` no fim;
   - `npx tsc --noEmit`;
   - `npm run lint`, se existir no `package.json`;
   - `npm run build`.
-- [ ] **Passo 2: pedir a revisão do `qa-reviewer`** sobre o diff desde o início da sessão, e corrigir com teste o que ele achar. O `security-reviewer` só é necessário se a revisão de QA apontar dado de paciente fora da fixture. A parte 1 não toca banco nem dado real.
-- [ ] **Passo 3: atualizar a documentação:**
+  > Correção na execução: a suíte inteira achou `components/shell/painel.test.ts` contando 7 itens "em breve" fora da demonstração; com o CRM são 8 (commit 2328a17). O `npm run lint` não roda no Next 16 (o `next lint` foi removido); ficou como pendência no `docs/status.md`. A revisão final e o `qa-reviewer` pediram 10 correções, aplicadas em c8da936 e 3d721cf.
+- [x] **Passo 2: pedir a revisão do `qa-reviewer`** sobre o diff desde o início da sessão, e corrigir com teste o que ele achar. O `security-reviewer` só é necessário se a revisão de QA apontar dado de paciente fora da fixture. A parte 1 não toca banco nem dado real.
+- [x] **Passo 3: atualizar a documentação:**
   - `docs/status.md`: CRM próprio com "parte 1 pronta (protótipo na demonstração)"; próxima sessão = plano da parte 2 (backend); pendências da tarefa 7 que ficaram com o Jhones;
   - `docs/specs/crm-v1.md`: marcar `[x]` nos critérios da parte 1 que foram conferidos e deixar `[ ]`, com a razão ao lado, os que ficaram pendentes;
   - `docs/specs/demo-account-v1.md`: a linha do CRM na tabela de telas da demonstração;
   - `.claude/skills/architecture/SKILL.md`: `lib/crm/` (regras puras do funil, compartilhadas entre protótipo e backend).
-- [ ] **Passo 4: commit e push da `staging`**
+- [x] **Passo 4: commit e push da `staging`**
 
 ```bash
 git add docs .claude/skills/architecture/SKILL.md
@@ -2911,7 +2912,7 @@ git commit -m "docs(crm): parte 1 pronta, status e specs atualizados"
 git push origin staging
 ```
 
-- [ ] **Passo 5:** abrir um PR de `staging` para `main` com o resumo da parte 1, as pendências e a lista de commits, **sem merge**.
+- [x] **Passo 5:** abrir um PR de `staging` para `main` com o resumo da parte 1, as pendências e a lista de commits, **sem merge**.
 
 ---
 
