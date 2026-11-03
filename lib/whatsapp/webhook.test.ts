@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { falhaDefinitiva, interpretarWebhook } from "./webhook"
+import { falhaDefinitiva, interpretarWebhook, type MensagemDoWebhook } from "./webhook"
 import {
   WABA_ID,
   mensagem,
@@ -12,6 +12,13 @@ import {
 const PHONE = "106540352242922"
 const WA_ID = "5581999112895"
 const T = 1790000000 // 2026-09-21T14:13:20Z
+
+/** A única mensagem do payload, já como mensagem (o teste falha se não for). */
+function mensagemUnica(corpo: string | Record<string, unknown>): MensagemDoWebhook {
+  const [m] = unica(corpo)
+  expect(m?.tipo).toBe("mensagem")
+  return m as MensagemDoWebhook
+}
 
 function unica(corpo: string | Record<string, unknown>, nome?: string | null) {
   return interpretarWebhook(
@@ -85,6 +92,23 @@ describe("tipos de mensagem", () => {
     ["texto vazio", { type: "text", text: { body: "   " } }, "other", null],
   ])("%s", (_, corpo, midia, texto) => {
     expect(unica(corpo)[0]).toMatchObject({ midia, texto })
+  })
+
+  it("áudio leva o id da mídia e o tipo, para o download depois do 200", () => {
+    const m = mensagemUnica({ type: "audio", audio: { id: "1234567890", mime_type: "audio/ogg; codecs=opus", voice: true } })
+    expect(m).toMatchObject({ midia: "audio", texto: null })
+    expect(m.audio).toEqual({ origem: "meta", mediaId: "1234567890", mime: "audio/ogg; codecs=opus" })
+  })
+
+  it("áudio sem id fica sem referência, mas não some do histórico", () => {
+    const m = mensagemUnica({ type: "audio", audio: { mime_type: "audio/ogg" } })
+    expect(m).toMatchObject({ midia: "audio", texto: null })
+    expect(m.audio).toBeUndefined()
+  })
+
+  it("só o áudio leva referência de mídia", () => {
+    expect(mensagemUnica({ type: "image", image: { id: "m2" } }).audio).toBeUndefined()
+    expect(mensagemUnica("oi").audio).toBeUndefined()
   })
 
   it("reação é ignorada", () => {

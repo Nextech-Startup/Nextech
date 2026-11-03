@@ -83,6 +83,40 @@ describe("interpretarEvolution: mensagem", () => {
     expect(r).toMatchObject({ tipo: "mensagem", mensagem: { midia: "audio", texto: null } })
   })
 
+  // Com `base64: true` no webhook da instância, a Evolution anexa a mídia em
+  // `message.base64` (v2.3.7): o compose não grava mensagem, e por isso o
+  // endpoint de base64 da Evolution não acharia o áudio depois.
+  it("áudio do paciente leva o anexo em base64 e o tipo", () => {
+    const r = interpretarEvolution(
+      payload({
+        message: { audioMessage: { seconds: 4, ptt: true, mimetype: "audio/ogg; codecs=opus" }, base64: "T2dnUw==" },
+        messageType: "audioMessage",
+      }),
+      cfg,
+    )
+    expect(r.tipo === "mensagem" && r.mensagem.audio).toEqual({
+      origem: "anexo",
+      base64: "T2dnUw==",
+      mime: "audio/ogg; codecs=opus",
+    })
+  })
+
+  it("áudio sem anexo fica sem referência (webhook sem base64)", () => {
+    const r = interpretarEvolution(
+      payload({ message: { audioMessage: { mimetype: "audio/ogg" } }, messageType: "audioMessage" }),
+      cfg,
+    )
+    expect(r.tipo === "mensagem" && r.mensagem.audio).toBeUndefined()
+  })
+
+  it("o anexo de imagem não é lido", () => {
+    const r = interpretarEvolution(
+      payload({ message: { imageMessage: { caption: "receita" }, base64: "aW1n" }, messageType: "imageMessage" }),
+      cfg,
+    )
+    expect(r.tipo === "mensagem" && r.mensagem.audio).toBeUndefined()
+  })
+
   it("imagem e documento levam a legenda como texto", () => {
     const imagem = interpretarEvolution(
       payload({ message: { imageMessage: { caption: "minha receita" } }, messageType: "imageMessage" }),

@@ -118,9 +118,9 @@ A conversa real cai na conta de demonstração (`clinica@nextech.ia.br`), na tel
    ```powershell
    Invoke-RestMethod -Uri http://localhost:8080/instance/connectionState/nextech-demo -Headers @{ apikey = $k }
    ```
-4. Apontar o webhook para o app local, com o segredo no cabeçalho (só na primeira vez, ou se o segredo mudar):
+4. Apontar o webhook para o app local, com o segredo no cabeçalho (na primeira vez, se o segredo mudar, e uma vez depois de 2026-11-03 para ligar o `base64`). O `base64 = $true` faz a Evolution anexar o áudio ao webhook: a instância não grava mensagens, e sem o anexo o áudio não é transcrito. O anexo de imagem e documento também chega, mas não é lido:
    ```powershell
-   $corpo = @{ webhook = @{ enabled = $true; url = "http://host.docker.internal:3000/api/whatsapp/evolution"; headers = @{ "x-nextech-secret" = "<o EVOLUTION_WEBHOOK_SECRET>" }; byEvents = $false; base64 = $false; events = @("MESSAGES_UPSERT") } } | ConvertTo-Json -Depth 5
+   $corpo = @{ webhook = @{ enabled = $true; url = "http://host.docker.internal:3000/api/whatsapp/evolution"; headers = @{ "x-nextech-secret" = "<o EVOLUTION_WEBHOOK_SECRET>" }; byEvents = $false; base64 = $true; events = @("MESSAGES_UPSERT") } } | ConvertTo-Json -Depth 5
    Invoke-RestMethod -Method Post -Uri http://localhost:8080/webhook/set/nextech-demo -Headers @{ apikey = $k } -ContentType "application/json" -Body $corpo
    ```
 5. Conferir o `.env` da raiz: `EVOLUTION_ALLOWED_NUMBERS` com os números que vão conversar (o do investidor e o do ensaio), em E.164, separados por vírgula.

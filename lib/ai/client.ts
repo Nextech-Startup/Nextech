@@ -65,12 +65,48 @@ export async function gerarResposta(
   mensagens: MensagemDoModelo[],
   opcoes: { fetch?: typeof fetch; formato?: FormatoDaSaida } = {},
 ): Promise<RespostaDaIa> {
+  const { formato } = opcoes
+  return chamarOpenRouter(
+    {
+      messages: mensagens,
+      max_tokens: MAXIMO_DE_TOKENS,
+      ...(formato && {
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: formato.nome, strict: true, schema: formato.schema },
+        },
+      }),
+    },
+    { exigirParametros: !!formato, fetch: opcoes.fetch },
+  )
+}
+
+/**
+ * Parte de conteúdo de uma mensagem ao modelo: texto ou áudio em base64
+ * (formato do OpenRouter, `input_audio`).
+ */
+export type ParteDoConteudo =
+  | { type: "text"; text: string }
+  | { type: "input_audio"; input_audio: { data: string; format: string } }
+
+/**
+ * Uma chamada ao OpenRouter com o modelo da env e a política de dados fixa.
+ * `gerarResposta` e a transcrição (`lib/ai/transcricao.ts`) passam por
+ * aqui: a política e o tratamento de erro são os mesmos para os dois.
+ */
+export async function chamarOpenRouter(
+  pedido: {
+    messages: Array<{ role: MensagemDoModelo["role"]; content: string | ParteDoConteudo[] }>
+    max_tokens: number
+    response_format?: Record<string, unknown>
+  },
+  opcoes: { exigirParametros?: boolean; fetch?: typeof fetch; tempoMaximoMs?: number } = {},
+): Promise<RespostaDaIa> {
   const chave = process.env.OPENROUTER_API_KEY
   const modelo = process.env.OPENROUTER_MODEL
   if (!chave || !modelo) throw new IaError("configuracao", false)
 
   const buscar = opcoes.fetch ?? fetch
-  const { formato } = opcoes
   let resposta: Response
   try {
     resposta = await buscar(URL_DO_OPENROUTER, {
@@ -82,17 +118,10 @@ export async function gerarResposta(
       },
       body: JSON.stringify({
         model: modelo,
-        messages: mensagens,
-        max_tokens: MAXIMO_DE_TOKENS,
-        ...(formato && {
-          response_format: {
-            type: "json_schema",
-            json_schema: { name: formato.nome, strict: true, schema: formato.schema },
-          },
-        }),
-        provider: { data_collection: "deny", ...(formato && { require_parameters: true }) },
+        ...pedido,
+        provider: { data_collection: "deny", ...(opcoes.exigirParametros && { require_parameters: true }) },
       }),
-      signal: AbortSignal.timeout(TEMPO_MAXIMO_MS),
+      signal: AbortSignal.timeout(opcoes.tempoMaximoMs ?? TEMPO_MAXIMO_MS),
     })
   } catch {
     // Rede ou tempo esgotado: o erro original pode trazer a URL e nada
