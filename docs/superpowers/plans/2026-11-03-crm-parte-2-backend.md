@@ -120,6 +120,8 @@ import {
 let A: ClinicaDeTeste
 let B: ClinicaDeTeste
 let C: ClinicaDeTeste
+// Só para o caso de dois agentes: o Starter permite 1 agente, o Pro permite 3.
+let D: ClinicaDeTeste
 
 type Linha = { id: string; stage: string; closed_at: string | null; conversation_id: string | null; last_activity_at: string }
 
@@ -159,15 +161,18 @@ async function novoProcedimento(c: ClinicaDeTeste, nome: string): Promise<string
 }
 
 beforeAll(async () => {
-  ;[A, B, C] = await Promise.all([
+  ;[A, B, C, D] = await Promise.all([
     montarClinica("crm-auto-a", ["owner", "staff", "professional"]),
     montarClinica("crm-auto-b", ["owner"]),
     montarClinica("crm-auto-c", ["owner", "staff"]),
+    montarClinica("crm-auto-d", ["owner"]),
   ])
+  const { error } = await admin.from("clinics").update({ plan: "pro" }).eq("id", D.id)
+  if (error) throw error
 }, 60_000)
 
 afterAll(async () => {
-  await Promise.all([limparClinica(A), limparClinica(B), limparClinica(C)])
+  await Promise.all([limparClinica(A), limparClinica(B), limparClinica(C), limparClinica(D)])
 }, 60_000)
 
 describe("abertura pela mensagem do paciente", () => {
@@ -229,6 +234,26 @@ describe("abertura pela mensagem do paciente", () => {
   })
 })
 
+describe("duas conversas do mesmo paciente", () => {
+  it("mensagens ao mesmo tempo em duas conversas (dois agentes) abrem uma oportunidade só", async () => {
+    const { data: outro, error } = await admin
+      .from("agents")
+      .insert({ clinic_id: D.id, name: "Recepção crm-auto-d 2", specialty: "odontologia" })
+      .select("id")
+      .single()
+    if (error) throw error
+    const p = await novoPaciente(D)
+    const [r1, r2] = await Promise.all([
+      registrar(D, p, { autor: "patient", texto: "Oi", em: emMinutos(0) }),
+      registrar({ id: D.id, agente: outro.id }, p, { autor: "patient", texto: "Oi de novo", em: emMinutos(0) }),
+    ])
+    expect(r1.conversa).not.toBe(r2.conversa)
+    const ops = await oportunidades(p)
+    expect(ops).toHaveLength(1)
+    expect(await eventos(ops[0].id)).toHaveLength(1)
+  })
+})
+
 describe("qualificação pela IA", () => {
   it("qualified_at gravado move de Novo para Qualificado, com evento do sistema", async () => {
     const p = await novoPaciente(A)
@@ -267,6 +292,23 @@ describe("encerramento", () => {
     await registrar(A, p, { autor: "patient", texto: "Voltei", em: emMinutos(1) })
     const ops = await oportunidades(p)
     expect(ops.map((o) => o.stage)).toEqual(["perdido", "novo"])
+  })
+})
+
+describe("reabertura depois de Ganho", () => {
+  it("depois de Ganho, a mensagem nova abre outra oportunidade, em Novo", async () => {
+    const p = await novoPaciente(A)
+    await registrar(A, p, { autor: "patient", texto: "Oi", em: emMinutos(0) })
+    const [primeira] = await oportunidades(p)
+    const { error } = await admin
+      .from("opportunities")
+      .update({ stage: "ganho", value_cents: 90000, closed_at: new Date().toISOString() })
+      .eq("id", primeira.id)
+    if (error) throw error
+    await registrar(A, p, { autor: "patient", texto: "Quero outro procedimento", em: emMinutos(1) })
+    const ops = await oportunidades(p)
+    expect(ops.map((o) => o.stage)).toEqual(["ganho", "novo"])
+    expect(ops[1].closed_at).toBeNull()
   })
 })
 
@@ -372,6 +414,8 @@ describe("membro e procedimento removidos", () => {
   })
 })
 ```
+
+> **Correção na execução (rodada 1):** testes novos: duas conversas (dois agentes) do mesmo paciente ao mesmo tempo, para exercer o índice único parcial de verdade; reabertura depois de Ganho. (Pós-push) o caso dos dois agentes usa a clínica D, no Pro (o Starter permite 1 agente): `LIMITE_DE_AGENTES` em lib/agent-config/schema.ts.
 
 - [ ] **Passo 3: escrever o teste do canal ao vivo** em `tests/rls/crm-realtime.test.ts`:
 
@@ -539,6 +583,11 @@ Esperado: FAIL (`relation "public.opportunities" does not exist` ou `Could not f
 -- (update) e depois a oportunidade. Nada trava a oportunidade antes de
 -- paciente ou conversa, então não há ciclo.
 
+-- Falhar rápido em vez de enfileirar o webhook atrás de uma trava forte
+-- (create trigger em messages e conversations, create policy em
+-- realtime.messages).
+set lock_timeout = '5s';
+
 -- ─────────────────────────────────────────────────────────────
 -- Tipos
 -- ─────────────────────────────────────────────────────────────
@@ -670,7 +719,24 @@ create table public.opportunities (
   constraint opportunities_ganho_tem_valor
     check (stage <> 'ganho' or value_cents is not null),
   constraint opportunities_nota_redigida
-    check (notes_redacted_at is null or notes_encrypted is null)
+    check (notes_redacted_at is null or notes_encrypted is null),
+  -- A nota só entra cifrada (lib/conversations/conteudo.ts): base64 de
+  -- versão (1 byte) + IV (12) + tag (16) + ciphertext. Mínimo: 1 byte de
+  -- ciphertext = 30 bytes = 40 caracteres de base64. Máximo: nota de
+  -- TAMANHO_MAXIMO_DA_NOTA = 2000 caracteres x até 4 bytes UTF-8 = 8000
+  -- bytes de ciphertext, + 29 = 8029 bytes = ceil(8029 / 3) x 4 = 10708
+  -- caracteres. Texto puro de saúde não passa (acento, espaço, hífen e
+  -- tamanho fora da faixa), mesmo escrito direto no banco. A RPC
+  -- update_opportunity_details repete a mesma expressão.
+  constraint opportunities_nota_cifrada
+    check (
+      notes_encrypted is null
+      or (
+        notes_encrypted ~ '^[A-Za-z0-9+/]+={0,2}$'
+        and length(notes_encrypted) % 4 = 0
+        and length(notes_encrypted) between 40 and 10708
+      )
+    )
 );
 
 comment on table public.opportunities is
@@ -732,6 +798,8 @@ comment on column public.opportunity_events.actor_email is
 
 create index opportunity_events_opportunity_idx on public.opportunity_events (opportunity_id, created_at);
 create index opportunity_events_actor_idx on public.opportunity_events (actor_user_id);
+-- A RLS filtra por clínica; sem este, a leitura de eventos varre a tabela.
+create index opportunity_events_clinic_idx on public.opportunity_events (clinic_id, created_at);
 
 -- ─────────────────────────────────────────────────────────────
 -- Acesso: só leitura, para owner e staff
@@ -772,27 +840,36 @@ as $$
 declare
   v_paciente uuid;
   v_aberta uuid;
+  v_atualizadas integer;
 begin
   select c.patient_id into v_paciente
     from public.conversations c
    where c.id = new.conversation_id
      and c.clinic_id = new.clinic_id;
 
-  insert into public.opportunities (clinic_id, patient_id, conversation_id)
-  values (new.clinic_id, v_paciente, new.conversation_id)
-  on conflict (patient_id) where closed_at is null do nothing
-  returning id into v_aberta;
+  -- Até duas voltas: se o `do nothing` achou uma aberta, mas ela foi
+  -- encerrada antes do update da atividade (0 linhas), a segunda volta
+  -- abre outra. A mensagem do paciente nunca fica sem oportunidade aberta.
+  for v_volta in 1..2 loop
+    insert into public.opportunities (clinic_id, patient_id, conversation_id)
+    values (new.clinic_id, v_paciente, new.conversation_id)
+    on conflict (patient_id) where closed_at is null do nothing
+    returning id into v_aberta;
 
-  if v_aberta is null then
+    if v_aberta is not null then
+      insert into public.opportunity_events (clinic_id, opportunity_id, from_stage, to_stage)
+      values (new.clinic_id, v_aberta, null, 'novo');
+      exit;
+    end if;
+
     update public.opportunities o
        set last_activity_at = now()
      where o.patient_id = v_paciente
        and o.clinic_id = new.clinic_id
        and o.closed_at is null;
-  else
-    insert into public.opportunity_events (clinic_id, opportunity_id, from_stage, to_stage)
-    values (new.clinic_id, v_aberta, null, 'novo');
-  end if;
+    get diagnostics v_atualizadas = row_count;
+    exit when v_atualizadas > 0;
+  end loop;
   return null;
 end;
 $$;
@@ -885,7 +962,11 @@ create policy "owner e staff recebem o aviso do CRM da própria clínica"
       select 'crm:' || c::text from private.crm_clinic_ids() as c
     )
   );
+
+reset lock_timeout;
 ```
+
+> **Correção na execução (rodada 1):** (M1) `set lock_timeout = '5s'` no topo e `reset` no fim; (I2) check `opportunities_nota_cifrada`: a nota só entra em base64 de 40 a 10708 caracteres (30 bytes mínimos = versão 1 + IV 12 + tag 16 + 1 de ciphertext; máximo 29 + 2000 x 4 = 8029 bytes = ceil(8029/3) x 4 = 10708); (M2) o trigger de abertura tenta de novo uma vez se a oportunidade aberta foi encerrada entre o `do nothing` e o update da atividade; (M7) índice `opportunity_events (clinic_id, created_at)`.
 
 - [ ] **Passo 6: `--dry-run` e aprovação do Jhones**
 
@@ -1043,6 +1124,28 @@ describe("move_opportunity", () => {
     expect(await eventos(op)).toHaveLength(1)
   })
 
+  it("depois da qualificação da IA, mover com p_from='novo' dá sem-mudanca (a tela viu uma etapa velha)", async () => {
+    const { paciente, op } = await abrir(A)
+    const { data: conversa, error } = await admin.from("conversations").select("id").eq("patient_id", paciente).single()
+    if (error) throw error
+    const { error: erroQualificar } = await admin.from("conversations").update({ qualified_at: new Date().toISOString() }).eq("id", conversa.id)
+    if (erroQualificar) throw erroQualificar
+    expect((await linha(op)).stage).toBe("qualificado")
+    const r = await mover(comoUsuario(A.equipe.staff!), { p_opportunity_id: op, p_from: "novo", p_to: "agendado" })
+    expect(r).toBe("sem-mudanca")
+    expect((await linha(op)).stage).toBe("qualificado")
+    expect(await eventos(op)).toHaveLength(2)
+  })
+
+  it("etapa de origem ou de destino nula: invalido (e não erro de coluna nula)", async () => {
+    const { op } = await abrir(A)
+    const staff = comoUsuario(A.equipe.staff!)
+    expect(await mover(staff, { p_opportunity_id: op, p_from: "novo", p_to: null })).toBe("invalido")
+    expect(await mover(staff, { p_opportunity_id: op, p_from: null, p_to: "agendado" })).toBe("invalido")
+    expect((await linha(op)).stage).toBe("novo")
+    expect(await eventos(op)).toHaveLength(1)
+  })
+
   it("Ganho sem procedimento, sem valor, com valor fora da faixa ou com procedimento de outra clínica: invalido", async () => {
     const { op } = await abrir(A)
     const staff = comoUsuario(A.equipe.staff!)
@@ -1145,6 +1248,72 @@ describe("update_opportunity_details", () => {
     expect((await linha(op)).value_cents).toBe(5000)
   })
 
+  it("oportunidade em Ganho não perde o procedimento: p_procedure_id nulo dá invalido e nada muda", async () => {
+    const { op } = await abrir(A)
+    const staff = comoUsuario(A.equipe.staff!)
+    await mover(staff, { p_opportunity_id: op, p_from: "novo", p_to: "ganho", p_procedure_id: procA, p_value_cents: 5000 })
+    const { data, error } = await (await staff).rpc("update_opportunity_details", detalhes(op, { p_value_cents: 7000 }))
+    expect(error).toBeNull()
+    expect(data).toBe("invalido")
+    const l = await linha(op)
+    expect(l.procedure_id).toBe(procA)
+    expect(l.value_cents).toBe(5000)
+  })
+
+  it("Ganho cujo procedimento foi apagado do perfil continua editável (campo vazio, valor e nota gravados)", async () => {
+    const { op } = await abrir(A)
+    const staff = comoUsuario(A.equipe.staff!)
+    const proc = await procedimento(A, "Faceta A")
+    await mover(staff, { p_opportunity_id: op, p_from: "novo", p_to: "ganho", p_procedure_id: proc, p_value_cents: 5000 })
+    const { error: erroApagar } = await admin.from("procedures").delete().eq("id", proc)
+    if (erroApagar) throw erroApagar
+    expect((await linha(op)).procedure_id).toBeNull()
+    const nota = cifrarConteudo(A.id, "Voltar em seis meses")
+    const { data, error } = await (await staff).rpc(
+      "update_opportunity_details",
+      detalhes(op, { p_value_cents: 6000, p_notes_encrypted: nota }),
+    )
+    expect(error).toBeNull()
+    expect(data).toBe("ok")
+    const l = await linha(op)
+    expect(l.procedure_id).toBeNull()
+    expect(l.value_cents).toBe(6000)
+    expect(l.notes_encrypted).toBe(nota)
+  })
+
+  it("nota fora do formato cifrado (texto puro, curta demais, gigante) dá invalido e a coluna não muda", async () => {
+    const { op } = await abrir(A)
+    const staff = await comoUsuario(A.equipe.staff!)
+    for (const nota of ["Prefere manhã", "Prefere-manha", "A".repeat(36), "A".repeat(10_712), "A".repeat(37) + "==="]) {
+      const { data, error } = await staff.rpc("update_opportunity_details", detalhes(op, { p_notes_encrypted: nota }))
+      expect(error, `tamanho ${nota.length}`).toBeNull()
+      expect(data, `tamanho ${nota.length}`).toBe("invalido")
+    }
+    expect((await linha(op)).notes_encrypted).toBeNull()
+  })
+
+  it("os limites da nota: 40 e 10708 caracteres de base64 passam; a nota de 2000 caracteres de 4 bytes cabe", async () => {
+    const { op } = await abrir(A)
+    const staff = await comoUsuario(A.equipe.staff!)
+    for (const nota of ["A".repeat(40), "A".repeat(10_708), cifrarConteudo(A.id, "😀".repeat(1000)), cifrarConteudo(A.id, "ç".repeat(2000))]) {
+      const { data, error } = await staff.rpc("update_opportunity_details", detalhes(op, { p_notes_encrypted: nota }))
+      expect(error, `tamanho ${nota.length}`).toBeNull()
+      expect(data, `tamanho ${nota.length}`).toBe("ok")
+    }
+  })
+
+  it("o banco recusa texto puro na nota, mesmo escrito direto como administrador (23514)", async () => {
+    const { op } = await abrir(A)
+    const { error } = await admin.from("opportunities").update({ notes_encrypted: "Prefere manhã" }).eq("id", op)
+    expect(error?.code).toBe("23514")
+    const paciente = await novoPaciente(A)
+    const { error: erroInsert } = await admin
+      .from("opportunities")
+      .insert({ clinic_id: A.id, patient_id: paciente, notes_encrypted: "Prefere manhã" })
+    expect(erroInsert?.code).toBe("23514")
+    expect((await linha(op)).notes_encrypted).toBeNull()
+  })
+
   it("membro de B, profissional de A e Starter: nao-encontrada", async () => {
     const { op } = await abrir(A)
     const { op: opS } = await abrir(S)
@@ -1217,6 +1386,8 @@ describe("anonymize_patient (exclusão LGPD)", () => {
 })
 ```
 
+> **Correção na execução (rodada 1):** testes novos: mover com p_from velho depois da qualificação (`sem-mudanca`); etapa nula (`invalido`); edição em Ganho sem procedimento (`invalido`); nota fora do formato, limites da nota e texto puro direto no banco (23514). (Rodada 2) Ganho cujo procedimento foi apagado do perfil continua editável: teste novo.
+
 - [ ] **Passo 2: rodar e ver falhar**
 
 Run: `npx vitest run tests/rls/crm-acoes.test.ts`
@@ -1237,6 +1408,8 @@ Esperado: FAIL (`Could not find the function public.move_opportunity`).
 --
 -- As duas escritas conferem papel e plano no banco, além da lib: server
 -- action é endpoint público, e a RPC também é (PostgREST).
+
+set lock_timeout = '5s';
 
 -- ─────────────────────────────────────────────────────────────
 -- Mover
@@ -1267,6 +1440,10 @@ begin
     return 'nao-encontrada';
   end if;
 
+  -- Etapa nula não é pedido válido (viraria 23502 e o PostgREST repete a linha).
+  if p_from is null or p_to is null then
+    return 'invalido';
+  end if;
   if p_from = p_to then
     return 'sem-mudanca';
   end if;
@@ -1347,9 +1524,11 @@ declare
   v_clinica uuid;
   v_paciente uuid;
   v_etapa public.opportunity_stage;
+  v_procedimento_atual uuid;
   v_anonimizado timestamptz;
 begin
-  select o.clinic_id, o.patient_id, o.stage into v_clinica, v_paciente, v_etapa
+  -- Leitura sem trava, só para saber clínica e paciente (não mudam nunca).
+  select o.clinic_id, o.patient_id into v_clinica, v_paciente
     from public.opportunities o
    where o.id = p_opportunity_id;
   if v_clinica is null
@@ -1358,10 +1537,8 @@ begin
     return 'nao-encontrada';
   end if;
 
+  -- Validações que não dependem da etapa.
   if p_value_cents is not null and (p_value_cents <= 0 or p_value_cents > 100000000) then
-    return 'invalido';
-  end if;
-  if v_etapa = 'ganho' and p_value_cents is null then
     return 'invalido';
   end if;
   if p_procedure_id is not null and not exists (
@@ -1375,16 +1552,46 @@ begin
      ) then
     return 'invalido';
   end if;
-  if p_notes_encrypted is not null and length(p_notes_encrypted) = 0 then
+  -- Nota só cifrada (mesma expressão do check opportunities_nota_cifrada:
+  -- base64 de 30 a 8029 bytes, 40 a 10708 caracteres). Devolve invalido, e
+  -- não 23514, para o erro do PostgREST não repetir a nota.
+  if p_notes_encrypted is not null and not (
+       p_notes_encrypted ~ '^[A-Za-z0-9+/]+={0,2}$'
+       and length(p_notes_encrypted) % 4 = 0
+       and length(p_notes_encrypted) between 40 and 10708
+     ) then
     return 'invalido';
   end if;
 
-  -- Trava do paciente, como save_message_transcript: serializa com
-  -- anonymize_patient (for update). Paciente anonimizado não ganha nota.
+  -- Ordem de trava: paciente (for share) PRIMEIRO, como save_message_transcript
+  -- e register_whatsapp_message; só depois a oportunidade. O anonymize_patient
+  -- trava paciente (for update) e depois a oportunidade: a mesma ordem, sem ciclo.
+  -- Não inverter.
   select p.anonymized_at into v_anonimizado
     from public.patients p
    where p.id = v_paciente and p.clinic_id = v_clinica
      for share;
+
+  -- Trava a oportunidade e relê a etapa: um Ganho gravado há instantes por
+  -- move_opportunity é visto aqui, e a edição não sobrescreve o que ele gravou.
+  select o.stage, o.procedure_id into v_etapa, v_procedimento_atual
+    from public.opportunities o
+   where o.id = p_opportunity_id
+     for update;
+  if v_etapa is null then
+    return 'nao-encontrada';
+  end if;
+
+  -- Ganho pede valor e não perde o procedimento (spec crm-v1): um formulário
+  -- velho (procedimento nulo) não apaga o de um Ganho. Mas o Ganho cujo
+  -- procedimento foi apagado do perfil (FK on delete set null: "o campo fica
+  -- vazio, o valor fica") continua editável, com o procedimento ainda nulo.
+  if v_etapa = 'ganho' and (
+       p_value_cents is null
+       or (p_procedure_id is null and v_procedimento_atual is not null)
+     ) then
+    return 'invalido';
+  end if;
 
   update public.opportunities o
      set procedure_id = p_procedure_id,
@@ -1452,7 +1659,7 @@ as $$
     join auth.users u on u.id = m.user_id
    where m.clinic_id = p_clinic_id
      and m.role in ('owner', 'staff')
-     and private.can_operate_crm(p_clinic_id)
+     and (select private.can_operate_crm(p_clinic_id))
    order by u.email
 $$;
 
@@ -1529,7 +1736,11 @@ begin
   return v_total;
 end;
 $$;
+
+reset lock_timeout;
 ```
+
+> **Correção na execução (rodada 1):** (I1) update_opportunity_details trava o paciente (`for share`) e depois a oportunidade (`for update`), relê a etapa e só então valida e grava; em Ganho, procedimento nulo vira `invalido`; (I2) nota fora do formato cifrado devolve `invalido` com a mesma expressão do check da coluna; (M1) lock_timeout; (M3) `p_from`/`p_to` nulo vira `invalido`; (M4) `crm_team` com `(select private.can_operate_crm(...))`. (Rodada 2) em Ganho, `invalido` se o valor é nulo, ou se p_procedure_id é nulo E o procedimento atual (relido no `for update`) não é nulo; assim o formulário velho não apaga o procedimento, e o Ganho com procedimento apagado pela FK segue editável.
 
 Antes do passo 4, confira que o corpo acima é o atual, campo a campo:
 
