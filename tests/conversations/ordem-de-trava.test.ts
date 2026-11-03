@@ -48,6 +48,18 @@ describe("ordem de trava: paciente, agente, conversa", () => {
     expect(travas(ultimaDefinicao("escalate_urgent_conversation"))).toEqual(["patients", "agents", "conversations"])
   })
 
+  // Parte 5b: a gravação da transcrição serializa com a anonimização pela
+  // trava do paciente, antes de tocar na mensagem. Sem ela, a transcrição
+  // entraria depois da exclusão.
+  it("save_message_transcript trava o paciente antes de gravar a mensagem", () => {
+    const corpo = ultimaDefinicao("save_message_transcript")
+    expect(travas(corpo)).toEqual(["patients"])
+    const semComentarios = corpo.replace(/--.*$/gm, "")
+    expect(semComentarios.search(/for\s+share/)).toBeLessThan(semComentarios.search(/update\s+public\.messages/))
+    expect(travas(ultimaDefinicao("anonymize_patient"))).toEqual(["patients"])
+    expect(ultimaDefinicao("anonymize_patient")).toMatch(/transcript_encrypted = null/)
+  })
+
   it("o teste reconhece a ordem antiga, que tinha o ciclo", () => {
     const antiga = readFileSync(join(PASTA, "20260927160000_ai_reply_revalidation.sql"), "utf8")
     const i = antiga.search(/function\s+public\.reserve_ai_reply\(/)

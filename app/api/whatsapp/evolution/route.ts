@@ -1,6 +1,6 @@
 import { after } from "next/server"
 import { origemDoFromMe } from "@/lib/conversations/eco"
-import { tratarMensagem } from "@/lib/conversations/entrada"
+import { tratarMensagem, type Agendar } from "@/lib/conversations/entrada"
 import { dentroDoTeto, passarParaEquipePorTeto } from "@/lib/conversations/teto"
 import { erroParaLog } from "@/lib/security/erro-para-log"
 import { comparacaoSegura } from "@/lib/security/tenant-secrets"
@@ -23,9 +23,9 @@ import { falhaDefinitiva } from "@/lib/whatsapp/webhook"
  * número.
  */
 
-// O mesmo pior caso da rota da Meta (agrupamento, modelo, envio), abaixo
+// O mesmo pior caso da rota da Meta (áudio, agrupamento, modelo, envio), abaixo
 // dos 5 min da varredura de respostas órfãs.
-export const maxDuration = 120
+export const maxDuration = 180
 
 const ROTULO = "[evolution-webhook]"
 
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
 }
 
 /** Depois do 200 não há a quem devolver erro: loga o metadado e para. */
-async function emSegundoPlano(etapa: "resposta" | "protocolo", tarefa: () => Promise<unknown>): Promise<void> {
+async function emSegundoPlano(etapa: Parameters<Agendar>[0], tarefa: () => Promise<unknown>): Promise<void> {
   try {
     await tarefa()
   } catch (erro) {

@@ -19,8 +19,12 @@ export const SEM_FALA = "[sem fala]"
 
 /** Cerca de 2 min de fala cabem com folga; o teto também limita o custo. */
 const MAXIMO_DE_TOKENS = 2000
-/** Áudio longo demora mais que texto para o modelo ler. */
-const TEMPO_MAXIMO_MS = 40_000
+/**
+ * Áudio de até ~2 min leva poucos segundos para o modelo (a sonda: ~2,5 s
+ * para 5 s de fala). 20 s deixa duas tentativas caberem no orçamento do
+ * áudio (`ORCAMENTO_DO_AUDIO_MS`, teste em lib/conversations/audio.test.ts).
+ */
+export const TEMPO_MAXIMO_DA_TRANSCRICAO_MS = 20_000
 
 const INSTRUCAO =
   "Transcreva literalmente a fala deste áudio de WhatsApp, em português do Brasil. " +
@@ -55,7 +59,7 @@ const repetivel = (erro: unknown) => erro instanceof IaError && erro.repetivel
 
 export async function transcrever(
   audio: { bytes: Uint8Array; mime: string },
-  opcoes: { fetch?: typeof fetch; dormir?: (ms: number) => Promise<void> } = {},
+  opcoes: { fetch?: typeof fetch; dormir?: (ms: number) => Promise<void>; sinal?: AbortSignal } = {},
 ): Promise<string> {
   const formato = formatoDoAudio(audio.mime)
   if (!formato) throw new IaError("formato-de-audio", false)
@@ -77,10 +81,15 @@ export async function transcrever(
             ],
             max_tokens: MAXIMO_DE_TOKENS,
           },
-          { fetch: opcoes.fetch, tempoMaximoMs: TEMPO_MAXIMO_MS },
+          { fetch: opcoes.fetch, tempoMaximoMs: TEMPO_MAXIMO_DA_TRANSCRICAO_MS, sinal: opcoes.sinal },
         )
       ).texto,
-    { esperas: ESPERAS_DA_IA_MS, repetivel, dormir: opcoes.dormir ?? dormirDeVerdade },
+    {
+      esperas: ESPERAS_DA_IA_MS,
+      // Esgotado o orçamento de quem chamou, não há nova tentativa.
+      repetivel: (erro) => repetivel(erro) && !opcoes.sinal?.aborted,
+      dormir: opcoes.dormir ?? dormirDeVerdade,
+    },
   )
 
   // Silêncio ou ruído: não há o que triar nem responder. A conversa vai para

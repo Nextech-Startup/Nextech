@@ -11,7 +11,7 @@ import { decifrarSegredo } from "@/lib/security/tenant-secrets"
  */
 
 const GRAPH = "https://graph.facebook.com"
-const TEMPO_MAXIMO_MS = 15_000
+export const TEMPO_MAXIMO_DA_META_MS = 15_000
 /** Código da Meta para limite de taxa: a mensagem certamente não saiu. */
 const LIMITE_DE_TAXA = "130429"
 
@@ -38,7 +38,7 @@ function versao(): string {
 async function chamar(url: string, init: RequestInit, buscar: typeof fetch): Promise<unknown> {
   let resposta: Response
   try {
-    resposta = await buscar(url, { ...init, signal: AbortSignal.timeout(TEMPO_MAXIMO_MS) })
+    resposta = await buscar(url, { ...init, signal: AbortSignal.timeout(TEMPO_MAXIMO_DA_META_MS) })
   } catch {
     // Sem resposta, não dá para saber se a mensagem saiu: não repete.
     throw new MetaError("rede", null, false)

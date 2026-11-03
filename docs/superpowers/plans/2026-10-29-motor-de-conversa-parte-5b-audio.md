@@ -2,7 +2,18 @@
 
 > **Para quem executa:** SUB-SKILL OBRIGATÓRIA: `superpowers:executing-plans`, tarefa por tarefa. Carregue `lgpd-security` antes de qualquer tarefa, `integrations` antes das tarefas 1 a 3 e `supabase-postgres-best-practices` antes da tarefa 4. Os passos usam checkbox (`- [ ]`).
 
-## Status: 🟡 em execução desde 2026-11-03 (decisões ⚖️ confirmadas pelo Jhones)
+## Status: ✅ concluído em 2026-11-03 (decisões ⚖️ confirmadas pelo Jhones)
+
+## Desvios do plano, decididos na execução
+
+- **Sem `audio_media_ref`:** a referência do áudio (media id da Meta, ou o anexo da Evolution) segue em memória do webhook até o `after()`. O reenvio da Meta traz o id de novo; com a transcrição já gravada, o reenvio nem baixa.
+- **Evolution por `base64: true` no webhook**, e não pelo endpoint de base64: a instância não grava mensagens (LGPD), e o endpoint não acharia o áudio.
+- **`transcript_encrypted` legível pela RLS, cifrado**, como o `content_encrypted`: a equipe lê o texto cifrado da própria clínica e só o servidor decifra. O plano falava em tirar a coluna do grant; a proteção é a mesma do conteúdo.
+- **Orçamento de 50 s** para download e transcrição, com `AbortSignal`, e `maxDuration` das rotas de 120 para 180 s (a conta, pelas constantes, está em `lib/conversations/audio.test.ts`). A transcrição tem teto de 20 s por tentativa, para caberem duas.
+- **A falha do áudio passa pela resposta**, depois do agrupamento e da decisão: com a equipe atendendo, não há alerta falso.
+- **Sem ZDR e com o provedor fixo** (`only` com os provedores do Google), por decisão do Jhones ao saber que o 2.5 Flash perdeu os endpoints com retenção zero. Commit próprio, com a política de privacidade.
+- **Grupo (revisão de QA, I2):** o texto gravado até 10 s depois de um áudio cede a vez, e o áudio responde pelos dois; `reserve_ai_reply` ganhou `p_seen_up_to_message_id` (migration `20261103140000`).
+- **Correção da revisão de segurança:** a migration `20261103120000` recriou `redact_patient_messages`, apagada de propósito em `20260927140000`; `20261103130000` a apaga de novo.
 
 **Decisões tomadas pela recomendação, com o Jhones fora** (memória `jhones-prefere-alternativas`). Revisar antes de executar: estão marcadas com ⚖️ abaixo.
 
@@ -56,38 +67,38 @@ Hoje o áudio do paciente chega ao modelo como "[áudio, que ainda não pode ser
 - [x] Nada de áudio real de paciente na sonda: só o da equipe.
 
 ### Tarefa 2: Download da mídia
-- [ ] Testes primeiro (`lib/whatsapp/midia.test.ts`): Meta em duas etapas com o Bearer do agente; Evolution; recusa acima de 5 MB sem ler o resto do corpo; erro da Meta sem o token no erro nem no log.
-- [ ] Implementar `baixarAudio`.
-- [ ] Extrair a referência nos dois webhooks, com teste dos payloads reais (fixture da Meta e da Evolution).
+- [x] Testes primeiro (`lib/whatsapp/midia.test.ts`): Meta em duas etapas com o Bearer do agente; Evolution; recusa acima de 5 MB sem ler o resto do corpo; erro da Meta sem o token no erro nem no log.
+- [x] Implementar `baixarAudio`.
+- [x] Extrair a referência nos dois webhooks, com teste dos payloads reais (fixture da Meta e da Evolution).
 
 ### Tarefa 3: Transcrição
-- [ ] Testes primeiro (`lib/ai/transcricao.test.ts`): corpo da requisição no formato da sonda, retentativa, texto vazio tratado como falha, log sem conteúdo.
-- [ ] Implementar `transcrever`.
+- [x] Testes primeiro (`lib/ai/transcricao.test.ts`): corpo da requisição no formato da sonda, retentativa, texto vazio tratado como falha, log sem conteúdo.
+- [x] Implementar `transcrever`.
 
 ### Tarefa 4: Banco
-- [ ] Migration: `messages.transcript_encrypted` (fora do grant de `authenticated`, lido pela RPC/visão da tela como o conteúdo hoje), `messages.audio_media_ref` (só `service_role`), `register_whatsapp_message` aceitando a referência, `anonymize_patient` apagando os dois.
-- [ ] Testes de RLS (`tests/rls/`): a sessão não lê a referência; a transcrição só sai decifrada pelo caminho da tela; anonimizar apaga a transcrição.
+- [x] Migration: `messages.transcript_encrypted` (fora do grant de `authenticated`, lido pela RPC/visão da tela como o conteúdo hoje), `messages.audio_media_ref` (só `service_role`), `register_whatsapp_message` aceitando a referência, `anonymize_patient` apagando os dois.
+- [x] Testes de RLS (`tests/rls/`): a sessão não lê a referência; a transcrição só sai decifrada pelo caminho da tela; anonimizar apaga a transcrição.
 
 ### Tarefa 5: Orquestração
-- [ ] Testes primeiro (`lib/conversations/audio.test.ts`), com download e transcrição simulados:
+- [x] Testes primeiro (`lib/conversations/audio.test.ts`), com download e transcrição simulados:
   - Starter não baixa nem transcreve;
   - Pro com consentimento grava cifrado; sem consentimento não grava, e a transcrição chega à resposta daquela execução;
   - áudio grande vai para a equipe sem chamar a IA;
   - falha da transcrição vai para a equipe, sem nada ao paciente;
   - transcrição com palavra-chave de urgência escala e devolve o protocolo, como o texto.
-- [ ] Ligar ao `after()` da recepção, antes de `responder`.
+- [x] Ligar ao `after()` da recepção, antes de `responder`.
 
 ### Tarefa 6: Prompt e histórico
-- [ ] `textoParaOModelo` com transcrição: `[áudio transcrito] …`. Teste em `prompt.test.ts`.
-- [ ] Instrução do Starter. Teste.
+- [x] `textoParaOModelo` com transcrição: `[áudio transcrito] …`. Teste em `prompt.test.ts`.
+- [x] Instrução do Starter. Teste.
 
 ### Tarefa 7: Tela de Conversas
-- [ ] Mostrar a transcrição gravada sob o balão do áudio; sem ela, o balão de hoje. Teste do mapeamento em `tela.test.ts`.
-- [ ] Revisão visual no navegador, nos dois temas, em 1440 e 390 px.
+- [x] Mostrar a transcrição gravada sob o balão do áudio; sem ela, o balão de hoje. Teste do mapeamento em `tela.test.ts`.
+- [ ] Revisão visual no navegador, nos dois temas, em 1440 e 390 px. **Pendente com o Jhones** (a tela exige login); coberto por teste de componente.
 
 ### Tarefa 8: Revisões e fechamento
-- [ ] `security-reviewer` (áudio é dado de saúde: download, memória, log, retenção) e `qa-reviewer`.
-- [ ] Suíte inteira, status, spec (`conversation-engine-v1.md`, parte 5 ✅ e a triagem de áudio fora de "Em aberto") e páginas legais, se a transcrição mudar o que a política de privacidade descreve sobre o fornecedor de IA.
+- [x] `security-reviewer` (áudio é dado de saúde: download, memória, log, retenção) e `qa-reviewer`.
+- [x] Suíte inteira, status, spec (`conversation-engine-v1.md`, parte 5 ✅ e a triagem de áudio fora de "Em aberto") e páginas legais, se a transcrição mudar o que a política de privacidade descreve sobre o fornecedor de IA.
 
 ## Riscos
 

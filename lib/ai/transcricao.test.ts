@@ -34,7 +34,7 @@ describe("transcrever", () => {
     const [, init] = fetch.mock.calls[0] as unknown as Chamada
     const corpo = JSON.parse(init.body as string)
     expect(corpo.model).toBe("provedor/modelo-de-teste")
-    expect(corpo.provider).toEqual({ data_collection: "deny" })
+    expect(corpo.provider).toEqual({ only: ["google-ai-studio", "google-vertex"], allow_fallbacks: false, data_collection: "deny" })
     expect(corpo.messages).toHaveLength(1)
     const [instrucao, audio] = corpo.messages[0].content
     expect(instrucao.type).toBe("text")
@@ -59,6 +59,27 @@ describe("transcrever", () => {
       code: "http-500",
     })
     expect(fetch).toHaveBeenCalledTimes(3)
+  })
+
+  it("com o orçamento de quem chama esgotado, não tenta de novo", async () => {
+    const controle = new AbortController()
+    const fetch = vi.fn(async () => {
+      controle.abort()
+      return json(503, {})
+    })
+    await expect(
+      transcrever({ bytes: OGG, mime: "audio/ogg" }, { fetch, dormir: semEspera, sinal: controle.signal }),
+    ).rejects.toMatchObject({ code: "http-503" })
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it("o sinal de quem chama chega ao fetch", async () => {
+    const controle = new AbortController()
+    const fetch = vi.fn(async (..._a: unknown[]) => resposta("oi"))
+    await transcrever({ bytes: OGG, mime: "audio/ogg" }, { fetch, dormir: semEspera, sinal: controle.signal })
+    const [, init] = fetch.mock.calls[0] as unknown as Chamada
+    controle.abort()
+    expect(init.signal?.aborted).toBe(true)
   })
 
   it("texto vazio é falha, e se repete", async () => {

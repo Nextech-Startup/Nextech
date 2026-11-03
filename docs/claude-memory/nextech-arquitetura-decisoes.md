@@ -62,3 +62,10 @@ Arquitetura decidida em 2026-09-16, documentada em `docs/superpowers/specs/2026-
 **Why:** o ritmo de "uma spec por sessão" ([[nextech-session-rhythm]]) exige que cada sessão toque um módulo só; e o isolamento entre clínicas precisa ser estrutural, não disciplinar, porque o custo do esquecimento é vazamento de dado de saúde.
 
 **How to apply:** ao implementar qualquer feature, o código de domínio vai em `lib/<dominio>/` e obtém o tenant por `requireClinicContext()`. Ver [[nextech-testing-bar]] para a régua de teste de RLS que decorre disso.
+- **Parte 5b, áudio (2026-11-03):**
+  - o áudio vive só em memória: referência no `MensagemDoWebhook.audio` (media id da Meta ou base64 da Evolution), bytes baixados e descartados no `after()`. Nada de coluna de mídia;
+  - transcrição pelo mesmo modelo (`input_audio`), em chamada separada; gravada cifrada só pela `save_message_transcript`, que confere consentimento e anonimização sob a trava do paciente (`for share`);
+  - toda falha do caminho do áudio vira `{ falha }` para `responderConversa`, que decide depois do agrupamento: equipe atendendo não gera alerta;
+  - grupo: texto gravado (`created_at`) até a janela de 10 s depois de um áudio cede a vez; a reserva aceita até `p_seen_up_to_message_id`. Regra por horário de gravação, nunca por "transcrição já gravada", para as execuções não se esperarem;
+  - OpenRouter sem `zdr` e com `provider.only` nos provedores do Google (decisão do Jhones, 2.5 Flash sem ZDR); a política nomeia o Google, e `tests/legal` amarra os dois;
+  - orçamento do áudio (50 s) e `maxDuration` (180 s) conferidos por teste a partir das constantes de tempo.

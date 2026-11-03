@@ -9,7 +9,7 @@
 | 1 — Specs do MVP | ✅ concluída — 9 specs |
 | 2 — Repo, CLAUDE.md, skills | ✅ concluída |
 | **3a — Fundação multi-tenant** | ✅ concluída |
-| **3b — Motor de conversa** | 🟡 partes 1 a 4 de 5 ✅ (dados e recepção; decisão e resposta da IA; urgência, opt-out, manutenção pelo pg_cron e qualificação; tela real de Conversas e acesso de suporte); parte 5a (teste de conversa do agente) ✅; falta: parte 5b (áudio) |
+| **3b — Motor de conversa** | ✅ partes 1 a 5 (dados e recepção; decisão e resposta da IA; urgência, opt-out, manutenção pelo pg_cron e qualificação; tela real de Conversas e acesso de suporte; teste de conversa do agente; transcrição do áudio) |
 | **3c — Shell de navegação** | ✅ concluída |
 | **Conta de demonstração** | ✅ concluída (`docs/specs/demo-account-v1.md`): todas as telas do painel na "Clínica Demonstração Nextech", com dado de exemplo e selo |
 | **Canal de demonstração (Evolution)** | ✅ concluído e ensaiado com o chip (`docs/specs/evolution-demo-v1.md`) |
@@ -18,11 +18,11 @@
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**1907 testes passando** (147 arquivos) · 38 migrations aplicadas · em produção em `app.nextech.ia.br`
+**2028 testes passando** (152 arquivos, suíte inteira em 2026-11-03) · 41 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 **Prioridade atual (2026-10-26): o desenvolvimento do produto**, spec por spec. A apresentação ao investidor está resolvida: o Jhones concluiu os passos pendentes (número do investidor e limpeza).
 
-**Próximas sessões, nesta ordem:** (1) o plano da parte 1 do CRM, depois da revisão da spec; (2) a parte 5b da 3b (áudio), com o plano em `docs/superpowers/plans/2026-10-29-motor-de-conversa-parte-5b-audio.md`. A posse do WhatsApp e o MFA do painel interno ficaram prontos em 2026-10-29.
+**Próxima sessão:** o plano da parte 1 do CRM, depois da revisão da spec. A parte 5b (áudio) ficou pronta em 2026-11-03, e com ela a fase 3b.
 
 ---
 
@@ -217,6 +217,20 @@ O cartão "Testar" da tela do agente virou conversa de verdade com a IA. Detalhe
 - **Testes:** `lib/agent-config/preview.test.ts`, mais `tests/rls/teste-de-agente.test.ts` contra o banco real, que confere o contexto lido pela sessão do owner e o teto fechado para a sessão.
 - **Não foi conferido no navegador**, só por teste.
 
+### Parte 5b: transcrição do áudio ✅ (2026-11-03)
+
+Plano em `docs/superpowers/plans/2026-10-29-motor-de-conversa-parte-5b-audio.md`, com os desvios registrados.
+- **Caminho:** o webhook leva a referência do áudio só em memória (media id da Meta, ou o base64 que a Evolution anexa). No `after()`, `lib/conversations/audio.ts` faz plano → download → transcrição → gravação com consentimento → triagem de urgência → resposta. O áudio nunca é gravado.
+- **Transcrição:** o próprio Gemini 2.5 Flash, por `input_audio`, que lê o Opus em OGG do WhatsApp direto (sonda com áudio real da equipe). Custa ~US$ 0,002 por minuto de áudio.
+- **Plano:** Pro e HealthTech transcrevem (`TRANSCREVE_AUDIO`). No Starter, a IA pede que o paciente escreva.
+- **Consentimento:** `save_message_transcript` grava cifrado só com `consent_given_at` e paciente não anonimizado, sob a trava do paciente. Sem consentimento, a transcrição serve à triagem e à resposta daquela vez. A anonimização apaga a transcrição.
+- **Falhas:** áudio acima de 5 MB, sem referência, sem fala, orçamento de 50 s esgotado ou erro de banco no caminho: a conversa vai para a equipe, sem nada ao paciente, só se a IA fosse responder. A rota passou a durar até 180 s.
+- **Grupo:** texto gravado até 10 s depois de um áudio cede a vez, e o áudio responde pelos dois (a reserva aceita até a última mensagem vista). O que chega depois responde sozinho.
+- **Sem ZDR desde 2026-11-03:** o 2.5 Flash perdeu os endpoints com retenção zero. Decisão do Jhones: manter o modelo, com o pedido preso aos provedores do Google (`only`) e a política de privacidade dizendo o que o Google retém.
+- **Tela de Conversas:** o áudio transcrito mostra a transcrição sob o rótulo "Transcrição". Sem ela, o balão de sempre.
+- **Revisões:** segurança (1 bloqueante: a migration recriou `redact_patient_messages`, apagada de propósito em setembro e executável por `anon`; corrigido em `20261103130000`) e QA (corrida entre áudio e texto, caminho de produção sem teste, falha fora do `try`; tudo corrigido e testado). `tests/conversations/audio-ponta-a-ponta.test.ts` roda o caminho de produção contra o banco.
+- **Não foi conferido no navegador**, só por teste de componente. Nem ponta a ponta com a Evolution real.
+
 ## Páginas legais ✅ (2026-10-26)
 
 Spec `docs/specs/legal-pages-v1.md`. Destravam o App Review da Meta, que exige a URL da política e a de instruções de exclusão.
@@ -288,6 +302,7 @@ Spec `docs/specs/evolution-demo-v1.md`; plano `docs/superpowers/plans/2026-10-11
 ## Pendências
 
 ### Precisam de ação do Jhones
+- [ ] **Áudio (parte 5b):** (1) conferir no navegador, nos dois temas, a conversa com áudio transcrito; (2) reconfigurar o webhook da instância da Evolution com `base64 = $true` (`docs/infra-setup.md`, canal de demonstração, passo 4), senão o áudio da demonstração vai para a equipe; (3) confirmar que o plano da Vercel aceita `maxDuration = 180` nas rotas do webhook
 
 - [ ] **Páginas legais, depois do deploy em produção (PR `staging` → `main`):** pôr as três URLs (`https://www.nextech.ia.br/privacidade`, `/termos`, `/exclusao-de-dados`) nos campos do app na Meta (Configurações do app > Básico). Antes da primeira clínica: a revisão do texto, de preferência com advogado. Na revisão, confirmar o data center da conta do Zoho (a política diz "exterior") e o fundamento da transferência internacional (art. 33)
 - [ ] **Caminho de exclusão do paciente, bloqueio de go-live** (achado da revisão de segurança das páginas legais): a política promete que o pedido do paciente é atendido em até 15 dias, com o cadastro anonimizado. A `anonymize_patient` existe e é testada, mas nada a chama: as telas de paciente só abrem na demonstração, e a função exige owner com sessão viva, então nem o `service_role` a roda. Antes da primeira clínica, entregar a ação do owner na ficha do paciente (ou uma rota interna auditada). Sem cliente, nenhum titular depende disso hoje
@@ -351,6 +366,9 @@ Spec `docs/specs/evolution-demo-v1.md`; plano `docs/superpowers/plans/2026-10-11
   em 2026-10-11, a pedido do Jhones, e conferida no banco
 
 ### Dívida técnica conhecida
+- [ ] **Dois áudios seguidos sem consentimento:** o segundo responde pelo grupo, e a transcrição do primeiro (só em memória) se perde; o modelo vê o marcador no lugar dele. Com consentimento, as duas estão gravadas
+- [ ] **Revogação de consentimento:** não existe fluxo além da anonimização. Quando existir, precisa apagar `transcript_encrypted` (revisão de segurança da parte 5b)
+- [ ] **Áudio de paciente que pediu opt-out das sequências** também é transcrito e respondido: o opt-out vale para sequência, não para atendimento
 
 - [ ] **Painel interno sem a conferência de sessão viva** (conferência de segurança de 2026-10-11, não bloqueia): `private.is_platform_admin()` e a policy de `platform_admins` não exigem `private.sessao_ativa()`. Pelo PostgREST direto, um token de admin revogado ainda lê `admin_audit_log` (sem PII) até vencer; o `/admin` em si passa pelo `getUser`. Fechar no mesmo padrão: `and (select private.sessao_ativa())` no `is_platform_admin` e a policy usando-o
 - [ ] **Canal Realtime já aberto não reconfere a sessão** até reconectar. O aviso não leva dado, então o impacto é nulo; anotado para não esquecer

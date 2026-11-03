@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 import { formatarNumero } from "@/lib/formatters/numero"
-import { LIMITE_DE_ATENDIMENTOS } from "./plan-limits"
+import { LIMITE_DE_ATENDIMENTOS, TRANSCREVE_AUDIO } from "./plan-limits"
 import { projetarConsumo } from "./consumo"
 
 describe("limites de atendimento", () => {
@@ -15,6 +15,18 @@ describe("limites de atendimento", () => {
     for (const n of Object.values(LIMITE_DE_ATENDIMENTOS)) {
       expect(landing).toContain(`Até ${formatarNumero(n)} atendimentos/mês`)
     }
+  })
+})
+
+describe("transcrição de áudio por plano", () => {
+  it("vale do Pro para cima, como a landing promete", () => {
+    expect(TRANSCREVE_AUDIO).toEqual({ starter: false, pro: true, healthtech: true })
+    // O áudio aparece na lista do Pro ("Tudo do Starter" + ...), e não na do Starter.
+    const landing = readFileSync("components/pricing.tsx", "utf8")
+    const doStarter = landing.slice(landing.indexOf('name: "Starter"'), landing.indexOf('name: "Pro"'))
+    const doPro = landing.slice(landing.indexOf('name: "Pro"'), landing.indexOf('name: "HealthTech"'))
+    expect(doStarter).not.toMatch(/áudio/i)
+    expect(doPro).toMatch(/áudios com IA/)
   })
 })
 

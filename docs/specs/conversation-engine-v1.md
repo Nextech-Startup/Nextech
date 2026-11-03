@@ -130,7 +130,7 @@ A 3b foi dividida em cinco partes, por dependência (decisão do Jhones, 2026-09
 2. ✅ decisão e resposta da IA;
 3. ✅ urgência, opt-out e qualificação (a qualificação teve sessão própria, depois da urgência, do opt-out e da manutenção);
 4. ✅ tela real de Conversas;
-5. 🟡 preview do agente ✅ (2026-10-29); áudio ⬜.
+5. ✅ preview do agente (2026-10-29) e transcrição do áudio (2026-11-03).
 
 ### Parte 1: dados e recepção (2026-09-27)
 
@@ -172,7 +172,7 @@ Planos: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3.md` (urgên
   - Vale também com a equipe atendendo (decisão do Jhones): quem respondeu pelo celular pode não estar olhando agora.
   - Um protocolo por escalada. Conversa já urgente, mensagem já respondida (reenvio) ou agente fora do ar não mandam de novo. Com a janela fechada (reenvio tardio), a marca fica e o protocolo não sai.
   - A mensagem urgente nunca recebe resposta da IA, e uma resposta em curso para mensagem anterior cai na reserva.
-  - Agente pausado: sem triagem. Áudio: sem triagem até a transcrição (parte 5).
+  - Agente pausado: sem triagem. Áudio: triado pela transcrição, nos planos que transcrevem (parte 5b).
 - **Opt-out:** a mensagem inteira, normalizada, precisa ser `parar`, `pare`, `sair`, `stop` ou `descadastrar`. Grava `patients.opted_out` com o agente pausado, com a equipe atendendo e no reenvio. A mensagem não tem resposta, e o Nextech não manda texto próprio. Conversa que o paciente iniciar depois segue sendo respondida: o opt-out vale para as sequências.
 - **Manutenção pelo pg_cron, a cada 5 min** (a Vercel Hobby só roda cron uma vez por dia; decisão do Jhones):
   - `close_stale_attendance_sessions` fecha a sessão parada há mais de 1h20 (20 min mais 1 h de folga para mensagem atrasada, decisão do Jhones), com `closed_at` = última mensagem + 20 min, a fórmula da recepção;
@@ -241,6 +241,14 @@ produziria um número que ninguém conseguiria defender.
 regra muda de data: recalcular depois exigiria saber qual regra valia em cada
 mensagem do histórico.
 
+### Parte 5b: transcrição do áudio (2026-11-03)
+
+- O áudio do paciente é transcrito pelo modelo de conversa (`lib/ai/transcricao.ts`) a partir do Pro; no Starter, a IA pede que o paciente escreva.
+- O áudio nunca é gravado. A transcrição só é gravada, cifrada, com consentimento (`save_message_transcript`); sem ele, serve à triagem e à resposta daquela vez.
+- A triagem de urgência roda na transcrição, como no texto.
+- Falha ao obter ou transcrever (inclusive acima de 5 MB ou do orçamento de 50 s) passa a conversa para a equipe, sem nada ao paciente, se a IA fosse responder.
+- Agrupamento: o texto gravado até 10 s depois de um áudio cede a vez, e o áudio responde pelos dois.
+
 ## Em aberto
 - **Agrupamento de mensagens**: a janela de ~10s é um chute inicial. Precisa de ajuste com conversa real — curta demais responde em duplicidade, longa demais parece lento.
 - **Tamanho do histórico** enviado ao modelo: afeta custo por atendimento e qualidade. Medir antes de fixar.
@@ -249,5 +257,4 @@ mensagem do histórico.
 - **Raciocínio do Gemini dentro dos 600 tokens:** na maioria dos provedores, o `max_tokens` soma raciocínio e saída. Se o raciocínio esgotar o limite, a resposta volta cortada (`resposta-truncada`) e a conversa vai para a equipe. Medir antes de configurar o `reasoning`.
 - **`billable` contra o `pricing` da Meta:** o status de entrega traz `pricing.billable` e a categoria que a Meta cobrou. Conferir o que gravamos com isso quando houver tráfego real, antes de fechar o preço dos planos.
 - **Lista de opt-out:** fixa no código (`parar`, `pare`, `sair`, `stop`, `descadastrar`, como mensagem inteira). Revisar com conversa real: pedido escrito como frase ("não quero mais receber") hoje não conta.
-- **Triagem de áudio:** só com a transcrição (parte 5). Até lá, áudio com relato de urgência não escala.
 - **Retomada em conversa urgente**: hoje nunca é automática. Se na prática isso deixar conversas presas, revisitar.

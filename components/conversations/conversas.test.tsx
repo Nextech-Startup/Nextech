@@ -77,6 +77,25 @@ describe("lista de conversas", () => {
 })
 
 describe("conversa aberta", () => {
+  it("áudio transcrito mostra o rótulo, a transcrição e a duração só quando se sabe", () => {
+    const html = render(
+      aberta({
+        id: "1",
+        itens: [
+          { tipo: "mensagem", id: "a", autor: "patient", texto: "Queria remarcar", em: d("14:00"), midia: "audio",
+            audio: { segundos: null, transcrita: true } },
+          { tipo: "mensagem", id: "b", autor: "patient", texto: "", em: d("14:02"), midia: "audio",
+            audio: { segundos: 42, transcrita: true } },
+        ],
+      }),
+    )
+    expect(html).toContain(">Áudio<")
+    expect(html).toContain("Áudio, 0:42")
+    expect(html.match(/>Transcrição</g)).toHaveLength(2)
+    expect(html).toContain("Queria remarcar")
+    expect(html).not.toContain("sem consentimento")
+  })
+
   it("com a IA atendendo, oferece assumir e não abre o campo de resposta", () => {
     const html = render(aberta({ id: "1" }))
     expect(html).toContain("Assumir conversa")

@@ -12,3 +12,14 @@ export const LIMITE_DE_ATENDIMENTOS: Record<ClinicPlan, number> = {
   pro: 500,
   healthtech: 5000,
 }
+
+/**
+ * O assistente transcreve o áudio do paciente (motor de conversa, parte
+ * 5b): a landing promete áudio a partir do Pro. No Starter, a IA pede que
+ * o paciente escreva.
+ */
+export const TRANSCREVE_AUDIO: Record<ClinicPlan, boolean> = {
+  starter: false,
+  pro: true,
+  healthtech: true,
+}

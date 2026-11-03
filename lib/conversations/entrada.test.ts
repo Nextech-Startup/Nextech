@@ -4,11 +4,13 @@ import type { MensagemDoWebhook } from "@/lib/whatsapp/webhook"
 vi.mock("./recepcao", () => ({ receberMensagem: vi.fn() }))
 vi.mock("./resposta", () => ({ responderConversa: vi.fn() }))
 vi.mock("./urgencia", () => ({ enviarProtocolo: vi.fn() }))
+vi.mock("./audio", () => ({ tratarAudio: vi.fn() }))
 
 import { tratarMensagem, type Agendar } from "./entrada"
 import { receberMensagem, type ResultadoDaRecepcao } from "./recepcao"
 import { responderConversa } from "./resposta"
 import { enviarProtocolo, type ProtocoloReservado } from "./urgencia"
+import { tratarAudio } from "./audio"
 
 /**
  * A orquestração que as duas rotas (Meta e Evolution) dividem: o que é
@@ -199,5 +201,57 @@ describe("tratarMensagem", () => {
     await expect(tratarMensagem(mensagem, agendar)).rejects.toThrow()
 
     expect(etapas).toEqual([])
+  })
+})
+
+describe("áudio do paciente (parte 5b)", () => {
+  const audio: MensagemDoWebhook = {
+    ...mensagem,
+    midia: "audio",
+    texto: null,
+    audio: { origem: "meta", mediaId: "1234567890", mime: "audio/ogg" },
+  }
+
+  beforeEach(() => {
+    vi.mocked(tratarAudio).mockReset()
+  })
+
+  it("agenda o tratamento do áudio no lugar da resposta direta", async () => {
+    const r = recepcao()
+    vi.mocked(receberMensagem).mockResolvedValue(r)
+    const { etapas, agendar } = agenda()
+    await tratarMensagem(audio, agendar)
+    expect(etapas).toEqual(["audio"])
+    expect(tratarAudio).toHaveBeenCalledWith(r, audio.audio, { responder: true, ocorridaEm: audio.ocorridaEm })
+    expect(responderConversa).not.toHaveBeenCalled()
+  })
+
+  it("sem resposta pelo teto, o áudio ainda é tratado (urgência), sem responder", async () => {
+    const r = recepcao()
+    vi.mocked(receberMensagem).mockResolvedValue(r)
+    const { etapas, agendar } = agenda()
+    await tratarMensagem(audio, agendar, { podeResponder: async () => false })
+    expect(etapas).toEqual(["audio"])
+    expect(tratarAudio).toHaveBeenCalledWith(r, audio.audio, { responder: false, ocorridaEm: audio.ocorridaEm })
+  })
+
+  it("áudio sem referência também vai para o tratamento, que passa à equipe", async () => {
+    vi.mocked(receberMensagem).mockResolvedValue(recepcao())
+    const { agendar } = agenda()
+    const semReferencia = { ...audio, audio: undefined }
+    await tratarMensagem(semReferencia, agendar)
+    expect(tratarAudio).toHaveBeenCalledWith(expect.anything(), undefined, expect.anything())
+  })
+
+  it.each([
+    ["agente fora do ar", { agenteAtivo: false }],
+    ["reenvio já respondido", { nova: false, jaRespondida: true }],
+    ["eco da equipe", { autor: "human" as const }],
+  ])("%s: o áudio não é tratado", async (_, parcial) => {
+    vi.mocked(receberMensagem).mockResolvedValue(recepcao(parcial))
+    const { etapas, agendar } = agenda()
+    await tratarMensagem(audio, agendar)
+    expect(etapas).toEqual([])
+    expect(tratarAudio).not.toHaveBeenCalled()
   })
 })

@@ -110,6 +110,26 @@ describe("obterAudio da Meta", () => {
     await expect(obterAudio(daMeta, credencial(), { fetch })).rejects.toMatchObject({ code: "audio-grande" })
   })
 
+  it.each([
+    ["host fora da Meta", "https://exemplo.test/midia"],
+    ["sufixo enganoso", "https://lookaside.fbsbx.com.exemplo.test/x"],
+    ["URL inválida", "não é url"],
+  ])("%s: o Bearer não sai", async (_, url) => {
+    const fetch = vi.fn(async () => json(200, { url }))
+    const erro = await erroSemSegredo(obterAudio(daMeta, credencial(), { fetch }))
+    expect(erro.code).toBe("resposta-invalida")
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it("as duas etapas recusam redirecionamento", async () => {
+    const fetch = vi
+      .fn<(...args: unknown[]) => Promise<Response>>()
+      .mockResolvedValueOnce(json(200, { url: URL_ASSINADA }))
+      .mockResolvedValueOnce(new Response(OGG))
+    await obterAudio(daMeta, credencial(), { fetch })
+    for (const [, init] of fetch.mock.calls as unknown as Chamada[]) expect(init.redirect).toBe("error")
+  })
+
   it("URL de download fora de https é recusada: o token não sai em texto claro", async () => {
     const fetch = vi.fn(async () => json(200, { url: "http://lookaside.fbsbx.com/x" }))
     const erro = await erroSemSegredo(obterAudio(daMeta, credencial(), { fetch }))
@@ -143,6 +163,17 @@ describe("obterAudio da Meta", () => {
       .mockResolvedValueOnce(json(200, { url: URL_ASSINADA }))
       .mockResolvedValueOnce(new Response(new Uint8Array(0)))
     await expect(obterAudio(daMeta, credencial(), { fetch })).rejects.toMatchObject({ code: "audio-vazio" })
+  })
+
+  it("o sinal de quem chama corta as duas etapas", async () => {
+    const controle = new AbortController()
+    const fetch = vi
+      .fn<(...args: unknown[]) => Promise<Response>>()
+      .mockResolvedValueOnce(json(200, { url: URL_ASSINADA }))
+      .mockResolvedValueOnce(new Response(OGG))
+    await obterAudio(daMeta, credencial(), { fetch, sinal: controle.signal })
+    controle.abort()
+    for (const [, init] of fetch.mock.calls as unknown as Chamada[]) expect(init.signal?.aborted).toBe(true)
   })
 
   it("sem WHATSAPP_API_VERSION, nada é chamado", async () => {

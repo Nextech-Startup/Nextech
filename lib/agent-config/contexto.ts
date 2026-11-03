@@ -1,6 +1,7 @@
 import type { createServiceClient } from "@/lib/supabase/server"
 import type { ContextoDoAgente } from "./prompt"
-import { lerBusinessHours, type MedicalSpecialty } from "./schema"
+import { TRANSCREVE_AUDIO } from "@/lib/billing/plan-limits"
+import { lerBusinessHours, type ClinicPlan, type MedicalSpecialty } from "./schema"
 
 /**
  * Qualquer client do Supabase: o `service_role` da resposta no WhatsApp ou
@@ -26,7 +27,7 @@ export async function contextoDoAgente(
   },
 ): Promise<ContextoDoAgente> {
   const [clinica, procedimentos, convenios] = await Promise.all([
-    supabase.from("clinics").select("legal_name").eq("id", clinicId).single(),
+    supabase.from("clinics").select("legal_name, plan").eq("id", clinicId).single<{ legal_name: string; plan: ClinicPlan }>(),
     supabase
       .from("procedures")
       .select("name, duration_minutes, price")
@@ -51,5 +52,7 @@ export async function contextoDoAgente(
       preco: p.price === null ? null : Number(p.price),
     })),
     convenios: convenios.data.map((c) => c.name),
+    // O plano lido do banco, no servidor: a clínica não muda o próprio plano.
+    transcreveAudio: TRANSCREVE_AUDIO[clinica.data.plan],
   }
 }

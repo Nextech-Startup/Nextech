@@ -7,9 +7,10 @@ import {
   type MensagemDoModelo,
 } from "@/lib/agent-config/prompt"
 import { FORMATO_DA_RESPOSTA, lerSaidaDoModelo, type SaidaDoModelo } from "@/lib/agent-config/saida"
-import type { MedicalSpecialty } from "@/lib/agent-config/schema"
+import type { ClinicPlan, MedicalSpecialty } from "@/lib/agent-config/schema"
 import { gerarResposta, IaError } from "@/lib/ai/client"
 import { comRetentativas, dormir, ESPERAS_DA_IA_MS } from "@/lib/ai/retentativa"
+import { TRANSCREVE_AUDIO } from "@/lib/billing/plan-limits"
 import { erroParaLog } from "@/lib/security/erro-para-log"
 import { enviarPeloCanal } from "@/lib/whatsapp/canal"
 import { MetaError } from "@/lib/whatsapp/client"
@@ -26,6 +27,13 @@ import type { ResultadoDaRecepcao } from "./recepcao"
  * duplicidade, longo demais parece lento.
  */
 export const JANELA_DE_AGRUPAMENTO_MS = 10_000
+
+/**
+ * Download e transcrição do áudio do paciente, com as novas tentativas
+ * (parte 5b). Mora aqui, e não em `audio.ts`, porque o agrupamento também
+ * usa: um áudio mais novo que isto ainda pode estar sendo transcrito.
+ */
+export const ORCAMENTO_DO_AUDIO_MS = 50_000
 
 export type DesfechoDaResposta =
   | "respondida"
@@ -46,9 +54,12 @@ type Reserva = {
 }
 
 /** A confirmação depois do envio repete o erro passageiro: o paciente já recebeu. */
-const ESPERAS_DA_CONFIRMACAO_MS = [500, 2000] as const
+export const ESPERAS_DA_CONFIRMACAO_MS = [500, 2000] as const
 
 export type Envio = { phoneNumberId: string; tokenCifrado: string; para: string; texto: string }
+
+/** Esperas entre as tentativas de envio: só o limite de taxa se repete. */
+export const ESPERAS_DO_ENVIO_MS = [1000] as const
 
 /** O que sai do processo: o modelo, o WhatsApp, o relógio. Injetável para o teste. */
 export type Dependencias = {
@@ -72,12 +83,20 @@ export const DEPENDENCIAS_PADRAO: Dependencias = {
   // Só o limite de taxa se repete (MetaError e EvolutionError.repetivel): um
   // 5xx pode ter enviado, e repetir mandaria a resposta duas vezes. O canal
   // sai do identificador do agente (evolution-demo-v1).
-  enviar: (p) => comRetentativas(() => enviarPeloCanal(p), { esperas: [1000], repetivel, dormir }),
+  enviar: (p) => comRetentativas(() => enviarPeloCanal(p), { esperas: ESPERAS_DO_ENVIO_MS, repetivel, dormir }),
   dormir,
   agora: () => new Date().toISOString(),
 }
 
 const ROTULO = "[whatsapp-webhook]"
+
+/**
+ * O áudio desta mensagem, tratado antes da resposta (parte 5b): a
+ * transcrição, que sem consentimento só existe nesta execução, ou a falha
+ * ao obter ou transcrever, que passa a conversa para a equipe se a IA fosse
+ * responder.
+ */
+export type AudioDaExecucao = { transcricao: string } | { falha: unknown }
 
 type Supabase = ReturnType<typeof serviceContext>["supabase"]
 
@@ -100,10 +119,11 @@ type Supabase = ReturnType<typeof serviceContext>["supabase"]
 export async function responderConversa(
   r: ResultadoDaRecepcao,
   deps: Dependencias = DEPENDENCIAS_PADRAO,
+  audio?: AudioDaExecucao,
 ): Promise<DesfechoDaResposta> {
   const execucao: Execucao = { reservando: false }
   try {
-    return await responder(r, deps, execucao)
+    return await responder(r, deps, execucao, audio)
   } catch (erro) {
     // Erro inesperado (banco, confirmação depois do envio): a conversa não
     // pode ficar com a IA sem resposta e sem alerta. Melhor esforço: se o
@@ -141,7 +161,12 @@ async function outraJaRespondeu(supabase: Supabase, clinicId: string, messageId:
   return (count ?? 0) > 0
 }
 
-async function responder(r: ResultadoDaRecepcao, deps: Dependencias, execucao: Execucao): Promise<DesfechoDaResposta> {
+async function responder(
+  r: ResultadoDaRecepcao,
+  deps: Dependencias,
+  execucao: Execucao,
+  audio: AudioDaExecucao | undefined,
+): Promise<DesfechoDaResposta> {
   await deps.dormir(JANELA_DE_AGRUPAMENTO_MS)
   const { supabase } = serviceContext()
   const { clinicId, conversationId } = r
@@ -154,20 +179,19 @@ async function responder(r: ResultadoDaRecepcao, deps: Dependencias, execucao: E
     .single()
   if (erroConversa) throw erroConversa
 
-  // Agrupamento: só a última mensagem do paciente responde, por todas as
-  // que vieram antes dela sem resposta.
-  const { data: ultima, error: erroUltima } = await supabase
+  // Agrupamento: uma execução responde por todas as mensagens do paciente
+  // sem resposta (`responsavelPeloGrupo`).
+  const { data: recentes, error: erroRecentes } = await supabase
     .from("messages")
-    .select("id")
+    .select("id, author, media_type, occurred_at, created_at")
     .eq("conversation_id", conversationId)
     .eq("clinic_id", clinicId)
-    .eq("author", "patient")
     .order("occurred_at", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(1)
-    .single()
-  if (erroUltima) throw erroUltima
-  if (ultima.id !== r.messageId) return "agrupada"
+    .limit(TAMANHO_DO_HISTORICO)
+  if (erroRecentes) throw erroRecentes
+  const grupo = await responsavelPeloGrupo(supabase, clinicId, recentes as MensagemRecente[])
+  if (!grupo || grupo.responsavel !== r.messageId) return "agrupada"
 
   const { data: agente, error: erroAgente } = await supabase
     .from("agents")
@@ -203,9 +227,22 @@ async function responder(r: ResultadoDaRecepcao, deps: Dependencias, execucao: E
   })
   if (!decisao.responde) return decisao.motivo
 
+  // Áudio que não foi ouvido, com a IA para responder: a conversa vai para a
+  // equipe, sem nada ao paciente (decisões 4 e 8 do plano). Depois do
+  // agrupamento e da decisão: com a equipe atendendo, não há alerta.
+  if (audio && "falha" in audio) {
+    console.error(ROTULO, { etapa: "audio", conversa: conversationId, ...erroParaLog(audio.falha) })
+    if (await outraJaRespondeu(supabase, clinicId, r.messageId)) return "ja-respondida"
+    await registrarFalha(supabase, clinicId, conversationId, null, audio.falha)
+    return "falha-da-ia"
+  }
+
   const [contexto, historico] = await Promise.all([
     contextoDoAgente(supabase, clinicId, agente),
-    historicoDaConversa(supabase, clinicId, conversationId),
+    historicoDaConversa(supabase, clinicId, conversationId, {
+      messageId: r.messageId,
+      transcricao: audio && "transcricao" in audio ? audio.transcricao : null,
+    }),
   ])
 
   let saida: SaidaDoModelo
@@ -240,6 +277,9 @@ async function responder(r: ResultadoDaRecepcao, deps: Dependencias, execucao: E
     // O número de chegada, e não o lido agora: uma troca de número nos 10 s
     // de agrupamento também impede a resposta.
     p_phone_number_id: r.phoneNumberId,
+    // O áudio que responde pelo grupo responde também pelo texto que veio
+    // depois dele; o que chegar depois deste ainda recusa a reserva.
+    p_seen_up_to_message_id: grupo.vistaAte,
   })
   if (erroReserva) throw erroReserva
   const reserva = (linhas as Reserva[])[0]
@@ -358,19 +398,74 @@ async function marcarQualificada(
   }
 }
 
+type MensagemRecente = {
+  id: string
+  author: "patient" | "ai" | "human"
+  media_type: string
+  occurred_at: string
+  created_at: string
+}
+
+/**
+ * Quem responde pelo grupo de mensagens do paciente sem resposta: a última
+ * dele (`vistaAte`). Exceção (parte 5b): num plano que transcreve, o texto
+ * que chegou ao servidor até `JANELA_DE_AGRUPAMENTO_MS` depois de um áudio
+ * cede a vez ao áudio. Só a execução do áudio tem a transcrição em memória
+ * (sem consentimento, ela não é gravada), e o texto respondido sem ela
+ * faria o modelo ignorar o áudio.
+ *
+ * Por que a medida é o `created_at`: a execução do áudio só olha a
+ * conversa depois de transcrever e de esperar a janela inteira, contada
+ * depois da gravação do áudio. Todo texto gravado antes de áudio + janela
+ * já está no banco quando ela olha, e ela responde por ele (a reserva
+ * aceita até `vistaAte`). O texto gravado depois responde sozinho. Assim
+ * as duas execuções nunca esperam uma pela outra.
+ */
+async function responsavelPeloGrupo(
+  supabase: Supabase,
+  clinicId: string,
+  recentes: readonly MensagemRecente[],
+): Promise<{ responsavel: string; vistaAte: string } | null> {
+  const ultima = recentes.find((m) => m.author === "patient")
+  if (!ultima) return null
+  const sozinha = { responsavel: ultima.id, vistaAte: ultima.id }
+  if (ultima.media_type === "audio") return sozinha
+
+  // O grupo: as mensagens do paciente depois da última que não é dele.
+  const fim = recentes.findIndex((m) => m.author !== "patient")
+  const grupo = fim === -1 ? recentes : recentes.slice(0, fim)
+  const audio = grupo.find((m) => m.media_type === "audio")
+  if (!audio || Date.parse(ultima.created_at) - Date.parse(audio.created_at) >= JANELA_DE_AGRUPAMENTO_MS) {
+    return sozinha
+  }
+
+  const { data, error } = await supabase
+    .from("clinics")
+    .select("plan")
+    .eq("id", clinicId)
+    .single<{ plan: ClinicPlan }>()
+  if (error) throw error
+  return TRANSCREVE_AUDIO[data.plan] ? { responsavel: audio.id, vistaAte: ultima.id } : sozinha
+}
+
 /**
  * As últimas mensagens, decifradas, na ordem da conversa. A resposta da IA
  * que não chegou ao paciente (pendente ou com falha) fica de fora: o modelo
  * não pode achar que disse o que o paciente nunca leu.
+ *
+ * O áudio leva a transcrição gravada (com consentimento) ou, só na mensagem
+ * desta execução, a transcrição em memória. Nas próximas respostas, sem
+ * consentimento, o áudio volta a ser o marcador.
  */
 async function historicoDaConversa(
   supabase: Supabase,
   clinicId: string,
   conversationId: string,
+  daExecucao: { messageId: string; transcricao: string | null },
 ): Promise<ItemDoHistorico[]> {
   const { data, error } = await supabase
     .from("messages")
-    .select("author, media_type, content_encrypted, content_redacted_at")
+    .select("id, author, media_type, content_encrypted, transcript_encrypted, content_redacted_at")
     .eq("conversation_id", conversationId)
     .eq("clinic_id", clinicId)
     .or("author.neq.ai,delivery_status.in.(sent,delivered,read)")
@@ -384,5 +479,23 @@ async function historicoDaConversa(
     midia: m.media_type,
     texto: m.content_encrypted ? decifrarConteudo(clinicId, m.content_encrypted) : null,
     redigida: m.content_redacted_at !== null,
+    transcricao:
+      (m.transcript_encrypted ? transcricaoGravada(clinicId, conversationId, m.transcript_encrypted) : null) ??
+      (m.id === daExecucao.messageId ? daExecucao.transcricao : null),
   }))
+}
+
+/**
+ * A transcrição que não decifra não derruba a resposta: o áudio volta a ser
+ * o marcador, como na tela (`leitura.ts`). O conteúdo da mensagem, ao
+ * contrário, ainda derruba: sem ele o modelo responderia a um histórico
+ * pela metade sem saber.
+ */
+function transcricaoGravada(clinicId: string, conversationId: string, blob: string): string | null {
+  try {
+    return decifrarConteudo(clinicId, blob)
+  } catch (erro) {
+    console.error(ROTULO, { etapa: "transcricao", conversa: conversationId, ...erroParaLog(erro) })
+    return null
+  }
 }

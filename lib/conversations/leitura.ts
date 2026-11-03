@@ -59,6 +59,8 @@ type MensagemBruta = {
   media_type: TipoDeMidia
   content_encrypted: string | null
   content_redacted_at: string | null
+  /** Só na conversa aberta: a prévia da lista não traz a transcrição. */
+  transcript_encrypted?: string | null
   occurred_at: string
   delivery_status: StatusDeEntrega | null
 }
@@ -73,12 +75,26 @@ function decifrar(clinicId: string, conversaId: string, m: MensagemBruta): Pick<
   }
 }
 
+/** A transcrição que não decifra some da tela, como o conteúdo ilegível. */
+function decifrarTranscricao(clinicId: string, conversaId: string, blob: string | null | undefined): string | null {
+  if (!blob) return null
+  try {
+    return decifrarConteudo(clinicId, blob)
+  } catch (erro) {
+    console.error("Falha ao decifrar transcrição", { conversa: conversaId, ...erroParaLog(erro) })
+    return null
+  }
+}
+
 function paraMensagem(clinicId: string, conversaId: string, m: MensagemBruta, id: string): LinhaDaMensagem {
   return {
     id,
     author: m.author,
     media_type: m.media_type,
     ...decifrar(clinicId, conversaId, m),
+    ...(m.transcript_encrypted !== undefined && {
+      transcricao: decifrarTranscricao(clinicId, conversaId, m.transcript_encrypted),
+    }),
     redigida: m.content_redacted_at !== null,
     occurred_at: m.occurred_at,
     delivery_status: m.delivery_status,
@@ -224,7 +240,7 @@ export async function carregarConversa(
     supabase.from("conversations").select(COLUNAS_DA_CONVERSA).eq("clinic_id", clinicId).eq("id", conversaId).maybeSingle(),
     supabase
       .from("messages")
-      .select("id, author, media_type, content_encrypted, content_redacted_at, occurred_at, delivery_status")
+      .select("id, author, media_type, content_encrypted, transcript_encrypted, content_redacted_at, occurred_at, delivery_status")
       .eq("clinic_id", clinicId)
       .eq("conversation_id", conversaId)
       .order("occurred_at", { ascending: false })

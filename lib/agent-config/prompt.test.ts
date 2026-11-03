@@ -17,6 +17,7 @@ const contexto = (p: Partial<ContextoDoAgente> = {}): ContextoDoAgente => ({
     { nome: "Avaliação", duracaoMinutos: 30, preco: null },
   ],
   convenios: ["Amil", "Bradesco Saúde"],
+  transcreveAudio: true,
   ...p,
 })
 
@@ -89,6 +90,30 @@ describe("montarConversa", () => {
         "[conteúdo apagado a pedido do paciente]",
       ].join("\n"),
     )
+  })
+
+  it("áudio com transcrição vai como texto marcado, e sem ela segue o marcador", () => {
+    const historico: ItemDoHistorico[] = [
+      { autor: "patient", midia: "audio", texto: null, redigida: false, transcricao: "queria marcar uma limpeza" },
+      { autor: "patient", midia: "audio", texto: null, redigida: false, transcricao: null },
+    ]
+    expect(montarConversa(contexto(), historico, AGORA)[1].content).toBe(
+      ["[áudio transcrito] queria marcar uma limpeza", "[áudio, que ainda não pode ser ouvido]"].join("\n"),
+    )
+  })
+
+  it("áudio apagado a pedido do paciente não devolve a transcrição", () => {
+    const historico: ItemDoHistorico[] = [
+      { autor: "patient", midia: "audio", texto: null, redigida: true, transcricao: "não deveria sair" },
+    ]
+    expect(montarConversa(contexto(), historico, AGORA)[1].content).toBe("[conteúdo apagado a pedido do paciente]")
+  })
+
+  it("no plano sem transcrição, o modelo pede que o paciente escreva", () => {
+    const [semAudio] = montarConversa(contexto({ transcreveAudio: false }), [doPaciente("oi")], AGORA)
+    expect(semAudio.content).toMatch(/peça, com gentileza, que o paciente escreva/)
+    const [comAudio] = montarConversa(contexto(), [doPaciente("oi")], AGORA)
+    expect(comAudio.content).not.toMatch(/que o paciente escreva/)
   })
 
   it("só as últimas mensagens vão para o modelo", () => {

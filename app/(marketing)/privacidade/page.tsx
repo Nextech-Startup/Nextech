@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 const FORNECEDORES = [
   { nome: "Supabase", finalidade: "banco de dados e autenticação do painel", pais: "EUA" },
   { nome: "Vercel", finalidade: "hospedagem do site e do painel, e métricas agregadas de acesso", pais: "EUA" },
-  { nome: "OpenRouter e Google", finalidade: "modelo de inteligência artificial que gera as respostas", pais: "EUA" },
+  { nome: "OpenRouter e Google", finalidade: "modelo de inteligência artificial que gera as respostas e transcreve os áudios", pais: "EUA" },
   { nome: "Meta", finalidade: "WhatsApp Business Platform, por onde as mensagens chegam e saem", pais: "EUA" },
   { nome: "Zoho", finalidade: "e-mail da equipe, que recebe os pedidos de titular", pais: "exterior" },
 ] as const
@@ -79,7 +79,9 @@ export default function PoliticaDePrivacidade() {
           </li>
           <li>
             <strong>Paciente da clínica:</strong> telefone, nome do perfil do WhatsApp, conteúdo das mensagens, status
-            de entrega, sinal de urgência, pedido para não receber mensagens e registro de consentimento.
+            de entrega, sinal de urgência, pedido para não receber mensagens e registro de consentimento. O áudio
+            enviado pelo paciente não é guardado; a transcrição dele só é guardada quando o consentimento do paciente
+            está registrado.
           </li>
         </ul>
       </Secao>
@@ -117,6 +119,13 @@ export default function PoliticaDePrivacidade() {
           provedor que não use esse conteúdo para treinar modelos. O provedor do modelo (Google) mantém um registro
           do pedido e da resposta por tempo limitado, só para detectar e prevenir abuso do serviço e para cumprir
           exigência legal, e depois o descarta.
+        </p>
+        <p>
+          Nos planos que transcrevem áudio, o áudio do paciente também é enviado ao modelo, só para virar texto, e
+          entra no mesmo registro por tempo limitado do provedor descrito acima, com ou sem consentimento. O áudio é
+          lido em memória e descartado, sem ser guardado pela Nextech. A transcrição passa pela mesma triagem de
+          urgência do texto e só é guardada, cifrada, quando o consentimento do paciente está registrado; sem ele,
+          serve só à triagem e à resposta daquele momento.
         </p>
         <p>
           A equipe da clínica pode assumir qualquer conversa a qualquer momento, pelo painel ou respondendo pelo

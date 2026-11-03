@@ -1,4 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs"
+import { PROVEDORES_PERMITIDOS } from "@/lib/ai/client"
 import { join } from "node:path"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
@@ -126,8 +127,24 @@ describe("/privacidade", () => {
     // Só a linha do pedido conta: o comentário do cliente cita o `zdr`.
     const linhaDoProvedor = cliente.split("\n").find((l) => l.trim().startsWith("provider:")) ?? ""
     expect(linhaDoProvedor).toContain('data_collection: "deny"')
+    // A política nomeia o Google: o pedido só pode ir a provedores dele.
+    expect(PROVEDORES_PERMITIDOS.length).toBeGreaterThan(0)
+    for (const p of PROVEDORES_PERMITIDOS) expect(p).toMatch(/^google-/)
+    expect(linhaDoProvedor).toContain("only: [...PROVEDORES_PERMITIDOS], allow_fallbacks: false")
+    expect(texto(privacidade)).toMatch(/O provedor do modelo \(Google\)/)
     const comZdr = /zdr:\s*true/.test(linhaDoProvedor)
     expect(/mantém um registro do pedido e da resposta por tempo limitado/.test(texto(privacidade))).toBe(!comZdr)
+  })
+
+  it("o áudio não é guardado, e a transcrição só com consentimento, como o banco exige", () => {
+    expect(texto(privacidade)).toMatch(/O áudio enviado pelo paciente não é guardado/)
+    expect(texto(privacidade)).toMatch(/só é guardada, cifrada, quando o consentimento do paciente está registrado/)
+    // A gravação confere o consentimento dentro do banco, sob a trava do paciente.
+    const migration = readFileSync("supabase/migrations/20261103120000_message_transcripts.sql", "utf8")
+    expect(migration).toMatch(/p\.consent_given_at is not null and p\.anonymized_at is null/)
+    // E não há coluna nem bucket para o áudio em si.
+    expect(migration.match(/add column \w+/g)).toEqual(["add column transcript_encrypted"])
+    expect(migration).not.toMatch(/storage\.objects/)
   })
 
   it("os cookies descritos são os que o código grava", () => {

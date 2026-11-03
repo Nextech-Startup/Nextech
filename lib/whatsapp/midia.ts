@@ -24,6 +24,22 @@ const TEMPO_MAXIMO_MS = 15_000
  */
 export const LIMITE_DO_AUDIO_BYTES = 5 * 1024 * 1024
 
+/**
+ * Para onde o Bearer do agente pode ir no download: os domínios de mídia da
+ * Meta (hoje, `lookaside.fbsbx.com`). Defesa em profundidade: a URL vem da
+ * resposta autenticada da Graph API, mas o token é de longa duração.
+ */
+const DOMINIOS_DA_MIDIA = ["fbsbx.com", "facebook.com", "fbcdn.net", "whatsapp.net"] as const
+
+function urlDaMeta(url: string): boolean {
+  try {
+    const u = new URL(url)
+    return u.protocol === "https:" && DOMINIOS_DA_MIDIA.some((d) => u.hostname === d || u.hostname.endsWith(`.${d}`))
+  } catch {
+    return false
+  }
+}
+
 /** O WhatsApp grava voz em Opus dentro de OGG. */
 const TIPO_PADRAO = "audio/ogg"
 
@@ -44,10 +60,10 @@ export type AudioObtido = { bytes: Uint8Array; mime: string }
 export async function obterAudio(
   audio: AudioRecebido,
   credencial: { phoneNumberId: string; tokenCifrado: string },
-  opcoes: { fetch?: typeof fetch } = {},
+  opcoes: { fetch?: typeof fetch; sinal?: AbortSignal } = {},
 ): Promise<AudioObtido> {
   if (audio.origem === "anexo") return doAnexo(audio.base64, audio.mime)
-  return daMeta(audio.mediaId, audio.mime, credencial, opcoes.fetch ?? fetch)
+  return daMeta(audio.mediaId, audio.mime, credencial, opcoes.fetch ?? fetch, opcoes.sinal)
 }
 
 function doAnexo(base64: string, mime: string | null): AudioObtido {
@@ -64,6 +80,7 @@ async function daMeta(
   mimeDoWebhook: string | null,
   credencial: { phoneNumberId: string; tokenCifrado: string },
   buscar: typeof fetch,
+  sinal: AbortSignal | undefined,
 ): Promise<AudioObtido> {
   const versao = process.env.WHATSAPP_API_VERSION
   if (!versao) throw new MidiaError("configuracao", false)
@@ -73,6 +90,7 @@ async function daMeta(
     buscar,
     `${GRAPH}/${versao}/${encodeURIComponent(mediaId)}?phone_number_id=${encodeURIComponent(credencial.phoneNumberId)}`,
     cabecalhos,
+    sinal,
   )
   const corpo = (await metadados.json().catch(() => null)) as {
     url?: unknown
@@ -83,22 +101,33 @@ async function daMeta(
   if (typeof corpo?.file_size === "number" && corpo.file_size > LIMITE_DO_AUDIO_BYTES) {
     throw new MidiaError("audio-grande", false)
   }
-  // O Bearer vai junto do download: só por https. A URL vem da própria
-  // Meta, na resposta autenticada, e não do webhook.
+  // O Bearer vai junto do download: só por https e só para a Meta.
   const url = typeof corpo?.url === "string" ? corpo.url : ""
-  if (!url.startsWith("https://")) throw new MidiaError("resposta-invalida", false)
+  if (!urlDaMeta(url)) throw new MidiaError("resposta-invalida", false)
 
-  const download = await pedir(buscar, url, cabecalhos)
+  const download = await pedir(buscar, url, cabecalhos, sinal)
   const bytes = await lerComLimite(download)
   const mimeDaMeta = typeof corpo?.mime_type === "string" ? corpo.mime_type : null
   return { bytes, mime: mimeDoWebhook ?? mimeDaMeta ?? TIPO_PADRAO }
 }
 
 /** GET com tempo máximo. Ler é idempotente: rede, 429 e 5xx se repetem. */
-async function pedir(buscar: typeof fetch, url: string, headers: Record<string, string>): Promise<Response> {
+async function pedir(
+  buscar: typeof fetch,
+  url: string,
+  headers: Record<string, string>,
+  sinal: AbortSignal | undefined,
+): Promise<Response> {
+  const tempo = AbortSignal.timeout(TEMPO_MAXIMO_MS)
   let resposta: Response
   try {
-    resposta = await buscar(url, { method: "GET", headers, signal: AbortSignal.timeout(TEMPO_MAXIMO_MS) })
+    resposta = await buscar(url, {
+      method: "GET",
+      headers,
+      // Redirecionamento levaria o Bearer a um destino que não foi conferido.
+      redirect: "error",
+      signal: sinal ? AbortSignal.any([tempo, sinal]) : tempo,
+    })
   } catch {
     // O erro original pode trazer a URL assinada: só o código sai daqui.
     throw new MidiaError("rede", true)

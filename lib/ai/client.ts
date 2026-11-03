@@ -24,7 +24,16 @@ import type { MensagemDoModelo } from "@/lib/agent-config/prompt"
  */
 
 const URL_DO_OPENROUTER = "https://openrouter.ai/api/v1/chat/completions"
-const TEMPO_MAXIMO_MS = 20_000
+
+/**
+ * Para onde o dado de saúde pode ir: só o Google, que é o que a política de
+ * privacidade nomeia (revisão de segurança da parte 5b). Trocar o
+ * `OPENROUTER_MODEL` por um modelo que o Google não serve faz a chamada
+ * falhar fechada, em vez de mandar o conteúdo a outro provedor. Mudar esta
+ * lista é mudar a política junto (`tests/legal/paginas-legais.test.tsx`).
+ */
+export const PROVEDORES_PERMITIDOS = ["google-ai-studio", "google-vertex"] as const
+export const TEMPO_MAXIMO_DA_IA_MS = 20_000
 /** Resposta de WhatsApp é curta; o teto também limita o custo por atendimento. */
 const MAXIMO_DE_TOKENS = 600
 
@@ -100,7 +109,7 @@ export async function chamarOpenRouter(
     max_tokens: number
     response_format?: Record<string, unknown>
   },
-  opcoes: { exigirParametros?: boolean; fetch?: typeof fetch; tempoMaximoMs?: number } = {},
+  opcoes: { exigirParametros?: boolean; fetch?: typeof fetch; tempoMaximoMs?: number; sinal?: AbortSignal } = {},
 ): Promise<RespostaDaIa> {
   const chave = process.env.OPENROUTER_API_KEY
   const modelo = process.env.OPENROUTER_MODEL
@@ -119,9 +128,11 @@ export async function chamarOpenRouter(
       body: JSON.stringify({
         model: modelo,
         ...pedido,
-        provider: { data_collection: "deny", ...(opcoes.exigirParametros && { require_parameters: true }) },
+        provider: { only: [...PROVEDORES_PERMITIDOS], allow_fallbacks: false, data_collection: "deny", ...(opcoes.exigirParametros && { require_parameters: true }) },
       }),
-      signal: AbortSignal.timeout(opcoes.tempoMaximoMs ?? TEMPO_MAXIMO_MS),
+      signal: opcoes.sinal
+        ? AbortSignal.any([AbortSignal.timeout(opcoes.tempoMaximoMs ?? TEMPO_MAXIMO_DA_IA_MS), opcoes.sinal])
+        : AbortSignal.timeout(opcoes.tempoMaximoMs ?? TEMPO_MAXIMO_DA_IA_MS),
     })
   } catch {
     // Rede ou tempo esgotado: o erro original pode trazer a URL e nada
