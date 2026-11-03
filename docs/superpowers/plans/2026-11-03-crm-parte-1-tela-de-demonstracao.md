@@ -474,7 +474,7 @@ git commit -m "feat(crm): etapas do funil e a regra de movimento"
 - *Passagem de X para a seguinte:* das abertas no período que chegaram a X, a parcela que chegou à seguinte. É `null` sem base e na última coluna.
 - *Ganhas e perdidas ao lado da faixa:* encerradas no período.
 
-- [ ] **Passo 1: escrever o teste que falha**, em `lib/crm/metricas.test.ts`
+- [x] **Passo 1: escrever o teste que falha**, em `lib/crm/metricas.test.ts`
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -576,7 +576,7 @@ describe("resumoDoPeriodo", () => {
 })
 ```
 
-- [ ] **Passo 2: implementar `lib/crm/metricas.ts`**
+- [x] **Passo 2: implementar `lib/crm/metricas.ts`**
 
 ```ts
 import { ETAPAS_ABERTAS, type Etapa, type EtapaAberta, type Oportunidade } from "./tipos"
@@ -653,9 +653,9 @@ export function resumoDoPeriodo(ops: readonly Oportunidade[], agora: string, dia
 }
 ```
 
-- [ ] **Passo 3: rodar** `npx vitest run lib/crm/metricas.test.ts`. Esperado: PASSA. Se falhar, corrija a implementação, nunca a conta escrita no teste: os números do teste foram feitos à mão a partir da definição.
+- [x] **Passo 3: rodar** `npx vitest run lib/crm/metricas.test.ts`. Esperado: PASSA. Se falhar, corrija a implementação, nunca a conta escrita no teste: os números do teste foram feitos à mão a partir da definição.
 
-- [ ] **Passo 4: escrever o teste que falha**, em `lib/crm/cartao.test.ts`
+- [x] **Passo 4: escrever o teste que falha**, em `lib/crm/cartao.test.ts`
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -731,7 +731,7 @@ describe("tituloDoEvento", () => {
 })
 ```
 
-- [ ] **Passo 5: implementar `lib/crm/cartao.ts`**
+- [x] **Passo 5: implementar `lib/crm/cartao.ts`**
 
 ```ts
 import { mascararTelefone } from "@/lib/formatters/telefone"
@@ -780,9 +780,9 @@ export function tituloDoEvento(ev: EventoDaOportunidade): string {
 
 Antes de rodar, confira em `lib/formatters/telefone.ts` o formato de `mascararTelefone`. O teste só exige que os dígitos do meio sumam e que o final `0007` apareça. Se a máscara esconder também o final, ajuste a última asserção ao formato real e mantenha a primeira.
 
-- [ ] **Passo 6: rodar** `npx vitest run lib/crm/cartao.test.ts`. Esperado: PASSA.
+- [x] **Passo 6: rodar** `npx vitest run lib/crm/cartao.test.ts`. Esperado: PASSA.
 
-- [ ] **Passo 7: escrever o teste que falha**, em `lib/crm/filtros.test.ts`
+- [x] **Passo 7: escrever o teste que falha**, em `lib/crm/filtros.test.ts`
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -896,7 +896,7 @@ describe("idsQueCasam", () => {
 })
 ```
 
-- [ ] **Passo 8: implementar `lib/crm/filtros.ts` e `lib/crm/busca.ts`**
+- [x] **Passo 8: implementar `lib/crm/filtros.ts` e `lib/crm/busca.ts`**
 
 ```ts
 // lib/crm/filtros.ts
@@ -983,9 +983,9 @@ export function idsQueCasam(ops: readonly Oportunidade[], termo: string): string
 }
 ```
 
-- [ ] **Passo 9: rodar** `npx vitest run lib/crm`. Esperado: PASSA.
+- [x] **Passo 9: rodar** `npx vitest run lib/crm`. Esperado: PASSA.
 
-- [ ] **Passo 10: commit**
+- [x] **Passo 10: commit**
 
 ```bash
 git add lib/crm
