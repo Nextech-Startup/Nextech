@@ -23,3 +23,14 @@ export const TRANSCREVE_AUDIO: Record<ClinicPlan, boolean> = {
   pro: true,
   healthtech: true,
 }
+
+/**
+ * O CRM próprio (spec crm-v1, decisão 4): Pro e HealthTech, a mesma régua
+ * da "Integração total no CRM" do site. O dado é gravado em todo plano; só
+ * a tela e as ações exigem o plano. Espelho de `private.clinic_has_crm`.
+ */
+export const TEM_CRM: Record<ClinicPlan, boolean> = {
+  starter: false,
+  pro: true,
+  healthtech: true,
+}

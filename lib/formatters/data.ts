@@ -99,6 +99,32 @@ export function chaveDoDia(instante: Date | string, fuso = FUSO_PADRAO): string 
   return `${p.ano}-${dois(p.mes)}-${dois(p.dia)}`
 }
 
+const DATA_HORA_LOCAL = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/
+
+/**
+ * O valor de um `<input type="datetime-local">` ("2026-11-05T10:30"), lido
+ * no fuso, como instante ISO em UTC. `null` se não for uma data e hora
+ * válidas. O deslocamento é o do fuso naquele instante, sem supor -03:00.
+ */
+export function instanteDaDataHoraLocal(valor: string, fuso = FUSO_PADRAO): string | null {
+  const m = DATA_HORA_LOCAL.exec(valor)
+  if (!m) return null
+  const [ano, mes, dia, hora, minuto] = m.slice(1).map(Number)
+  if (hora > 23 || minuto > 59) return null
+  const comoUtc = Date.UTC(ano, mes - 1, dia, hora, minuto)
+  const d = new Date(comoUtc)
+  if (d.getUTCFullYear() !== ano || d.getUTCMonth() !== mes - 1 || d.getUTCDate() !== dia) return null
+  const p = partesDaData(d, fuso)
+  const deslocamento = Date.UTC(p.ano, p.mes - 1, p.dia, p.hora, p.minuto) - comoUtc
+  return new Date(comoUtc - deslocamento).toISOString()
+}
+
+/** O valor inicial de um `datetime-local` para um instante, no fuso. */
+export function dataHoraLocal(instante: Date | string, fuso = FUSO_PADRAO): string {
+  const p = partesDaData(instante, fuso)
+  return `${p.ano}-${dois(p.mes)}-${dois(p.dia)}T${dois(p.hora)}:${dois(p.minuto)}`
+}
+
 function utcDaChave(chave: string): number {
   const [ano, mes, dia] = chave.split("-").map(Number)
   const t = Date.UTC(ano, mes - 1, dia)

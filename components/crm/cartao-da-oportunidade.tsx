@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { AvatarDeIniciais } from "@/components/patterns/avatar-de-iniciais"
 import { StatusBadge } from "@/components/patterns/status-badge"
-import { atividadeDoCartao, nomeDoPaciente, ultimaMudancaAutomatica } from "@/lib/crm/cartao"
+import { atividadeDoCartao, nomeDoPaciente, qualificadaPelaIa } from "@/lib/crm/cartao"
 import type { Oportunidade } from "@/lib/crm/tipos"
 import { formatarDataCurta, formatarHora } from "@/lib/formatters/data"
 import { formatarMoeda } from "@/lib/formatters/numero"
@@ -55,9 +55,9 @@ export function CartaoDaOportunidade({
             ? "Atividade hoje"
             : `Parado há ${plural(atividade.dias, "dia", "dias")}`}
       </p>
-      {(ultimaMudancaAutomatica(op) || op.paciente.optOut || op.urgente) && (
+      {(qualificadaPelaIa(op) || op.paciente.optOut || op.urgente) && (
         <div className="flex flex-wrap gap-1">
-          {ultimaMudancaAutomatica(op) && <StatusBadge tone="info">IA</StatusBadge>}
+          {qualificadaPelaIa(op) && <StatusBadge tone="info">IA</StatusBadge>}
           {op.urgente && <StatusBadge tone="danger">Urgente</StatusBadge>}
           {op.paciente.optOut && <StatusBadge tone="neutral">Opt-out</StatusBadge>}
         </div>

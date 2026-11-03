@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest"
 import {
   aplicarMovimento,
   etapasDeDestino,
+  lerPedidoDeMovimento,
+  lerResultadoDoMovimento,
   lerValorEmCentavos,
   mensagemDoMovimento,
   montarPedidoDeFechamento,
@@ -194,5 +196,39 @@ describe("montarPedidoDeFechamento (formulário de Ganho/Perdido)", () => {
   it("oportunidade já encerrada: a mesma mensagem da regra", () => {
     const ganha = op({ etapa: "ganho", encerradaEm: AGORA })
     expect(montarPedidoDeFechamento(ganha, "perdido", campos({ motivo: "preco" }), procs).erro).toBe("Oportunidade encerrada não volta ao funil.")
+  })
+})
+
+describe("lerPedidoDeMovimento (o que chega do navegador)", () => {
+  const ID = "4f1c2b6e-9a1d-4c3e-8b7a-2d5e6f708192"
+  it("aceita o pedido bem formado", () => {
+    expect(lerPedidoDeMovimento({ oportunidadeId: ID, de: "novo", para: "agendado" })).toEqual({ oportunidadeId: ID, de: "novo", para: "agendado" })
+    const ganho = { oportunidadeId: ID, de: "compareceu", para: "ganho", procedimento: { id: ID, nome: "Implante" }, valorCentavos: 350000 }
+    expect(lerPedidoDeMovimento(ganho)).toEqual(ganho)
+  })
+  it("recusa etapa fora da lista, id que não é uuid, motivo fora da lista e lixo", () => {
+    for (const v of [
+      { oportunidadeId: ID, de: "novo", para: "fechado" },
+      { oportunidadeId: ID, de: "aberto", para: "novo" },
+      { oportunidadeId: "op-01", de: "novo", para: "agendado" },
+      { oportunidadeId: ID, de: "novo", para: "perdido", motivo: "caro demais" },
+      { oportunidadeId: ID, de: "novo", para: "ganho", valorCentavos: 10.5 },
+      null,
+      "novo",
+    ]) {
+      expect(lerPedidoDeMovimento(v), JSON.stringify(v)).toBeNull()
+    }
+  })
+})
+
+describe("lerResultadoDoMovimento (o que a RPC devolve)", () => {
+  it("traduz os quatro resultados", () => {
+    expect(lerResultadoDoMovimento("ok")).toEqual({ status: "ok" })
+    expect(lerResultadoDoMovimento("sem-mudanca")).toEqual({ status: "sem-mudanca" })
+    expect(lerResultadoDoMovimento("nao-encontrada")).toEqual({ status: "nao-encontrada" })
+    expect(lerResultadoDoMovimento("invalido")).toEqual({ status: "invalido", erro: "Confira o procedimento, o valor ou o motivo e tente de novo." })
+  })
+  it("fora da lista é defeito nosso: lança", () => {
+    expect(() => lerResultadoDoMovimento("talvez")).toThrow("Resultado desconhecido da mudança de etapa.")
   })
 })

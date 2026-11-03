@@ -61,7 +61,11 @@ describe("CartaoDaOportunidade", () => {
           proximaAcao: "2026-10-01T16:00:00-03:00",
           urgente: true,
           paciente: { id: "p", nome: "X", telefone: "+5581900000001", optOut: true },
-          eventos: [{ id: "e1", de: null, para: "novo", em: AGORA, autor: null }],
+          etapa: "qualificado",
+          eventos: [
+            { id: "e1", de: null, para: "novo", em: AGORA, autor: null },
+            { id: "e2", de: "novo", para: "qualificado", em: AGORA, autor: null },
+          ],
         })}
         agora={AGORA}
         aoAbrir={nada}
@@ -72,6 +76,11 @@ describe("CartaoDaOportunidade", () => {
     expect(h).toContain(">IA<")
     expect(h).toContain("Opt-out")
     expect(h).toContain("Urgente")
+  })
+
+  it("cartão em Novo, aberto pela primeira mensagem, não tem o selo IA", () => {
+    const h = renderToStaticMarkup(<CartaoDaOportunidade op={op()} agora={AGORA} aoAbrir={nada} />)
+    expect(h).not.toContain(">IA<")
   })
 
   it("sem procedimento e sem valor", () => {

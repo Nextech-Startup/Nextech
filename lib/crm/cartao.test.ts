@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { atividadeDoCartao, nomeDoPaciente, tituloDoEvento, ultimaMudancaAutomatica } from "./cartao"
+import { atividadeDoCartao, nomeDoPaciente, qualificadaPelaIa, tituloDoEvento } from "./cartao"
 import type { Oportunidade } from "./tipos"
 
 const AGORA = "2026-09-28T14:32:00-03:00"
@@ -43,20 +43,43 @@ describe("atividadeDoCartao", () => {
       em: "2026-09-29T10:00:00-03:00",
     })
   })
-  it("atividade nas últimas 24 h: hoje", () => {
-    expect(atividadeDoCartao(op({ ultimaAtividade: "2026-09-27T15:00:00-03:00" }), AGORA)).toEqual({ tipo: "hoje" })
+  it("hoje é o mesmo dia de calendário em São Paulo", () => {
+    expect(atividadeDoCartao(op({ ultimaAtividade: "2026-09-28T00:05:00-03:00" }), AGORA)).toEqual({ tipo: "hoje" })
+  })
+  it("ontem à noite já é parado há 1 dia, mesmo com menos de 24 h", () => {
+    expect(atividadeDoCartao(op({ ultimaAtividade: "2026-09-27T23:00:00-03:00" }), "2026-09-28T08:00:00-03:00")).toEqual({
+      tipo: "parado",
+      dias: 1,
+      alerta: false,
+    })
+  })
+  it("o dia é o de São Paulo, não o de UTC", () => {
+    // 20h de 27/09 em São Paulo ainda é 27/09 em UTC (23h); 22h30 já é 28/09 em UTC.
+    // Pelo dia de UTC seria "parado há 1 dia"; pelo de São Paulo, é hoje.
+    expect(atividadeDoCartao(op({ ultimaAtividade: "2026-09-27T20:00:00-03:00" }), "2026-09-27T22:30:00-03:00")).toEqual({ tipo: "hoje" })
   })
   it("parado: alerta a partir de 3 dias", () => {
     expect(atividadeDoCartao(op({ ultimaAtividade: "2026-09-26T14:00:00-03:00" }), AGORA)).toEqual({ tipo: "parado", dias: 2, alerta: false })
     expect(atividadeDoCartao(op({ ultimaAtividade: "2026-09-25T14:00:00-03:00" }), AGORA)).toEqual({ tipo: "parado", dias: 3, alerta: true })
   })
+  it("atividade no futuro (relógio adiantado) conta como hoje", () => {
+    expect(atividadeDoCartao(op({ ultimaAtividade: "2026-09-29T10:00:00-03:00" }), AGORA)).toEqual({ tipo: "hoje" })
+  })
 })
 
-describe("ultimaMudancaAutomatica", () => {
-  it("o selo IA vale quando o último evento é do sistema", () => {
-    expect(ultimaMudancaAutomatica(op())).toBe(true)
-    const movida = op({ eventos: [...op().eventos, { id: "e2", de: "novo", para: "agendado", em: AGORA, autor: CARLA }] })
-    expect(ultimaMudancaAutomatica(movida)).toBe(false)
+describe("qualificadaPelaIa", () => {
+  const ABERTURA = { id: "e1", de: null, para: "novo" as const, em: AGORA, autor: null }
+  const QUALIFICACAO = { id: "e2", de: "novo" as const, para: "qualificado" as const, em: AGORA, autor: null }
+  it("o selo vale quando o último evento é a qualificação automática", () => {
+    expect(qualificadaPelaIa(op({ etapa: "qualificado", eventos: [ABERTURA, QUALIFICACAO] }))).toBe(true)
+  })
+  it("abrir pela primeira mensagem não é decisão da IA", () => {
+    expect(qualificadaPelaIa(op({ eventos: [ABERTURA] }))).toBe(false)
+  })
+  it("a equipe qualificar à mão não dá o selo; mover depois da IA tira o selo", () => {
+    expect(qualificadaPelaIa(op({ etapa: "qualificado", eventos: [ABERTURA, { ...QUALIFICACAO, autor: CARLA }] }))).toBe(false)
+    const movida = op({ etapa: "agendado", eventos: [ABERTURA, QUALIFICACAO, { id: "e3", de: "qualificado", para: "agendado", em: AGORA, autor: CARLA }] })
+    expect(qualificadaPelaIa(movida)).toBe(false)
   })
 })
 

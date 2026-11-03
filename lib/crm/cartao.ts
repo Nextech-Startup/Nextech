@@ -1,5 +1,5 @@
+import { chaveDoDia, diasEntre } from "@/lib/formatters/data"
 import { mascararTelefone } from "@/lib/formatters/telefone"
-import { DIA_MS } from "./metricas"
 import { ROTULO_DA_ETAPA, type EventoDaOportunidade, type Oportunidade } from "./tipos"
 
 /** "Parado há N dias" fica em tom de alerta a partir daqui (spec crm-v1, "Cartão"). */
@@ -17,14 +17,21 @@ export type AtividadeDoCartao =
 
 export function atividadeDoCartao(op: Oportunidade, agora: string): AtividadeDoCartao {
   if (op.proximaAcao) return { tipo: "proxima-acao", em: op.proximaAcao }
-  const dias = Math.max(0, Math.floor((Date.parse(agora) - Date.parse(op.ultimaAtividade)) / DIA_MS))
+  // Dia de calendário no fuso de São Paulo (decisão do Jhones, 2026-11-03):
+  // ontem às 23h, às 8h de hoje, já é "parado há 1 dia".
+  const dias = Math.max(0, diasEntre(chaveDoDia(op.ultimaAtividade), chaveDoDia(agora)))
   if (dias === 0) return { tipo: "hoje" }
   return { tipo: "parado", dias, alerta: dias >= DIAS_PARA_ALERTA }
 }
 
-/** O selo IA: a última mudança foi do sistema (primeira mensagem ou qualificação). */
-export function ultimaMudancaAutomatica(op: Oportunidade): boolean {
-  return op.eventos.at(-1)?.autor === null
+/**
+ * O selo IA (decisão do Jhones, 2026-11-03): só quando a última mudança foi
+ * a qualificação automática. Abrir pela primeira mensagem não é decisão da
+ * IA, e o selo em toda a coluna Novo seria ruído.
+ */
+export function qualificadaPelaIa(op: Oportunidade): boolean {
+  const ultimo = op.eventos.at(-1)
+  return ultimo !== undefined && ultimo.autor === null && ultimo.de === "novo" && ultimo.para === "qualificado"
 }
 
 const primeiroNome = (nome: string) => nome.split(/\s+/)[0]

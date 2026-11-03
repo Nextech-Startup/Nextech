@@ -1,5 +1,7 @@
+import { z } from "zod"
 import {
   ETAPAS,
+  ehEtapa,
   ehEtapaAberta,
   ehMotivoDePerda,
   type Etapa,
@@ -132,4 +134,37 @@ export function mensagemDoMovimento(r: ResultadoDoMovimento): string | null {
     case "invalido":
       return r.erro
   }
+}
+
+const PEDIDO = z.object({
+  oportunidadeId: z.string().uuid(),
+  de: z.string().refine(ehEtapa),
+  para: z.string().refine(ehEtapa),
+  procedimento: z.object({ id: z.string().uuid(), nome: z.string().max(200) }).nullish(),
+  valorCentavos: z.number().int().nullish(),
+  motivo: z.string().refine(ehMotivoDePerda).nullish(),
+})
+
+/**
+ * O pedido de movimento que chega do navegador numa server action: input
+ * não confiável. `de` e `para` precisam ser etapas da lista (`ehEtapa`), o
+ * id um uuid e o motivo um da lista. Os campos de Ganho e Perdido são
+ * conferidos pela RPC, que devolve `invalido`.
+ */
+export function lerPedidoDeMovimento(v: unknown): PedidoDeMovimento | null {
+  const r = PEDIDO.safeParse(v)
+  return r.success ? (r.data as PedidoDeMovimento) : null
+}
+
+/** O texto que a RPC `move_opportunity` devolve. Fora da lista é defeito nosso. */
+export function lerResultadoDoMovimento(v: unknown): ResultadoDoMovimento {
+  switch (v) {
+    case "ok":
+    case "sem-mudanca":
+    case "nao-encontrada":
+      return { status: v }
+    case "invalido":
+      return invalido("Confira o procedimento, o valor ou o motivo e tente de novo.")
+  }
+  throw new Error("Resultado desconhecido da mudança de etapa.")
 }
