@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect, useRef } from "react"
 import Link from "next/link"
 import { X } from "lucide-react"
 import { LinhaDoTempo, type EventoDaLinha } from "@/components/patterns/linha-do-tempo"
@@ -33,11 +36,26 @@ export function PainelDaOportunidade({
     tom: ev.para === "ganho" ? "success" : ev.para === "perdido" ? "danger" : ev.autor ? "neutral" : "info",
   }))
   const encerrada = op.encerradaEm !== null
+  const ref = useRef<HTMLElement>(null)
+
+  // Comportamento de modal: o foco entra no painel ao abrir e volta ao cartão ao fechar.
+  useEffect(() => {
+    const anterior = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    ref.current?.focus()
+    return () => anterior?.focus()
+  }, [])
 
   return (
     <aside
+      ref={ref}
+      role="dialog"
+      aria-modal="true"
+      tabIndex={-1}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") aoFechar()
+      }}
       aria-label={`Oportunidade de ${nomeDoPaciente(op)}`}
-      className="fixed inset-0 z-40 grid content-start gap-5 overflow-y-auto bg-surface-0 p-4 md:inset-y-0 md:right-0 md:left-auto md:w-[420px] md:border-l md:border-hairline md:shadow-xl"
+      className="fixed inset-0 z-40 grid outline-none content-start gap-5 overflow-y-auto bg-surface-0 p-4 md:inset-y-0 md:right-0 md:left-auto md:w-[420px] md:border-l md:border-hairline md:shadow-xl"
     >
       <header className="flex items-start gap-3">
         <div className="grid min-w-0 flex-1 gap-1">

@@ -1941,12 +1941,12 @@ export type PropsDaTelaDoCrm = {
 }
 ```
 
-- [ ] **Passo 1: instalar a dependência**
+- [x] **Passo 1: instalar a dependência**
 
 Rode: `npm i @dnd-kit/core@6.3.1`
 Esperado: `package.json` com `"@dnd-kit/core": "^6.3.1"` e nenhum aviso de peer dependency do React 19. Se o npm acusar conflito de peer, pare e relate. Não use `--force`.
 
-- [ ] **Passo 2: escrever o teste que falha**, em `components/crm/estado.test.ts`
+- [x] **Passo 2: escrever o teste que falha**, em `components/crm/estado.test.ts`
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -2003,7 +2003,7 @@ describe("reduzirCrm", () => {
 })
 ```
 
-- [ ] **Passo 3: implementar `components/crm/estado.ts`**
+- [x] **Passo 3: implementar `components/crm/estado.ts`**
 
 ```ts
 import { aplicarMovimento, mensagemDoMovimento, validarMovimento, type PedidoDeMovimento } from "@/lib/crm/movimento"
@@ -2032,9 +2032,9 @@ export function reduzirCrm(e: EstadoDoCrm, ev: EventoDoCrm): EstadoDoCrm {
 }
 ```
 
-- [ ] **Passo 4: rodar** `npx vitest run components/crm/estado.test.ts`. Esperado: PASSA.
+- [x] **Passo 4: rodar** `npx vitest run components/crm/estado.test.ts`. Esperado: PASSA.
 
-- [ ] **Passo 5: implementar `components/crm/pedido-de-fechamento.tsx`**
+- [x] **Passo 5: implementar `components/crm/pedido-de-fechamento.tsx`**
 
 ```tsx
 "use client"
@@ -2155,7 +2155,7 @@ export function PedidoDeFechamento({
 
 Confira em `components/patterns/formulario.tsx` o nome das variantes do `Botao`: `"secundario"` já é usado em `busca-da-fila.tsx`, e o padrão sem variante é o primário.
 
-- [ ] **Passo 6: implementar `components/crm/busca-do-crm.tsx`**
+- [x] **Passo 6: implementar `components/crm/busca-do-crm.tsx`**
 
 ```tsx
 "use client"
@@ -2230,7 +2230,7 @@ export function BuscaDoCrm({
 }
 ```
 
-- [ ] **Passo 7: implementar `components/crm/quadro.tsx`**
+- [x] **Passo 7: implementar `components/crm/quadro.tsx`**
 
 ```tsx
 "use client"
@@ -2378,7 +2378,7 @@ export function Quadro({
 }
 ```
 
-- [ ] **Passo 8: implementar `components/crm/tela-do-crm.tsx`**
+- [x] **Passo 8: implementar `components/crm/tela-do-crm.tsx`**
 
 ```tsx
 "use client"
@@ -2530,7 +2530,7 @@ export function TelaDoCrm(p: PropsDaTelaDoCrm) {
 }
 ```
 
-- [ ] **Passo 9: escrever `components/crm/tela-do-crm.test.tsx`**
+- [x] **Passo 9: escrever `components/crm/tela-do-crm.test.tsx`**
 
 ```tsx
 import { renderToStaticMarkup } from "react-dom/server"
@@ -2616,9 +2616,11 @@ describe("TelaDoCrm", () => {
 })
 ```
 
-- [ ] **Passo 10: rodar** `npx vitest run components/crm`. Esperado: PASSA. Se o `DndContext` reclamar de `document` no ambiente `node`, envolva só o `renderToStaticMarkup` deste arquivo com `// @vitest-environment jsdom` **somente se** `jsdom` já for dependência. Senão, relate: não instale o `jsdom` sem decidir.
+- [x] **Passo 10: rodar** `npx vitest run components/crm`. Esperado: PASSA. Se o `DndContext` reclamar de `document` no ambiente `node`, envolva só o `renderToStaticMarkup` deste arquivo com `// @vitest-environment jsdom` **somente se** `jsdom` já for dependência. Senão, relate: não instale o `jsdom` sem decidir.
 
-- [ ] **Passo 11: commit**
+> Correção na execução: o `PainelDaOportunidade` (T4) ganhou `role="dialog"`, `aria-modal`, foco ao abrir (devolvido ao fechar) e Esc para fechar, e o teste confere os atributos. O restante seguiu o plano sem mudança.
+
+- [x] **Passo 11: commit**
 
 ```bash
 git add package.json package-lock.json components/crm
