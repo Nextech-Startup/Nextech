@@ -16,5 +16,10 @@ export default defineConfig({
     // para que um não embaralhe o estado do outro.
     fileParallelism: false,
     testTimeout: 30_000,
+    // Preparação e limpeza dos testes de banco fazem várias idas em série
+    // ao Supabase em Oregon (~300 ms cada, mais o Auth): no padrão de 10 s,
+    // hooks de três arquivos estouravam na suíte inteira (2026-10-29) e
+    // pulavam o arquivo todo.
+    hookTimeout: 60_000,
   },
 })

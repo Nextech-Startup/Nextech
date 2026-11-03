@@ -50,4 +50,5 @@ Um atendimento é fechado (contado) quando, dentro de uma sessão de conversa co
 
 ## Em aberto
 - O que acontece quando a clínica estoura o limite do plano no meio do mês — bloquear a IA, avisar, cobrar excedente? Não definido.
+- Custo do áudio (medido em 2026-11-03, parte 5b do motor de conversa): a transcrição pelo Gemini 2.5 Flash sai a ~US$ 0,002 por minuto de áudio (32 tokens de áudio por segundo, a US$ 1 por milhão), fora a resposta. Pesa pouco perto do WhatsApp, mas entra na conta do Pro e do HealthTech, que transcrevem.
 - Mensagem de sequência sem resposta não conta como atendimento, mas a Meta cobra pelo envio de qualquer forma (categoria `MARKETING`, sem desconto de volume) — existe uma janela de custo real que a clínica não "usa" do próprio limite de plano; vale considerar isso na precificação.

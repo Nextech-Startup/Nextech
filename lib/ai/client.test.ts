@@ -50,7 +50,7 @@ describe("gerarResposta (OpenRouter)", () => {
     const corpo = JSON.parse(init.body as string)
     expect(corpo.model).toBe("provedor/modelo-de-teste")
     expect(corpo.messages).toEqual(MENSAGENS)
-    expect(corpo.provider).toEqual({ data_collection: "deny", zdr: true })
+    expect(corpo.provider).toEqual({ only: ["google-ai-studio", "google-vertex"], allow_fallbacks: false, data_collection: "deny" })
     expect(corpo.response_format).toBeUndefined()
   })
 
@@ -67,7 +67,12 @@ describe("gerarResposta (OpenRouter)", () => {
       type: "json_schema",
       json_schema: { name: "saida_de_teste", strict: true, schema: { type: "object" } },
     })
-    expect(corpo.provider).toEqual({ data_collection: "deny", zdr: true, require_parameters: true })
+    expect(corpo.provider).toEqual({
+      only: ["google-ai-studio", "google-vertex"],
+      allow_fallbacks: false,
+      data_collection: "deny",
+      require_parameters: true,
+    })
   })
 
   it("resposta cortada pelo limite de tokens: resposta-truncada, que repete, e o texto cortado não sai", async () => {

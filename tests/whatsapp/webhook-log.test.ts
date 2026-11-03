@@ -5,6 +5,7 @@ vi.mock("@/lib/conversations/recepcao", () => ({ receberMensagem: vi.fn() }))
 vi.mock("@/lib/whatsapp/conta", () => ({ receberEventoDeConta: vi.fn() }))
 vi.mock("@/lib/conversations/resposta", () => ({ responderConversa: vi.fn() }))
 vi.mock("@/lib/conversations/urgencia", () => ({ enviarProtocolo: vi.fn() }))
+vi.mock("@/lib/conversations/audio", () => ({ tratarAudio: vi.fn() }))
 vi.mock("@/lib/conversations/status", () => ({ receberStatus: vi.fn() }))
 // Fora de uma requisição do Next, `after` não funciona: o teste guarda o
 // callback e decide quando rodar.

@@ -99,12 +99,15 @@ describe("o dono da demonstração (authenticated)", () => {
     rascunhoDemo = data.id
   })
 
+  // Pela sessão, a recusa é 42501: as colunas do WhatsApp saíram do grant do
+  // authenticated (20261029120000_agents_whatsapp_server_only.sql), e o
+  // privilégio é conferido antes dos triggers NX004/NX005.
   it("não cria agente já ligado ao canal", async () => {
     const client = await comoUsuario(donoDemo)
     const { error } = await client
       .from("agents")
       .insert({ ...rascunho(demo, "Canal pelo dono"), whatsapp_phone_number_id: canal("dono-insert") })
-    expect(error?.code).toBe("NX004")
+    expect(error?.code).toBe("42501")
   })
 
   it("não liga o canal, não conecta número da Meta e não publica", async () => {
@@ -114,13 +117,13 @@ describe("o dono da demonstração (authenticated)", () => {
       .from("agents")
       .update({ whatsapp_phone_number_id: canal("dono-update"), whatsapp_waba_id: canal("dono-update") })
       .eq("id", rascunhoDemo)
-    expect(peloCanal.error?.code).toBe("NX004")
+    expect(peloCanal.error?.code).toBe("42501")
 
     const pelaMeta = await client
       .from("agents")
       .update({ whatsapp_phone_number_id: numeroDaMeta("dono"), whatsapp_waba_id: "waba-teste" })
       .eq("id", rascunhoDemo)
-    expect(pelaMeta.error?.code).toBe("NX004")
+    expect(pelaMeta.error?.code).toBe("42501")
 
     const publicar = await client.from("agents").update({ status: "active" }).eq("id", rascunhoDemo)
     expect(publicar.error?.code).toBe("NX004")
@@ -233,7 +236,7 @@ describe("o canal fora da demonstração (NX005)", () => {
       .from("agents")
       .update({ whatsapp_phone_number_id: canal("comum-dono") })
       .eq("id", agenteComum)
-    expect(error?.code).toBe("NX005")
+    expect(error?.code).toBe("42501")
     expect((await agente(agenteComum)).whatsapp_phone_number_id).toBeNull()
   })
 

@@ -25,6 +25,14 @@ Assistentes de IA no WhatsApp para clínicas e consultórios — atendimento 24/
 8. Credencial de terceiro pertencente a uma clínica (token do WhatsApp, token OAuth do Google Calendar, futura chave de CRM) é um segredo por tenant, não um segredo de infraestrutura — criptografado em repouso no banco, nunca em texto puro, mesmo dentro do próprio Supabase. Ver skill `lgpd-security`.
 9. Configuração de DNS do domínio (SPF, DKIM, MX) precisa considerar o Zoho Mail (e-mail profissional da equipe) e o Resend (envio transacional) coexistindo no mesmo domínio — usar subdomínio dedicado pro envio transacional (mesmo padrão já usado no Refundly: `mail.<domínio>`) evita sobrescrever um registro com o outro. Checklist completo em `docs/infra-setup.md`.
 
+## Memória do Claude (versionada)
+A memória do projeto fica em `docs/claude-memory/`, não em `~/.claude/projects/*/memory/`, para seguir pelo git entre os computadores do Jhones. O índice abaixo é carregado em toda sessão; abrir o arquivo de cada item só quando for relevante.
+
+@docs/claude-memory/MEMORY.md
+
+- Memória nova ou corrigida vai **nesta pasta** (mesmo formato: um fato por arquivo com frontmatter + uma linha no `MEMORY.md`) e entra no commit da sessão. A memória local de `~/.claude` não deve ser usada para este projeto.
+- O repositório é **público**: nada de segredo, dado de paciente, e-mail/telefone pessoal ou assunto interno de negócio (investidor, contas pessoais). Na dúvida, não grave.
+
 ## Fluxo de trabalho (decidido em 2026-09-14)
 
 ### Ritmo
@@ -67,6 +75,7 @@ Ative a skill `qa-testing` ou peça revisão do subagente `qa-reviewer`. "Deve f
 - `lib/sequences/` — motor de recall, reativação e follow-up (`MessageSequence`, `SequenceStep`, `SequenceEnrollment`)
 - `lib/*` (demais) — lógica de domínio (whatsapp, crm-adapters, billing, security)
 - `docs/specs/` — specs de feature (ver skill `product-spec`)
+- `docs/claude-memory/` — memória do Claude versionada (ver seção "Memória do Claude")
 - `docs/infra-setup.md` — checklist de contas e configuração externa (OpenRouter, Resend, Zoho, Google Calendar, Meta)
 - `.claude/skills/*` — conhecimento de domínio carregado sob demanda
 - `.claude/agents/*` — subagentes de revisão (segurança, QA)

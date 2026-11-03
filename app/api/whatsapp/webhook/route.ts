@@ -1,5 +1,5 @@
 import { after } from "next/server"
-import { tratarMensagem } from "@/lib/conversations/entrada"
+import { tratarMensagem, type Agendar } from "@/lib/conversations/entrada"
 import { receberStatus } from "@/lib/conversations/status"
 import { erroParaLog } from "@/lib/security/erro-para-log"
 import { assinaturaValida, desafioDaVerificacao } from "@/lib/whatsapp/assinatura"
@@ -24,11 +24,13 @@ import { falhaDefinitiva, interpretarWebhook } from "@/lib/whatsapp/webhook"
  */
 
 // Pior caso da resposta: 10 s de agrupamento, três tentativas de 20 s no
-// modelo com 5 s de espera entre elas, e o envio. A varredura do pg_cron
+// modelo com 5 s de espera entre elas, e o envio (~106 s). Antes dela, o
+// áudio tem 50 s para download e transcrição (ORCAMENTO_DO_AUDIO_MS, parte
+// 5b), e por isso 180 s. A varredura do pg_cron
 // (sweep_stale_ai_replies) trata como órfã a resposta pending há mais de
 // 5 min: este valor precisa ficar abaixo disso (teste em
 // tests/conversations/ordem-de-trava.test.ts).
-export const maxDuration = 120
+export const maxDuration = 180
 
 const ROTULO = "[whatsapp-webhook]"
 
@@ -101,7 +103,7 @@ export async function POST(request: Request) {
 }
 
 /** Depois do 200 não há a quem devolver erro: loga o metadado e para. */
-async function emSegundoPlano(etapa: "resposta" | "protocolo", tarefa: () => Promise<unknown>): Promise<void> {
+async function emSegundoPlano(etapa: Parameters<Agendar>[0], tarefa: () => Promise<unknown>): Promise<void> {
   try {
     await tarefa()
   } catch (erro) {

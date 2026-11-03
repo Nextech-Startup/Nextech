@@ -188,6 +188,36 @@ describe("paraConversaAberta", () => {
     expect(a.itens[0]).toMatchObject({ tipo: "mensagem", midia: "audio", texto: ROTULO_DA_MIDIA.audio })
   })
 
+  it("áudio com transcrição gravada mostra a transcrição, sem duração (a Meta não informa)", () => {
+    const a = paraConversaAberta(
+      conversa(),
+      [mensagem({ id: "m", media_type: "audio", texto: null, transcricao: "Queria marcar uma limpeza" })],
+      [],
+    )
+    expect(a.itens[0]).toMatchObject({
+      tipo: "mensagem",
+      midia: "audio",
+      texto: "Queria marcar uma limpeza",
+      audio: { segundos: null, transcrita: true },
+    })
+  })
+
+  it("áudio sem transcrição segue o balão de hoje, sem afirmar o motivo", () => {
+    const a = paraConversaAberta(conversa(), [mensagem({ id: "m", media_type: "audio", texto: null, transcricao: null })], [])
+    expect(a.itens[0]).not.toHaveProperty("audio")
+    expect(a.itens[0]).toMatchObject({ texto: ROTULO_DA_MIDIA.audio })
+  })
+
+  it("áudio redigido não mostra transcrição", () => {
+    const a = paraConversaAberta(
+      conversa(),
+      [mensagem({ id: "m", media_type: "audio", texto: null, redigida: true, transcricao: "não deveria" })],
+      [],
+    )
+    expect(a.itens[0]).not.toHaveProperty("audio")
+    expect(a.itens[0]).toMatchObject({ texto: TEXTO_REDIGIDO })
+  })
+
   it("repassa o histórico cortado só quando houve corte", () => {
     expect(paraConversaAberta(c, mensagens, [], { historicoCortado: true }).historicoCortado).toBe(true)
     expect(aberta).not.toHaveProperty("historicoCortado")

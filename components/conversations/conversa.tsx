@@ -441,10 +441,15 @@ function Item({ item }: { item: ItemDaConversa }) {
     <>
       <span className="flex items-center gap-2">
         <Mic aria-hidden="true" className="size-4 text-ink-3" />
-        Áudio, {Math.floor(item.audio.segundos / 60)}:{String(item.audio.segundos % 60).padStart(2, "0")}
+        {item.audio.segundos === null
+          ? "Áudio"
+          : `Áudio, ${Math.floor(item.audio.segundos / 60)}:${String(item.audio.segundos % 60).padStart(2, "0")}`}
       </span>
       {item.audio.transcrita ? (
-        <span className="mt-1 block text-ink-2">{item.texto}</span>
+        <span className="mt-1 block text-ink-2">
+          <span className="block text-[0.6875rem] font-medium uppercase tracking-wide text-ink-3">Transcrição</span>
+          {item.texto}
+        </span>
       ) : (
         <span className="mt-1 block text-xs text-ink-3">
           Transcrição não guardada: paciente sem consentimento

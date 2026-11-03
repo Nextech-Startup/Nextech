@@ -1,4 +1,4 @@
-import type { MensagemDoWebhook, MidiaDaMensagem } from "./webhook"
+import type { MensagemDoWebhook } from "./webhook"
 
 /**
  * Leitura do webhook da Evolution API (evolution-demo-v1, recepção). Só
@@ -64,10 +64,20 @@ const SEM_CONTEUDO = ["reactionMessage", "protocolMessage", "editedMessage", "po
  * imagem e do documento, o tipo do áudio. O resto fica como `other`, sem
  * conteúdo, para não sumir do histórico. `null`: nada a guardar.
  */
-function conteudo(m: Bruto): { midia: MidiaDaMensagem; texto: string | null } | null {
+function conteudo(m: Bruto): Pick<MensagemDoWebhook, "midia" | "texto" | "audio"> | null {
   const escrito = texto(m.conversation) ?? texto(objeto(m.extendedTextMessage)?.text)
   if (escrito) return { midia: "text", texto: escrito }
-  if (objeto(m.audioMessage)) return { midia: "audio", texto: null }
+  const audio = objeto(m.audioMessage)
+  if (audio) {
+    // `base64` só vem com o webhook da instância em `base64: true`, e vem
+    // também em imagem e documento, onde não é lido.
+    const base64 = texto(m.base64)
+    return {
+      midia: "audio",
+      texto: null,
+      ...(base64 && { audio: { origem: "anexo", base64, mime: texto(audio.mimetype) } }),
+    }
+  }
   if (objeto(m.imageMessage)) return { midia: "image", texto: texto(objeto(m.imageMessage)?.caption) }
   if (objeto(m.documentMessage)) return { midia: "document", texto: texto(objeto(m.documentMessage)?.caption) }
   if (SEM_CONTEUDO.some((tipo) => tipo in m)) return null

@@ -194,7 +194,7 @@ describe("destaque da rota atual", () => {
 // ---------------------------------------------------------------------------
 
 describe("mapa do painel interno", () => {
-  it("lista os seis itens do desenho, nesta ordem", () => {
+  it("lista os sete itens, nesta ordem", () => {
     expect(ADMIN_NAV.flatMap((g) => g.items.map((i) => i.label))).toEqual([
       "Clínicas",
       "Consumo",
@@ -202,15 +202,17 @@ describe("mapa do painel interno", () => {
       "Saúde",
       "Conversas",
       "Auditoria",
+      "Segurança",
     ])
   })
 
-  it("só a listagem de clínicas, as conversas de suporte e a auditoria estão construídas", () => {
+  it("só a listagem de clínicas, as conversas de suporte, a auditoria e a segurança estão construídas", () => {
     const prontos = ADMIN_NAV.flatMap((g) =>
       g.items.filter((i) => i.status === "pronto").map((i) => i.href),
     )
     // Auditoria: admin-audit-v1. Conversas: conversation-engine-v1, parte 4.
-    expect(prontos).toEqual(["/admin", "/admin/conversations", "/admin/audit"])
+    // Segurança: admin-mfa-v1.
+    expect(prontos).toEqual(["/admin", "/admin/conversations", "/admin/audit", "/admin/seguranca"])
   })
 
   it("na auditoria, só ela fica ativa: /admin é prefixo, mas não acende Clínicas", () => {
@@ -231,7 +233,7 @@ describe("mapa do painel interno", () => {
 
   it("não filtra por papel: quem entra vê tudo", () => {
     const itens = resolveAdminNav("/admin").flatMap((g) => g.items)
-    expect(itens).toHaveLength(6)
+    expect(itens).toHaveLength(7)
   })
 
   it("acende o item da rota atual", () => {

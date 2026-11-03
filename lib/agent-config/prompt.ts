@@ -18,6 +18,11 @@ export type ItemDoHistorico = {
   texto: string | null
   /** Conteúdo apagado a pedido do paciente (content_redacted_at). */
   redigida: boolean
+  /**
+   * Transcrição do áudio do paciente (parte 5b): a gravada, com
+   * consentimento, ou a desta execução, que não é gravada sem ele.
+   */
+  transcricao?: string | null
 }
 
 export type ContextoDoAgente = {
@@ -28,6 +33,8 @@ export type ContextoDoAgente = {
   horario: BusinessHours
   procedimentos: Array<{ nome: string; duracaoMinutos: number; preco: number | null }>
   convenios: string[]
+  /** O plano da clínica transcreve áudio (Pro e HealthTech, `TRANSCREVE_AUDIO`). */
+  transcreveAudio: boolean
 }
 
 const MARCADOR: Record<Exclude<ItemDoHistorico["midia"], "text">, string> = {
@@ -40,6 +47,7 @@ const MARCADOR: Record<Exclude<ItemDoHistorico["midia"], "text">, string> = {
 function textoParaOModelo(item: ItemDoHistorico): string {
   if (item.redigida) return "[conteúdo apagado a pedido do paciente]"
   if (item.midia === "text") return item.texto ?? ""
+  if (item.midia === "audio" && item.transcricao) return `[áudio transcrito] ${item.transcricao}`
   return item.texto ? `${MARCADOR[item.midia]} ${item.texto}` : MARCADOR[item.midia]
 }
 
@@ -76,6 +84,11 @@ function systemPrompt(c: ContextoDoAgente, agora: string, primeiraResposta: bool
     listaDeProcedimentos(c.procedimentos),
     `Convênios aceitos: ${c.convenios.length > 0 ? c.convenios.join(", ") : "nenhum; atendimento particular"}.`,
   ]
+  if (!c.transcreveAudio) {
+    partes.push(
+      "Você não consegue ouvir áudio. Se a última mensagem do paciente for um áudio, peça, com gentileza, que o paciente escreva a mensagem.",
+    )
+  }
   if (c.persona) partes.push("Instruções da clínica para o seu jeito de atender:", c.persona)
   if (primeiraResposta && c.saudacao) {
     partes.push(

@@ -35,6 +35,13 @@ Duas classes de segredo, que não se misturam:
 - [ ] Configurar as mesmas chaves na Vercel, por ambiente (Production / Preview / Development).
 - [x] Confirmar a região do projeto existente: **us-west-2 (Oregon)**, verificada em 2026-10-11 (`supabase projects list`). Do Brasil, cada ida ao banco ou ao Auth custa ~300 ms: a borda da Cloudflare no Rio (GIG, ~85 ms) e mais ~200 ms até Oregon. Migrar de região é trocar de projeto, e fica mais caro depois que houver dado de paciente; por ora, o código evita idas em série (filtro de Conversas no navegador, `getClaims` na leitura e a fila numa RPC só, 2026-10-11).
 - [x] **Região das funções da Vercel junto do banco.** Fixada em `pdx1` (Portland) pelo `vercel.json` (`"regions": ["pdx1"]`), no PR de `staging` → `main`. Na região padrão do projeto (provavelmente `iad1`, leste dos EUA), cada ida a Oregon custava ~70 ms; em `pdx1`, poucos ms. O arquivo vale sobre o que estiver em Settings > Functions. Não ajuda a demonstração local, que fala direto com Oregon.
+- [x] **MFA por TOTP ligado no Auth**, que o painel interno exige (spec `admin-mfa-v1`). Conferido em 2026-10-29 pela API de gestão: `mfa_totp_enroll_enabled` e `mfa_totp_verify_enabled` em `true`, com até 10 fatores por pessoa. No Dashboard: Authentication → Multi-Factor → TOTP (App Authenticator) = Enabled. Se alguém desligar, o painel interno para de abrir (a tela do segundo fator mostra "indisponível"), e a correção é ligar de novo.
+- **Reset manual do segundo fator** (quem perdeu todos os dispositivos):
+  1. Confirmar a identidade da pessoa por outro canal (ligação ou presencialmente). Nunca só por e-mail ou mensagem.
+  2. Supabase Dashboard → Authentication → Users → abrir o usuário → seção de fatores de MFA → remover os fatores TOTP. Pela API, com a `service_role`: `auth.admin.mfa.listFactors({ userId })` e depois `auth.admin.mfa.deleteFactor({ userId, id })` em cada um.
+  3. Encerrar as sessões abertas da pessoa (Users → "Sign out user"). Um celular perdido pode estar com o painel aberto.
+  4. Registrar na trilha, pelo SQL Editor (o reset não passa pelo painel e não grava sozinho): `insert into public.admin_audit_log (actor_user_id, action, target_table, target_id, metadata) values ('<id de quem fez o reset>', 'mfa.factor_remove', 'auth.mfa_factors', '<id do fator>', '{"reset_manual": true}');`
+  5. No próximo acesso a `/admin`, a pessoa cai no cadastro e lê um QR code novo.
 - [ ] Auditar a tabela `chatbot_leads` que já existe: tem RLS? Ela guarda nome, e-mail e WhatsApp de lead — é PII, mesmo sem ser dado de saúde.
 - [ ] Instalar a Supabase CLI e rodar `supabase init` para versionar migrations em `supabase/migrations/`.
 - [ ] **Importar o schema que já existe** para a primeira migration (`supabase db pull`), antes de criar tabela nova. Sem isso as migrations partem de um banco que não corresponde ao real.
@@ -46,9 +53,9 @@ Duas classes de segredo, que não se misturam:
 - [ ] Confirmar o percentual de margem que o OpenRouter cobra sobre o preço do provedor — entra na conta de custo por atendimento, junto com o custo do WhatsApp (ver skill `lgpd-security` e `integrations`).
 - [ ] Verificar sintaxe atual de cache de prompt pro Gemini via OpenRouter, se for usar (mecanismo diferente do `cache_control` da Anthropic).
 - [ ] Na Vercel, nos três ambientes: `OPENROUTER_API_KEY` e `OPENROUTER_MODEL` (hoje `google/gemini-2.5-flash`). O client (`lib/ai/client.ts`, motor de conversa, parte 2) não tem valor padrão: sem as duas, toda resposta da IA falha e a conversa passa para a equipe.
-- [ ] Na conta do OpenRouter, em Privacy, ligar a retenção zero (ZDR) do grupo de modelos Google, como segunda camada. O código já exige `data_collection: "deny"` e `zdr: true` em toda chamada. Pela documentação conferida em 2026-09-27, o Gemini tem endpoint ZDR pelo Vertex (o AI Studio não tem).
+- [ ] Na conta do OpenRouter, em Privacy, **não** ligar a retenção zero (ZDR) como exigência da conta enquanto o modelo for o `gemini-2.5-flash`: ele não tem endpoint ZDR, e a exigência derruba toda chamada (404). O código exige `data_collection: "deny"` em toda chamada. Sem ZDR desde 2026-11-03 (decisão do Jhones): o `google/gemini-2.5-flash` perdeu os endpoints do Vertex, os únicos com retenção zero, e só o Google AI Studio o serve. O AI Studio pago não usa o conteúdo para melhorar produtos, mas registra pedido e resposta por tempo limitado contra abuso; a política de privacidade diz isso.
 - [ ] Na conta do OpenRouter, conferir que o registro de prompts e respostas (logging de input/output) está desligado. O conteúdo é dado de saúde.
-- [ ] Na primeira chamada real, conferir que o modelo configurado responde com `zdr: true`. Se nenhum endpoint do modelo tiver ZDR, a chamada falha, e é preciso escolher outro modelo, e não tirar o `zdr`.
+- [ ] Para voltar ao ZDR: trocar o `OPENROUTER_MODEL` por um modelo com endpoint ZDR (em 2026-11-03, `google/gemini-3.5-flash-lite`, 3.7 e 3.8 Flash tinham, pelo Vertex, e transcreveram áudio e responderam com saída estruturada), recolocar `zdr: true` em `lib/ai/client.ts` e voltar o texto da política; o `tests/legal/paginas-legais.test.tsx` obriga os dois a andarem juntos.
 
 ## Resend (e-mail transacional)
 - [ ] Criar conta.
@@ -67,7 +74,11 @@ Duas classes de segredo, que não se misturam:
 - [ ] Cada clínica autoriza o próprio calendário — não existe uma conta Google única do Nextech (ver skill `integrations`).
 
 ## Meta / WhatsApp (referência — já coberto em detalhe na skill `integrations`)
-- [ ] App do Nextech registrado na Meta com permissão de Embedded Signup (fluxo com coexistência).
+- [x] App do Nextech criado na conta de developer do Jhones, conectado a um portfólio empresarial **próprio da Nextech**, nunca ao de outro projeto (2026-10-12). A conta de developer é do perfil pessoal; o portfólio é escolhido por app.
+- [ ] Verificação do negócio no portfólio da Nextech (Central de segurança): nome empresarial exatamente como no cartão CNPJ (`65.406.075 JHONES BONIFACIO DA SILVA`, CNPJ `65.406.075/0001-12`), site `nextech.ia.br`, e-mail `contato@nextech.ia.br`. "Nextech" é o nome de exibição, não o nome legal. Se pedir verificação de domínio, o TXT na raiz convive com o SPF do Zoho.
+- [ ] Use cases > Customize for WhatsApp > **Tech Provider onboarding**. A coexistência só vale para Tech Provider ou Solution Partner, e a verificação vem antes do App Review.
+- [ ] App Review: ícone 1024×1024, URL da política de privacidade (bloqueada até `docs/specs/legal-pages-v1.md`) e dois vídeos (envio de mensagem e gestão de template, gravados com o número de teste da API Setup).
+- [ ] Embedded Signup na **v4**: a Meta desliga a v2 em 2026-10-15. Construir o fluxo já na v4.
 - [ ] Permissões `whatsapp_business_messaging` e `whatsapp_business_management` com advanced access.
 
 ### Quando as credenciais chegarem (webhook já construído contra mock)
@@ -107,9 +118,9 @@ A conversa real cai na conta de demonstração (`clinica@nextech.ia.br`), na tel
    ```powershell
    Invoke-RestMethod -Uri http://localhost:8080/instance/connectionState/nextech-demo -Headers @{ apikey = $k }
    ```
-4. Apontar o webhook para o app local, com o segredo no cabeçalho (só na primeira vez, ou se o segredo mudar):
+4. Apontar o webhook para o app local, com o segredo no cabeçalho (na primeira vez, se o segredo mudar, e uma vez depois de 2026-11-03 para ligar o `base64`). O `base64 = $true` faz a Evolution anexar o áudio ao webhook: a instância não grava mensagens, e sem o anexo o áudio não é transcrito. O anexo de imagem e documento também chega, mas não é lido:
    ```powershell
-   $corpo = @{ webhook = @{ enabled = $true; url = "http://host.docker.internal:3000/api/whatsapp/evolution"; headers = @{ "x-nextech-secret" = "<o EVOLUTION_WEBHOOK_SECRET>" }; byEvents = $false; base64 = $false; events = @("MESSAGES_UPSERT") } } | ConvertTo-Json -Depth 5
+   $corpo = @{ webhook = @{ enabled = $true; url = "http://host.docker.internal:3000/api/whatsapp/evolution"; headers = @{ "x-nextech-secret" = "<o EVOLUTION_WEBHOOK_SECRET>" }; byEvents = $false; base64 = $true; events = @("MESSAGES_UPSERT") } } | ConvertTo-Json -Depth 5
    Invoke-RestMethod -Method Post -Uri http://localhost:8080/webhook/set/nextech-demo -Headers @{ apikey = $k } -ContentType "application/json" -Body $corpo
    ```
 5. Conferir o `.env` da raiz: `EVOLUTION_ALLOWED_NUMBERS` com os números que vão conversar (o do investidor e o do ensaio), em E.164, separados por vírgula.
@@ -118,7 +129,7 @@ A conversa real cai na conta de demonstração (`clinica@nextech.ia.br`), na tel
    npx tsx scripts/canal-demo.ts conectar
    ```
 7. Subir o app: `npm run build` e depois `npx next start -H 127.0.0.1 -p 3000`. O `-H 127.0.0.1` deixa o app só no próprio computador: sem ele, o Next escuta em todas as interfaces, e a rede do local da apresentação alcançaria por HTTP o login e o webhook. A Evolution chega assim mesmo, pelo `host.docker.internal`, que o Docker Desktop leva ao loopback do Windows (conferido em 2026-10-11). Não é preciso liberar o Node no firewall: se o Windows perguntar, recusar. Antes, conferir que não há outro `next start` na porta 3000 (`Get-NetTCPConnection -LocalPort 3000`). O `next dev` não serve: dá o 500 "Jest worker".
-8. A apresentação: `http://localhost:3000`, login `clinica@nextech.ia.br`, tela de Conversas. Combinar mensagens de **texto**: áudio ainda não é transcrito, e a IA recebe só o aviso de que veio um áudio.
+8. A apresentação: `http://localhost:3000`, login `clinica@nextech.ia.br`, tela de Conversas. Texto e áudio funcionam: a clínica de demonstração é HealthTech, e o áudio é transcrito (com o `base64` do passo 4 ligado).
 9. **No fim, sempre:**
    ```powershell
    npx tsx scripts/canal-demo.ts limpar

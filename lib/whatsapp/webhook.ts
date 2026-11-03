@@ -10,6 +10,16 @@ import type { EventoDaConta } from "./conexao"
 
 export type MidiaDaMensagem = "text" | "audio" | "image" | "document" | "other"
 
+/**
+ * De onde sai o áudio do paciente (motor de conversa, parte 5b): o id da
+ * mídia na Meta, baixado depois do 200, ou o anexo em base64 que a
+ * Evolution manda no próprio webhook. Vive só em memória, até a
+ * transcrição: nunca vai ao banco nem ao log (lgpd-security, regra 3).
+ */
+export type AudioRecebido =
+  | { origem: "meta"; mediaId: string; mime: string | null }
+  | { origem: "anexo"; base64: string; mime: string | null }
+
 export type MensagemDoWebhook = {
   tipo: "mensagem"
   /** `patient`: o paciente escreveu. `human`: eco da coexistência, alguém da clínica respondeu pelo app. */
@@ -29,6 +39,8 @@ export type MensagemDoWebhook = {
   ocorridaEm: string
   midia: MidiaDaMensagem
   texto: string | null
+  /** Só em áudio com a mídia identificada. */
+  audio?: AudioRecebido
 }
 
 export type EventoDeContaDoWebhook = {
@@ -97,7 +109,9 @@ function comoTexto(valor: string | null): { midia: MidiaDaMensagem; texto: strin
  * (vídeo, figurinha, localização, contato) fica registrado como `other`,
  * sem conteúdo, para não sumir do histórico.
  */
-function conteudoDaMensagem(m: Bruto): { midia: MidiaDaMensagem; texto: string | null } | null {
+type Conteudo = Pick<MensagemDoWebhook, "midia" | "texto" | "audio">
+
+function conteudoDaMensagem(m: Bruto): Conteudo | null {
   switch (m.type) {
     case "reaction":
       return null
@@ -111,8 +125,15 @@ function conteudoDaMensagem(m: Bruto): { midia: MidiaDaMensagem; texto: string |
         texto(objeto(i?.button_reply)?.title) ?? texto(objeto(i?.list_reply)?.title),
       )
     }
-    case "audio":
-      return { midia: "audio", texto: null }
+    case "audio": {
+      const a = objeto(m.audio)
+      const mediaId = texto(a?.id)
+      return {
+        midia: "audio",
+        texto: null,
+        ...(mediaId && { audio: { origem: "meta", mediaId, mime: texto(a?.mime_type) } }),
+      }
+    }
     case "image":
       return { midia: "image", texto: texto(objeto(m.image)?.caption) }
     case "document":

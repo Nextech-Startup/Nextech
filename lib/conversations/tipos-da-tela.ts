@@ -29,7 +29,7 @@ export type ItemDaConversa =
       texto: string
       em: string
       /** Áudio: a transcrição só é guardada com consentimento (lgpd-security, regra 3). */
-      audio?: { segundos: number; transcrita: boolean }
+      audio?: { segundos: number | null; transcrita: boolean }
       /** Mensagem que não é texto. Sem legenda, `texto` é o rótulo do tipo. */
       midia?: "audio" | "image" | "document" | "other"
       /** Só no que o Nextech enviou: a resposta ainda saindo, ou que não chegou ao paciente. */

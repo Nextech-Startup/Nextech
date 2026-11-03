@@ -130,7 +130,7 @@ A 3b foi dividida em cinco partes, por dependência (decisão do Jhones, 2026-09
 2. ✅ decisão e resposta da IA;
 3. ✅ urgência, opt-out e qualificação (a qualificação teve sessão própria, depois da urgência, do opt-out e da manutenção);
 4. ✅ tela real de Conversas;
-5. ⬜ preview do agente e áudio.
+5. ✅ preview do agente (2026-10-29) e transcrição do áudio (2026-11-03).
 
 ### Parte 1: dados e recepção (2026-09-27)
 
@@ -153,7 +153,7 @@ Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-2.md`.
 - **Agrupamento no `after()`, "a mais recente vence".** Cada mensagem nova do paciente agenda uma resposta, que espera 10 s e só segue se ela ainda for a última do paciente. Sem fila externa.
 - **Reservar, enviar, confirmar.** A resposta entra como `pending`, com `reply_to_message_id` único (a trava contra resposta dupla). `confirm_ai_reply` grava o id da Meta, conta na sessão e fecha por contagem na quinta, numa transação.
 - **Falha da IA ou do envio** passa a conversa para a equipe (`ai_failed_at`), sem mandar nada ao paciente. A retomada em 24h conta a partir do mais recente entre a ação humana e a falha.
-- **O que vai para o modelo:** o system prompt da clínica (regras de segurança antes da persona) e as últimas 20 mensagens. Não vão telefone nem nome do paciente. Toda chamada ao OpenRouter exige `data_collection: "deny"` e `zdr: true`.
+- **O que vai para o modelo:** o system prompt da clínica (regras de segurança antes da persona) e as últimas 20 mensagens. Não vão telefone nem nome do paciente. Toda chamada ao OpenRouter exige `data_collection: "deny"`. O `zdr: true` saiu em 2026-11-03: o Gemini 2.5 Flash não tem mais endpoint com retenção zero, e o Google AI Studio registra o pedido por tempo limitado, contra abuso (declarado na política de privacidade).
 - **Custo:** `category = SERVICE`, `within_24h_window` e `billable` gravados no envio. O serviço dentro da janela passa a ser cobrado em 1º/out/2026 (UTC).
 - **Status de entrega** só avança; `failed` só vale antes da entrega.
 - **Prova de posse na conexão:** `connectWhatsapp` confere na Graph API que o número pertence ao WABA antes de gravar.
@@ -172,14 +172,14 @@ Planos: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3.md` (urgên
   - Vale também com a equipe atendendo (decisão do Jhones): quem respondeu pelo celular pode não estar olhando agora.
   - Um protocolo por escalada. Conversa já urgente, mensagem já respondida (reenvio) ou agente fora do ar não mandam de novo. Com a janela fechada (reenvio tardio), a marca fica e o protocolo não sai.
   - A mensagem urgente nunca recebe resposta da IA, e uma resposta em curso para mensagem anterior cai na reserva.
-  - Agente pausado: sem triagem. Áudio: sem triagem até a transcrição (parte 5).
+  - Agente pausado: sem triagem. Áudio: triado pela transcrição, nos planos que transcrevem (parte 5b).
 - **Opt-out:** a mensagem inteira, normalizada, precisa ser `parar`, `pare`, `sair`, `stop` ou `descadastrar`. Grava `patients.opted_out` com o agente pausado, com a equipe atendendo e no reenvio. A mensagem não tem resposta, e o Nextech não manda texto próprio. Conversa que o paciente iniciar depois segue sendo respondida: o opt-out vale para as sequências.
 - **Manutenção pelo pg_cron, a cada 5 min** (a Vercel Hobby só roda cron uma vez por dia; decisão do Jhones):
   - `close_stale_attendance_sessions` fecha a sessão parada há mais de 1h20 (20 min mais 1 h de folga para mensagem atrasada, decisão do Jhones), com `closed_at` = última mensagem + 20 min, a fórmula da recepção;
   - `sweep_stale_ai_replies` passa a `failed` (`sem-confirmacao`) a resposta `pending` há mais de 5 min e a conversa para a equipe, travando a conversa antes das mensagens e com `skip locked`.
   - a confirmação da resposta (`confirm_ai_reply`) não conta a resposta na sessão vencida que o cron ainda não fechou, e não a fecha: quem fecha é a recepção, pelo `occurred_at` da mensagem, ou o cron. Fechar pelo relógio do envio faria a mensagem atrasada abrir outro atendimento.
 - **Qualificação (decisões do Jhones):**
-  - **Mesma chamada, com saída estruturada**, e não uma segunda chamada: o dado de saúde sai uma vez só. O pedido leva `response_format` com `json_schema` estrito e `provider.require_parameters: true`, para que um provedor que ignore o schema nunca seja escolhido. O `zdr: true` e o `data_collection: "deny"` continuam fixos. Em 2026-09-27, os 4 endpoints ZDR do Gemini 2.5 Flash (Google Vertex) aceitavam saída estruturada.
+  - **Mesma chamada, com saída estruturada**, e não uma segunda chamada: o dado de saúde sai uma vez só. O pedido leva `response_format` com `json_schema` estrito e `provider.require_parameters: true`, para que um provedor que ignore o schema nunca seja escolhido. O `data_collection: "deny"` continua fixo (o `zdr: true` saiu em 2026-11-03, ver acima).
   - **O JSON é validado do nosso lado** (`lerSaidaDoModelo`): o rigor do `strict` varia por provedor. Fora do formato é falha passageira da IA (`saida-invalida`), com as mesmas tentativas e o mesmo caminho para a equipe. Resposta cortada pelo limite de tokens (`finish_reason: "length"`) também é falha (`resposta-truncada`), e o texto cortado nunca sai.
   - **Gravação logo depois da geração**, com `where qualified_at is null`: mede a intenção do paciente, e não a nossa resposta. A falha ao gravar loga só o código, e a resposta segue.
 - **Reenvio sem resposta:** se a recepção falha depois de gravar a mensagem, o reenvio da Meta agenda a resposta enquanto a mensagem não tiver resposta nem reserva (decisão do Jhones). No caso raro de o lote ter voltado 500 por outro evento, o modelo pode ser chamado duas vezes; a reserva garante um envio só.
@@ -210,6 +210,17 @@ Plano: `docs/superpowers/plans/2026-10-11-motor-de-conversa-parte-4-tela-de-conv
   - os links não fazem prefetch.
 - **Bloqueios de go-live que a tela agrava** (`docs/status.md`): a posse do WhatsApp, porque quem desviar o número de outra clínica passa a ler as mensagens decifradas e ao vivo, e o MFA no painel interno.
 
+### Parte 5a: teste de conversa do agente (2026-10-29)
+
+Cumpre o comportamento 3 da `agent-config-v1`: o botão "Testar" vira uma conversa de verdade com a IA, ao lado do formulário do agente.
+
+- **A configuração é a da tela, sem salvar.** O teste lê o formulário de configuração e valida pelo mesmo `agentSchema` de salvar. Procedimentos, convênios e nome da clínica vêm do banco pela sessão do owner, por `contextoDoAgente` (extraído de `resposta.ts` para `lib/agent-config/contexto.ts`, e usado pelos dois caminhos).
+- **O que a clínica vê é o que o paciente veria.** O prompt sai do mesmo `montarConversa`, e a saída é lida pelo mesmo `lerSaidaDoModelo`. A tela avisa quando a conversa seria marcada como interessada em agendar.
+- **Nada é persistido.** O histórico mora na memória da página e vem inteiro a cada turno. O servidor valida a conversa: alternância, até 500 caracteres por mensagem e até 8 mensagens do paciente. O conteúdo nunca é logado.
+- **Teto de custo no banco.** São 60 chamadas por clínica por hora (`agent_preview_calls`, só `service_role`, sem conteúdo), contadas antes do modelo. O limite de turnos da tela se contorna com "Recomeçar"; este teto, não.
+- **Só o owner testa**, como só ele configura. Uma retentativa da IA, não duas: quem espera é uma pessoa olhando a tela.
+- **A clínica de demonstração também testa:** o teste não conecta número nem publica.
+
 ## Planos afetados
 O motor é a base do produto — existe em Starter, Pro e HealthTech. O que varia por plano é o limite de atendimentos (`atendimento-billing-v1.md`) e o processamento de áudio, que a landing promete a partir do Pro.
 
@@ -230,6 +241,14 @@ produziria um número que ninguém conseguiria defender.
 regra muda de data: recalcular depois exigiria saber qual regra valia em cada
 mensagem do histórico.
 
+### Parte 5b: transcrição do áudio (2026-11-03)
+
+- O áudio do paciente é transcrito pelo modelo de conversa (`lib/ai/transcricao.ts`) a partir do Pro; no Starter, a IA pede que o paciente escreva.
+- O áudio nunca é gravado. A transcrição só é gravada, cifrada, com consentimento (`save_message_transcript`); sem ele, serve à triagem e à resposta daquela vez.
+- A triagem de urgência roda na transcrição, como no texto.
+- Falha ao obter ou transcrever (inclusive acima de 5 MB ou do orçamento de 50 s) passa a conversa para a equipe, sem nada ao paciente, se a IA fosse responder.
+- Agrupamento: o texto gravado até 10 s depois de um áudio cede a vez, e o áudio responde pelos dois.
+
 ## Em aberto
 - **Agrupamento de mensagens**: a janela de ~10s é um chute inicial. Precisa de ajuste com conversa real — curta demais responde em duplicidade, longa demais parece lento.
 - **Tamanho do histórico** enviado ao modelo: afeta custo por atendimento e qualidade. Medir antes de fixar.
@@ -238,5 +257,4 @@ mensagem do histórico.
 - **Raciocínio do Gemini dentro dos 600 tokens:** na maioria dos provedores, o `max_tokens` soma raciocínio e saída. Se o raciocínio esgotar o limite, a resposta volta cortada (`resposta-truncada`) e a conversa vai para a equipe. Medir antes de configurar o `reasoning`.
 - **`billable` contra o `pricing` da Meta:** o status de entrega traz `pricing.billable` e a categoria que a Meta cobrou. Conferir o que gravamos com isso quando houver tráfego real, antes de fechar o preço dos planos.
 - **Lista de opt-out:** fixa no código (`parar`, `pare`, `sair`, `stop`, `descadastrar`, como mensagem inteira). Revisar com conversa real: pedido escrito como frase ("não quero mais receber") hoje não conta.
-- **Triagem de áudio:** só com a transcrição (parte 5). Até lá, áudio com relato de urgência não escala.
 - **Retomada em conversa urgente**: hoje nunca é automática. Se na prática isso deixar conversas presas, revisitar.

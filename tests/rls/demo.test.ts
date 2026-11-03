@@ -130,6 +130,9 @@ describe("clinics.is_demo", () => {
     const numero = (rotulo: string) => `teste-demo-${rotulo}-${Date.now()}`
     let agenteDemo: string
 
+    // A sessão não tem mais grant nas colunas do WhatsApp
+    // (20261029120000_agents_whatsapp_server_only.sql): a recusa chega como
+    // 42501, antes do trigger. O NX004 segue valendo para o service_role.
     it("o dono não cria agente já conectado", async () => {
       const client = await comoUsuario(donoDemo)
       const { error } = await client.from("agents").insert({
@@ -139,7 +142,7 @@ describe("clinics.is_demo", () => {
         greeting_message: "Olá!",
         whatsapp_phone_number_id: numero("insert"),
       })
-      expect(error?.code).toBe("NX004")
+      expect(error?.code).toBe("42501")
     })
 
     it("o dono cria rascunho, mas não conecta número nem publica", async () => {
@@ -156,7 +159,7 @@ describe("clinics.is_demo", () => {
         .from("agents")
         .update({ whatsapp_phone_number_id: numero("update"), whatsapp_waba_id: "waba-teste" })
         .eq("id", agenteDemo)
-      expect(conectar.error?.code).toBe("NX004")
+      expect(conectar.error?.code).toBe("42501")
 
       const publicar = await client.from("agents").update({ status: "active" }).eq("id", agenteDemo)
       expect(publicar.error?.code).toBe("NX004")
@@ -178,9 +181,8 @@ describe("clinics.is_demo", () => {
     })
 
     it("clínica com agente conectado não vira demonstração", async () => {
-      // Controle: na clínica comum, o número entra (pelo service_role, como
-      // na conexão do servidor; a escrita direta do authenticated nas colunas
-      // do WhatsApp é pendência de segurança própria, e o teste não a fixa).
+      // Controle: na clínica comum, o número entra pelo service_role, que é
+      // o caminho da conexão no servidor.
       const { error: erroConexao } = await admin.from("agents").insert({
         clinic_id: comum,
         name: "Recepção comum (teste)",

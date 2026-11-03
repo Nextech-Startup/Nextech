@@ -72,6 +72,19 @@ export function descreverRegistro(r: RegistroDaTrilha): DescricaoDoRegistro {
         suporte: false,
       }
     }
+    case "mfa.factor_enroll":
+      return {
+        acao: "Cadastrou um autenticador",
+        detalhe: r.metadata.reserva ? "Dispositivo de reserva." : "Primeiro dispositivo.",
+        suporte: false,
+      }
+    case "mfa.factor_remove":
+      return {
+        acao: "Removeu um autenticador",
+        // Reset manual pelo Supabase Dashboard (docs/infra-setup.md), registrado à mão.
+        detalhe: r.metadata.reset_manual ? "Reset manual, fora do painel." : undefined,
+        suporte: false,
+      }
     case "conversation.list":
       return { acao: "Abriu as conversas", detalhe: justificativa(r), suporte: true }
     case "conversation.list_view":

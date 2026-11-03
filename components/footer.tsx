@@ -4,12 +4,19 @@ import { motion, useInView } from "framer-motion"
 import { useRef } from "react"
 import { Instagram, Linkedin, Mail } from "lucide-react"
 import Image from "next/image"
-import { useScrollTo } from "@/components/smooth-scroll"
+import Link from "next/link"
+import { useOptionalScrollTo } from "@/components/smooth-scroll"
+import { EMPRESA } from "@/components/legal/empresa"
+import { SITE_URL } from "@/lib/site-url"
 
 export function Footer() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-50px" })
-  const { scrollToSection } = useScrollTo()
+  // Na home, os links de seção rolam a página; fora dela (páginas legais),
+  // levam para a seção na landing por URL absoluta. Relativo não serve: as
+  // páginas legais também abrem em app.nextech.ia.br, onde `/` vai para o
+  // dashboard.
+  const scroll = useOptionalScrollTo()
 
   // Sincronizado com o Navbar. A calculadora de ROI saiu da página,
   // então o link para ela foi removido em vez de apontar para o vazio.
@@ -25,13 +32,24 @@ export function Footer() {
   const footerLinks = {
     Recursos: ["Documentação", "Estudos de Caso", "Blog", "Suporte 24h"],
     Empresa: ["Sobre nós", "Carreiras", "Parceiros", "Contato"],
-    Legal: ["Privacidade", "Termos", "Segurança", "Cookies"],
   }
+
+  // Quatro links para três páginas: Segurança e Cookies são seções da
+  // política de privacidade (docs/specs/legal-pages-v1.md, decisão 3).
+  const legalLinks = [
+    { href: "/privacidade", label: "Privacidade" },
+    { href: "/termos", label: "Termos" },
+    { href: "/privacidade#seguranca", label: "Segurança" },
+    { href: "/privacidade#cookies", label: "Cookies" },
+  ]
 
   const socialLinks = [
     { icon: Instagram, href: "https://www.instagram.com/nextech.ia/", label: "Instagram" },
     { icon: Linkedin, href: "https://www.linkedin.com/in/jhonesbonifaciodasilva/", label: "LinkedIn" },
-    { icon: Mail, href: "mailto:nextech.reunioes@gmail.com", label: "Email" },
+    // A caixa do encarregado, a mesma que a política de privacidade cita:
+    // e-mail de contato fora dela seria um fornecedor a mais recebendo
+    // pedido de titular.
+    { icon: Mail, href: `mailto:${EMPRESA.email}`, label: "Email" },
   ]
 
   return (
@@ -48,23 +66,26 @@ export function Footer() {
         >
           {/* Brand & Status */}
           <div className="col-span-2 space-y-4">
-            <button
-              type="button"
-              onClick={() => scrollToSection("Hero")}
-              aria-label="Nextech — voltar ao início"
-              className="cursor-pointer transition-transform hover:scale-105 inline-block rounded-pill"
-            >
-              {/* Sem priority: o rodapé nunca é o LCP e isso competiria
-                  com o carregamento do topo da página. */}
-              <Image
-                src="/Logo.png"
-                alt=""
-                width={160}
-                height={40}
-                className="h-14 w-auto md:h-18"
-                sizes="160px"
-              />
-            </button>
+            {/* Sem priority: o rodapé nunca é o LCP e isso competiria
+                com o carregamento do topo da página. */}
+            {scroll ? (
+              <button
+                type="button"
+                onClick={() => scroll.scrollToSection("Hero")}
+                aria-label="Nextech — voltar ao início"
+                className="cursor-pointer transition-transform hover:scale-105 inline-block rounded-pill"
+              >
+                <Image src="/Logo.png" alt="" width={160} height={40} className="h-14 w-auto md:h-18" sizes="160px" />
+              </button>
+            ) : (
+              <Link
+                href={`${SITE_URL}/`}
+                aria-label="Nextech — voltar ao início"
+                className="transition-transform hover:scale-105 inline-block rounded-pill"
+              >
+                <Image src="/Logo.png" alt="" width={160} height={40} className="h-14 w-auto md:h-18" sizes="160px" />
+              </Link>
+            )}
             <p className="text-ink-2 text-sm leading-relaxed max-w-60">
               Líder em automação inteligente para clínicas que buscam escala e eficiência no atendimento.
             </p>
@@ -76,12 +97,21 @@ export function Footer() {
             <ul className="space-y-4">
               {produtoLinks.map((link) => (
                 <li key={link.id}>
-                  <button
-                    onClick={() => scrollToSection(link.id)}
-                    className="text-sm text-ink-3 hover:text-accent transition-colors duration-300 cursor-pointer text-left"
-                  >
-                    {link.label}
-                  </button>
+                  {scroll ? (
+                    <button
+                      onClick={() => scroll.scrollToSection(link.id)}
+                      className="text-sm text-ink-3 hover:text-accent transition-colors duration-300 cursor-pointer text-left"
+                    >
+                      {link.label}
+                    </button>
+                  ) : (
+                    <Link
+                      href={`${SITE_URL}/#${link.id}`}
+                      className="text-sm text-ink-3 hover:text-accent transition-colors duration-300"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -103,6 +133,19 @@ export function Footer() {
               </ul>
             </div>
           ))}
+
+          <div className="col-span-1">
+            <h3 className="text-sm font-semibold text-ink-1 mb-6">Legal</h3>
+            <ul className="space-y-4">
+              {legalLinks.map((link) => (
+                <li key={link.label}>
+                  <Link href={link.href} className="text-sm text-ink-3 hover:text-accent transition-colors duration-300">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </motion.div>
 
         {/* Bottom Bar */}

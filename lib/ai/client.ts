@@ -6,9 +6,16 @@ import type { MensagemDoModelo } from "@/lib/agent-config/prompt"
  * modelo e de provedor por configuração.
  *
  * O que sai daqui é dado de saúde. Toda chamada exige provedor que não
- * guarda nem treina com o dado (`data_collection: "deny"`) e endpoint de
- * retenção zero (`zdr: true`). É política, não escolha de modelo, e por
- * isso fica fixa aqui (lgpd-security: revisar o que sai da infraestrutura).
+ * treina com o dado (`data_collection: "deny"`). É política, não escolha de
+ * modelo, e por isso fica fixa aqui (lgpd-security: revisar o que sai da
+ * infraestrutura).
+ *
+ * Sem `zdr: true` (decisão do Jhones, 2026-11-03): o Gemini 2.5 Flash
+ * perdeu os endpoints do Vertex, os únicos com retenção zero, e hoje só o
+ * Google AI Studio o serve. O AI Studio pago registra o pedido por tempo
+ * limitado, só contra abuso, e a política de privacidade diz isso. Voltar
+ * a exigir ZDR é trocar o modelo por um que o tenha, junto com o texto
+ * da política (`tests/legal/paginas-legais.test.tsx` confere os dois).
  *
  * Com `formato`, o pedido exige saída estruturada (JSON schema estrito) e
  * `require_parameters`: sem ele, um provedor que ignora o `response_format`
@@ -17,7 +24,16 @@ import type { MensagemDoModelo } from "@/lib/agent-config/prompt"
  */
 
 const URL_DO_OPENROUTER = "https://openrouter.ai/api/v1/chat/completions"
-const TEMPO_MAXIMO_MS = 20_000
+
+/**
+ * Para onde o dado de saúde pode ir: só o Google, que é o que a política de
+ * privacidade nomeia (revisão de segurança da parte 5b). Trocar o
+ * `OPENROUTER_MODEL` por um modelo que o Google não serve faz a chamada
+ * falhar fechada, em vez de mandar o conteúdo a outro provedor. Mudar esta
+ * lista é mudar a política junto (`tests/legal/paginas-legais.test.tsx`).
+ */
+export const PROVEDORES_PERMITIDOS = ["google-ai-studio", "google-vertex"] as const
+export const TEMPO_MAXIMO_DA_IA_MS = 20_000
 /** Resposta de WhatsApp é curta; o teto também limita o custo por atendimento. */
 const MAXIMO_DE_TOKENS = 600
 
@@ -58,12 +74,48 @@ export async function gerarResposta(
   mensagens: MensagemDoModelo[],
   opcoes: { fetch?: typeof fetch; formato?: FormatoDaSaida } = {},
 ): Promise<RespostaDaIa> {
+  const { formato } = opcoes
+  return chamarOpenRouter(
+    {
+      messages: mensagens,
+      max_tokens: MAXIMO_DE_TOKENS,
+      ...(formato && {
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: formato.nome, strict: true, schema: formato.schema },
+        },
+      }),
+    },
+    { exigirParametros: !!formato, fetch: opcoes.fetch },
+  )
+}
+
+/**
+ * Parte de conteúdo de uma mensagem ao modelo: texto ou áudio em base64
+ * (formato do OpenRouter, `input_audio`).
+ */
+export type ParteDoConteudo =
+  | { type: "text"; text: string }
+  | { type: "input_audio"; input_audio: { data: string; format: string } }
+
+/**
+ * Uma chamada ao OpenRouter com o modelo da env e a política de dados fixa.
+ * `gerarResposta` e a transcrição (`lib/ai/transcricao.ts`) passam por
+ * aqui: a política e o tratamento de erro são os mesmos para os dois.
+ */
+export async function chamarOpenRouter(
+  pedido: {
+    messages: Array<{ role: MensagemDoModelo["role"]; content: string | ParteDoConteudo[] }>
+    max_tokens: number
+    response_format?: Record<string, unknown>
+  },
+  opcoes: { exigirParametros?: boolean; fetch?: typeof fetch; tempoMaximoMs?: number; sinal?: AbortSignal } = {},
+): Promise<RespostaDaIa> {
   const chave = process.env.OPENROUTER_API_KEY
   const modelo = process.env.OPENROUTER_MODEL
   if (!chave || !modelo) throw new IaError("configuracao", false)
 
   const buscar = opcoes.fetch ?? fetch
-  const { formato } = opcoes
   let resposta: Response
   try {
     resposta = await buscar(URL_DO_OPENROUTER, {
@@ -75,17 +127,12 @@ export async function gerarResposta(
       },
       body: JSON.stringify({
         model: modelo,
-        messages: mensagens,
-        max_tokens: MAXIMO_DE_TOKENS,
-        ...(formato && {
-          response_format: {
-            type: "json_schema",
-            json_schema: { name: formato.nome, strict: true, schema: formato.schema },
-          },
-        }),
-        provider: { data_collection: "deny", zdr: true, ...(formato && { require_parameters: true }) },
+        ...pedido,
+        provider: { only: [...PROVEDORES_PERMITIDOS], allow_fallbacks: false, data_collection: "deny", ...(opcoes.exigirParametros && { require_parameters: true }) },
       }),
-      signal: AbortSignal.timeout(TEMPO_MAXIMO_MS),
+      signal: opcoes.sinal
+        ? AbortSignal.any([AbortSignal.timeout(opcoes.tempoMaximoMs ?? TEMPO_MAXIMO_DA_IA_MS), opcoes.sinal])
+        : AbortSignal.timeout(opcoes.tempoMaximoMs ?? TEMPO_MAXIMO_DA_IA_MS),
     })
   } catch {
     // Rede ou tempo esgotado: o erro original pode trazer a URL e nada

@@ -40,6 +40,8 @@ const EVOLUTION = "http://evolution.teste:8080"
 const SEGREDO = `segredo-do-webhook-de-teste-${SUFIXO}`
 const TOKEN = `token-da-instancia-${SUFIXO}`
 const RESPOSTA_DA_IA = "Olá! Posso ajudar com o agendamento."
+/** O que a transcrição simulada devolve para o áudio (parte 5b). */
+const TRANSCRICAO = "Queria marcar uma limpeza na sexta"
 const PROTOCOLO = "Procure o pronto-socorro mais próximo. (protocolo de teste)"
 const PALAVRAS = ["dor forte"]
 
@@ -93,7 +95,12 @@ function evolutionOk(): Response {
 async function redeSimulada(entrada: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const url = String(entrada instanceof Request ? entrada.url : entrada)
   if (url.startsWith("https://openrouter.ai/")) {
-    chamadasIa.push({ url, corpo: JSON.parse(String(init?.body)) })
+    const corpo = JSON.parse(String(init?.body))
+    chamadasIa.push({ url, corpo })
+    // A transcrição (input_audio) devolve texto; a resposta, o JSON.
+    if (JSON.stringify(corpo).includes('"input_audio"')) {
+      return json(200, { choices: [{ message: { content: TRANSCRICAO }, finish_reason: "stop" }] })
+    }
     const conteudo = JSON.stringify({ resposta: RESPOSTA_DA_IA, intencao_de_agendar: false })
     return json(200, { choices: [{ message: { content: conteudo }, finish_reason: "stop" }] })
   }
@@ -529,7 +536,8 @@ describe("recepção e resposta pela Evolution", () => {
     expect(c?.ai_failed_at).not.toBeNull()
   })
 
-  it("áudio: gravado sem conteúdo, e o modelo sabe que não pode ouvi-lo", async () => {
+  // A clínica de demonstração é HealthTech: o áudio é transcrito (parte 5b).
+  it("áudio sem o anexo (webhook sem base64): a IA não é chamada, e a conversa vai para a equipe", async () => {
     const numero = novoNumero()
     const audio = { audioMessage: { seconds: 4, ptt: true, mimetype: "audio/ogg; codecs=opus" } }
     expect((await postar(upsert(numero, audio))).status).toBe(200)
@@ -538,11 +546,41 @@ describe("recepção e resposta pela Evolution", () => {
     expect(recebida).toMatchObject({ author: "patient", media_type: "audio", content_encrypted: null })
 
     await rodarAgendadas()
-    expect(chamadasIa).toHaveLength(1)
-    const doPaciente = (chamadasIa[0].corpo.messages as Array<{ role: string; content: string }>).filter(
-      (m) => m.role === "user",
-    )
-    expect(doPaciente.at(-1)?.content).toBe("[áudio, que ainda não pode ser ouvido]")
+    expect(chamadasIa).toHaveLength(0)
+    expect(envios).toHaveLength(0)
+    const c = await conversa(numero)
+    expect(c?.handled_by).toBe("human")
+    expect(c?.ai_failed_at).not.toBeNull()
+    expect(logs).toContainEqual([
+      "[whatsapp-webhook]",
+      { etapa: "audio", conversa: c?.id, tipo: "MidiaError", codigo: "audio-sem-referencia" },
+    ])
+  })
+
+  it("áudio com o anexo: transcrito, e a resposta vê a transcrição; o áudio e a transcrição não ficam gravados", async () => {
+    const numero = novoNumero()
+    const OGG = Buffer.from("OggS-de-teste").toString("base64")
+    const audio = { audioMessage: { seconds: 4, ptt: true, mimetype: "audio/ogg; codecs=opus" }, base64: OGG }
+    expect((await postar(upsert(numero, audio))).status).toBe(200)
+    await rodarAgendadas()
+
+    expect(chamadasIa).toHaveLength(2)
+    const [transcricao, resposta] = chamadasIa
+    expect(JSON.stringify(transcricao.corpo)).toContain(`"data":"${OGG}"`)
+    const doPaciente = (resposta.corpo.messages as Array<{ role: string; content: string }>).filter((m) => m.role === "user")
+    expect(doPaciente.at(-1)?.content).toBe(`[áudio transcrito] ${TRANSCRICAO}`)
+    expect(envios).toHaveLength(1)
+
+    // Paciente novo, sem consentimento: nada da transcrição no banco.
+    const { data } = await admin
+      .from("messages")
+      .select("transcript_encrypted")
+      .eq("conversation_id", (await conversa(numero))!.id)
+      .eq("media_type", "audio")
+      .single()
+    expect(data!.transcript_encrypted).toBeNull()
+    expect(JSON.stringify(logs)).not.toContain(TRANSCRICAO)
+    expect(JSON.stringify(logs)).not.toContain(OGG)
   })
 
   it("no teto diário, a IA não é chamada e a conversa passa para a equipe", async () => {
@@ -638,6 +676,7 @@ describe("log (lgpd-security, regra 1)", () => {
 
     const tudo = JSON.stringify(logs)
     const proibidos = [
+      TRANSCRICAO,
       ...permitidos.slice(0, proximoNumero),
       FORA_DA_LISTA,
       TOKEN,

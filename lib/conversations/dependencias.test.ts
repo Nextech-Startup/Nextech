@@ -82,7 +82,7 @@ describe("DEPENDENCIAS_PADRAO.gerar com a saída estruturada (comportamento 6)",
     })
     const corpo = JSON.parse((fetch.mock.calls[0][1] as RequestInit).body as string)
     expect(corpo.response_format.json_schema.name).toBe("resposta_ao_paciente")
-    expect(corpo.provider).toMatchObject({ data_collection: "deny", zdr: true, require_parameters: true })
+    expect(corpo.provider).toMatchObject({ data_collection: "deny", require_parameters: true })
   })
 
   it("JSON fora do formato: três tentativas, com 1 s e 4 s de espera, e desiste com saida-invalida", async () => {

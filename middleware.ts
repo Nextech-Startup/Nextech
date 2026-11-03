@@ -15,9 +15,14 @@ function ehHostDoPainel(hostname: string): boolean {
   return HOSTS_DO_PAINEL.some((prefixo) => hostname.startsWith(prefixo))
 }
 
-/** Rotas do painel, que exigem sessão. */
+/** Rotas do painel, que exigem sessão. `/mfa` é o segundo fator do painel interno. */
 function ehRotaPrivada(pathname: string): boolean {
-  return pathname.startsWith("/dashboard") || pathname.startsWith("/admin")
+  return pathname.startsWith("/dashboard") || pathname.startsWith("/admin") || pathname.startsWith("/mfa")
+}
+
+/** O painel interno inteiro exige `aal2` (spec admin-mfa-v1). */
+function ehPainelInterno(pathname: string): boolean {
+  return pathname === "/admin" || pathname.startsWith("/admin/")
 }
 
 export async function middleware(request: NextRequest) {
@@ -75,15 +80,26 @@ export async function middleware(request: NextRequest) {
   // requisição. A página confere de novo, e a escrita confirma no Auth.
   // Erro inesperado da conferência (alg ou chave inválidos) conta como sem
   // sessão: vai para o login, e não vira erro 500.
-  const sub = await supabase.auth.getClaims().then(
-    ({ data }) => data?.claims?.sub,
+  const claims = await supabase.auth.getClaims().then(
+    ({ data }) => data?.claims,
     () => undefined,
   )
 
-  if (!sub) {
+  if (!claims?.sub) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     url.searchParams.set("redirect", pathname)
+    return NextResponse.redirect(url)
+  }
+
+  // Sessão em aal1 nem chega a renderizar o painel interno: vai ao segundo
+  // fator, que decide entre cadastro e desafio. É a primeira camada; a
+  // barreira de verdade é requireAdminContext(), que confere no Auth.
+  // Quem não é da equipe e cair aqui é mandado de /mfa para /dashboard.
+  if (ehPainelInterno(pathname) && claims.aal !== "aal2") {
+    const url = request.nextUrl.clone()
+    url.pathname = "/mfa"
+    url.search = ""
     return NextResponse.redirect(url)
   }
 

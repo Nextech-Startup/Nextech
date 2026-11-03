@@ -164,6 +164,61 @@ describe("carregarConversa", () => {
   })
 })
 
+describe("carregarConversa: transcrição do áudio (parte 5b)", () => {
+  // Clínica própria: a conversa nova mudaria a ordem da fila de A.
+  let C: ClinicaDeTeste | undefined
+  afterAll(async () => {
+    await limparClinica(C)
+  }, 60_000)
+
+  it("o áudio com transcrição gravada aparece transcrito, e o sem ela fica com o rótulo", async () => {
+    C = await montarClinica("leitura-audio", ["owner"])
+    const paciente = await novoPaciente(C, { nome: "Paciente do Áudio" })
+    await admin.from("patients").update({ consent_given_at: emMinutos(-10) }).eq("id", paciente)
+    const transcrito = await registrar(C, paciente, { autor: "patient", midia: "audio", em: emMinutos(-10) })
+    const { data: gravou } = await admin.rpc("save_message_transcript", {
+      p_clinic_id: C.id,
+      p_message_id: transcrito.mensagem,
+      p_transcript_encrypted: cifrarConteudo(C.id, "Queria remarcar para sexta"),
+    })
+    expect(gravou).toBe(true)
+    await registrar(C, paciente, { autor: "patient", midia: "audio", em: emMinutos(-9) })
+
+    const owner = await comoUsuario(C.equipe.owner!)
+    const aberta = await carregarConversa(owner as never, C.id, transcrito.conversa)
+    const audios = aberta!.itens.filter((i) => i.tipo === "mensagem")
+    expect(audios[0]).toMatchObject({
+      midia: "audio",
+      texto: "Queria remarcar para sexta",
+      audio: { segundos: null, transcrita: true },
+    })
+    expect(audios[1]).toMatchObject({ midia: "audio", texto: ROTULO_DA_MIDIA.audio })
+    expect(audios[1]).not.toHaveProperty("audio")
+
+    // Transcrição que não decifra (cifrada com outra clínica): some da tela,
+    // e o log não leva conteúdo.
+    const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
+    try {
+      await admin
+        .from("messages")
+        .update({ transcript_encrypted: cifrarConteudo(B.id, "Queria remarcar para sexta") })
+        .eq("id", transcrito.mensagem)
+      const ilegivel = await carregarConversa(owner as never, C.id, transcrito.conversa)
+      const [primeiro] = ilegivel!.itens.filter((i) => i.tipo === "mensagem")
+      expect(primeiro).toMatchObject({ midia: "audio", texto: ROTULO_DA_MIDIA.audio })
+      expect(primeiro).not.toHaveProperty("audio")
+      expect(JSON.stringify(espiao.mock.calls)).not.toContain("remarcar")
+      expect(espiao).toHaveBeenCalledWith("Falha ao decifrar transcrição", expect.objectContaining({ conversa: transcrito.conversa }))
+    } finally {
+      espiao.mockRestore()
+    }
+
+    // A outra clínica não abre a conversa, nem pelo id.
+    const deB = await comoUsuario(B.equipe.owner!)
+    expect(await carregarConversa(deB as never, C.id, transcrito.conversa)).toBeNull()
+  }, 60_000)
+})
+
 describe("carregarFila", () => {
   it("com limite 1, a urgente antiga entra junto da mais recente", async () => {
     const owner = await comoUsuario(A.equipe.owner!)

@@ -2,8 +2,8 @@ import type { NavGroup, ResolvedNavGroup, ResolvedNavItem } from "./schema"
 import { isItemActive } from "./dashboard-nav"
 
 /**
- * Mapa do painel interno. Um grupo só: são seis itens de uma equipe
- * pequena, e agrupar seis itens inventa hierarquia onde não há.
+ * Mapa do painel interno. Um grupo só: são sete itens de uma equipe
+ * pequena, e agrupar sete itens inventa hierarquia onde não há.
  *
  * Não há filtro por papel aqui — quem passa por `requireAdminContext()`
  * já é da equipe Nextech, e a equipe não tem papéis internos distintos.
@@ -18,6 +18,7 @@ export const ADMIN_NAV: readonly NavGroup[] = [
       { label: "Saúde", href: "/admin/health", status: "em-breve" },
       { label: "Conversas", href: "/admin/conversations", status: "pronto" },
       { label: "Auditoria", href: "/admin/audit", status: "pronto" },
+      { label: "Segurança", href: "/admin/seguranca", status: "pronto" },
     ],
   },
 ] as const

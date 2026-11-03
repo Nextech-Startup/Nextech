@@ -1,0 +1,13 @@
+- [Idioma português](idioma-portugues.md) — responder sempre em pt-BR, inclusive comentários de código
+- [Padrão de qualidade](padrao-de-qualidade.md) — solução recomendada e bem-feita, nunca o remendo mínimo
+- [Sistema de design Nextech](nextech-sistema-de-design.md) — tema, accent×brand, redesign (partes 1 a 4, tudo prototipado; suporte sem texto livre), protótipos em components/<domínio> + _fixtures; v0 nunca direto p/ staging
+- [Fluxo Git do Nextech](nextech-git-flow.md) — commitar em staging, main só por PR aprovado pelo Jhones
+- [Régua de testes do Nextech](nextech-testing-bar.md) — cobertura ampla: toda lógica de negócio, teste junto com a spec
+- [Ritmo de sessão do Nextech](nextech-session-rhythm.md) — uma spec por sessão; bloqueios de infra da fase 3 já resolvidos
+- [Decisões de arquitetura do Nextech](nextech-arquitetura-decisoes.md) — módulos verticais, porta de leitura (getClaims) e de escrita (getUser), RLS com sessão viva, telefone nunca em URL do PostgREST, recorte de lista no navegador; 3b concluída (5b: áudio só em memória, transcrição com consentimento, grupo áudio+texto, sem ZDR com provedor fixo), webhook grava antes do 200, pg_cron, Broadcast privado sem dado, trava de papel na lib
+- [Ambiente Supabase do Nextech](nextech-ambiente-supabase.md) — banco compartilhado em us-west-2 (~300 ms por ida do Brasil), CLI por npx (push em produção pede aprovação), limite do Auth, 41 migrations, cuidado com create or replace de função apagada, sessão viva na RLS, relógio ~1 s adiantado, pg_cron, API de gestão para SQL e papel nulo, Vitest sem o AIOS
+- [Alternativas, não perguntas abertas](jhones-prefere-alternativas.md) — decisões como opções selecionáveis, recomendada em primeiro; quando ele sai, decidir pela recomendada com os critérios po/pm do AIOS
+- [Erro do PostgREST não é Error](postgrest-erro-nao-e-error.md) — filtrar por `name` nunca funciona e vaza o valor rejeitado
+- [Economia de tokens](economia-de-tokens.md) — ler só o necessário, plano enxuto, código escrito uma vez
+- [Fase de protótipo, sem clientes](nextech-fase-de-prototipo.md) — dado de exemplo aceitável; conta de demonstração pelo clinica@; canal Evolution só local; prioridade nas specs do produto
+- [Instalador externo e o .env](instalador-externo-e-env.md) — aios-core sobrescreveu o .env sem backup; copiar .env antes de instalador; chaves de API são tarefa do Jhones

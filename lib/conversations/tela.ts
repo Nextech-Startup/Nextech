@@ -40,6 +40,11 @@ export type LinhaDaMensagem = {
   ilegivel: boolean
   occurred_at: string
   delivery_status: StatusDeEntrega | null
+  /**
+   * Transcrição gravada do áudio do paciente (parte 5b), já decifrada. Só
+   * existe com consentimento; a prévia da lista não a traz.
+   */
+  transcricao?: string | null
 }
 
 export type LinhaDoEvento = {
@@ -131,6 +136,20 @@ export function paraResumo(c: LinhaDaConversa, ultima: LinhaDaMensagem | null): 
 
 function paraItemDeMensagem(m: LinhaDaMensagem): ItemDaConversa {
   const entrega = entregaDaMensagem(m)
+  // Sem transcrição (Starter, sem consentimento ou falha), o balão de
+  // sempre: a tela não afirma um motivo que não sabe.
+  const transcrito = m.media_type === "audio" && !m.redigida && m.transcricao
+  if (transcrito) {
+    return {
+      tipo: "mensagem",
+      id: m.id,
+      autor: m.author,
+      texto: transcrito,
+      em: m.occurred_at,
+      midia: "audio",
+      audio: { segundos: null, transcrita: true },
+    }
+  }
   return {
     tipo: "mensagem",
     id: m.id,

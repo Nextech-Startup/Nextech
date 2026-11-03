@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { inspect } from "node:util"
 import { createClient } from "@supabase/supabase-js"
 import { IaError } from "@/lib/ai/client"
-import { decifrarConteudo } from "@/lib/conversations/conteudo"
+import { cifrarConteudo, decifrarConteudo } from "@/lib/conversations/conteudo"
 import { receberMensagem, type ResultadoDaRecepcao } from "@/lib/conversations/recepcao"
 import type { MensagemDoModelo } from "@/lib/agent-config/prompt"
 import {
@@ -806,5 +806,120 @@ describe("o que muda durante a geração (revisão de segurança da parte 2, B1 
     const c = await conversa(r.conversationId)
     expect(c.handled_by).toBe("human")
     expect(c.ai_failed_at).not.toBeNull()
+  })
+})
+
+describe("áudio do paciente (parte 5b)", () => {
+  const AUDIO = { type: "audio", audio: { id: "1234567890", mime_type: "audio/ogg; codecs=opus", voice: true } }
+  const TRANSCRITO = "Queria marcar uma limpeza na sexta"
+
+  async function receberAudio(waId: string, t: number): Promise<ResultadoDaRecepcao> {
+    const r = await receberMensagem(
+      primeira(webhookDeMensagens({ wabaId: WABA, phoneNumberId: PHONE, waId, mensagens: [mensagem(wamid(), t, AUDIO)] })),
+    )
+    return r!
+  }
+
+  async function darConsentimento(conversationId: string) {
+    const { patient_id } = await conversa(conversationId)
+    const { error } = await admin.from("patients").update({ consent_given_at: iso(T0) }).eq("id", patient_id)
+    if (error) throw error
+  }
+
+  it("a transcrição desta execução chega ao modelo, sem consentimento, e não é gravada", async () => {
+    const r = await receberAudio(novoWaId(), T0)
+    const deps = dependencias({ agora: T0 + 15 })
+    expect(await responderConversa(r, deps, { transcricao: TRANSCRITO })).toBe("respondida")
+    const [mensagens] = deps.gerar.mock.calls[0]
+    expect(mensagens.at(-1)).toEqual({ role: "user", content: `[áudio transcrito] ${TRANSCRITO}` })
+    // Plano HealthTech: sem a instrução de pedir texto.
+    expect(mensagens[0].content).not.toMatch(/que o paciente escreva/)
+    const { data } = await admin.from("messages").select("transcript_encrypted").eq("id", r.messageId).single()
+    expect(data!.transcript_encrypted).toBeNull()
+  })
+
+  it("sem consentimento, a próxima resposta volta a ver o marcador", async () => {
+    const waId = novoWaId()
+    const audio = await receberAudio(waId, T0)
+    await responderConversa(audio, dependencias({ agora: T0 + 15 }), { transcricao: TRANSCRITO })
+    const texto = await receber(waId, T0 + 60, "E tem horário de manhã?")
+    const deps = dependencias({ agora: T0 + 75 })
+    expect(await responderConversa(texto, deps)).toBe("respondida")
+    const [mensagens] = deps.gerar.mock.calls[0]
+    expect(JSON.stringify(mensagens)).not.toContain(TRANSCRITO)
+    expect(JSON.stringify(mensagens)).toContain("[áudio, que ainda não pode ser ouvido]")
+  })
+
+  it("com consentimento, a transcrição gravada volta nas próximas respostas", async () => {
+    const waId = novoWaId()
+    const audio = await receberAudio(waId, T0)
+    await darConsentimento(audio.conversationId)
+    const { data: gravou } = await admin.rpc("save_message_transcript", {
+      p_clinic_id: clinica,
+      p_message_id: audio.messageId,
+      p_transcript_encrypted: cifrarConteudo(clinica, TRANSCRITO),
+    })
+    expect(gravou).toBe(true)
+    await responderConversa(audio, dependencias({ agora: T0 + 15 }), { transcricao: TRANSCRITO })
+
+    const texto = await receber(waId, T0 + 60, "E tem horário de manhã?")
+    const deps = dependencias({ agora: T0 + 75 })
+    await responderConversa(texto, deps)
+    const [mensagens] = deps.gerar.mock.calls[0]
+    expect(JSON.stringify(mensagens)).toContain(`[áudio transcrito] ${TRANSCRITO}`)
+  })
+
+  it("áudio que não foi ouvido: nada ao paciente, a conversa vai para a equipe, e o log só tem o código", async () => {
+    const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
+    const r = await receberAudio(novoWaId(), T0)
+    const deps = dependencias({ agora: T0 + 15 })
+    try {
+      expect(await responderConversa(r, deps, { falha: new IaError("http-503", true) })).toBe("falha-da-ia")
+      expect(espiao).toHaveBeenCalledWith("[whatsapp-webhook]", {
+        etapa: "audio",
+        conversa: r.conversationId,
+        tipo: "IaError",
+        codigo: "http-503",
+      })
+      for (const chamada of espiao.mock.calls) expect(logPermitido(chamada)).toBe(true)
+    } finally {
+      espiao.mockRestore()
+    }
+    expect(deps.gerar).not.toHaveBeenCalled()
+    expect(deps.enviar).not.toHaveBeenCalled()
+    const c = await conversa(r.conversationId)
+    expect(c.handled_by).toBe("human")
+    expect(c.ai_failed_at).not.toBeNull()
+  })
+
+  it("transcrição gravada que não decifra: a resposta segue com o marcador, e o log só tem o código", async () => {
+    const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
+    const r = await receberAudio(novoWaId(), T0)
+    // Cifrada com a chave de outra clínica: não decifra nesta (AAD).
+    const { error } = await admin
+      .from("messages")
+      .update({ transcript_encrypted: cifrarConteudo(outraClinica, TRANSCRITO) })
+      .eq("id", r.messageId)
+    if (error) throw error
+    const deps = dependencias({ agora: T0 + 15 })
+    try {
+      expect(await responderConversa(r, deps)).toBe("respondida")
+      for (const chamada of espiao.mock.calls) expect(logPermitido(chamada)).toBe(true)
+      expect(espiao).toHaveBeenCalledWith("[whatsapp-webhook]", expect.objectContaining({ etapa: "transcricao" }))
+    } finally {
+      espiao.mockRestore()
+    }
+    const [mensagens] = deps.gerar.mock.calls[0]
+    expect(mensagens.at(-1)).toEqual({ role: "user", content: "[áudio, que ainda não pode ser ouvido]" })
+  })
+
+  it("com a equipe atendendo, a falha do áudio não vira alerta", async () => {
+    const waId = novoWaId()
+    await receber(waId, T0, "oi")
+    await eco(waId, T0 + 30, "Oi! Já te atendo.")
+    const r = await receberAudio(waId, T0 + 60)
+    const deps = dependencias({ agora: T0 + 75 })
+    expect(await responderConversa(r, deps, { falha: new IaError("http-503", true) })).not.toBe("falha-da-ia")
+    expect((await conversa(r.conversationId)).ai_failed_at).toBeNull()
   })
 })

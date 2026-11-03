@@ -15,6 +15,11 @@ import {
   updateAgent,
 } from "@/lib/agent-config/mutations"
 import {
+  MENSAGENS_DO_TESTE,
+  testarAgente,
+  type TurnoDoTeste,
+} from "@/lib/agent-config/preview"
+import {
   DIAS,
   type BusinessHours,
   type Dia,
@@ -244,4 +249,28 @@ export async function pausarAgenteAction(
   )
   revalidatePath(`/dashboard/agents/${id}`)
   return estado
+}
+
+// ---------------------------------------------------------------------------
+// Teste de conversa
+// ---------------------------------------------------------------------------
+
+export type RespostaDoTeste =
+  | { ok: true; resposta: string; intencaoDeAgendar: boolean }
+  | { ok: false; erro: string }
+
+/**
+ * Um turno do teste de conversa, com a configuração que está na tela (sem
+ * salvar antes) e o histórico que mora no navegador. Nada é gravado.
+ * Falha inesperada vira frase fixa: a mensagem de um erro do banco não
+ * chega à tela.
+ */
+export async function testarConversaAction(conversa: TurnoDoTeste[], fd: FormData): Promise<RespostaDoTeste> {
+  try {
+    const r = await testarAgente(agenteDoFormulario(fd), conversa)
+    if (r.ok) return r
+    return { ok: false, erro: r.detalhe ?? MENSAGENS_DO_TESTE[r.erro] }
+  } catch {
+    return { ok: false, erro: MENSAGENS_DO_TESTE.ia_indisponivel }
+  }
 }

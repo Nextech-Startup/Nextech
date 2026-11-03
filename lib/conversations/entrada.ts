@@ -1,4 +1,5 @@
 import type { MensagemDoWebhook } from "@/lib/whatsapp/webhook"
+import { tratarAudio } from "./audio"
 import { receberMensagem, type ResultadoDaRecepcao } from "./recepcao"
 import { responderConversa } from "./resposta"
 import { enviarProtocolo } from "./urgencia"
@@ -7,7 +8,7 @@ import { enviarProtocolo } from "./urgencia"
  * Quem roda a tarefa depois do 200. Nas rotas é o `after()`; o teste roda
  * na hora. O rótulo vai para o log da falha em segundo plano.
  */
-export type Agendar = (etapa: "resposta" | "protocolo", tarefa: () => Promise<unknown>) => void
+export type Agendar = (etapa: "resposta" | "protocolo" | "audio", tarefa: () => Promise<unknown>) => void
 
 /**
  * Grava a mensagem e agenda o protocolo e a resposta da IA
@@ -39,8 +40,16 @@ export async function tratarMensagem(
   // resposta. Pedido de opt-out e mensagem urgente não têm resposta da IA.
   const semResposta = r.nova || !r.jaRespondida
   const responderia = r.autor === "patient" && semResposta && r.agenteAtivo && !r.optOut && !r.urgente
-  if (responderia && (!opcoes.podeResponder || (await opcoes.podeResponder(r)))) {
-    agendar("resposta", () => responderConversa(r))
+  const responde = responderia && (!opcoes.podeResponder || (await opcoes.podeResponder(r)))
+
+  // Áudio do paciente (parte 5b): transcrição e triagem antes da resposta,
+  // que o próprio tratamento agenda. A triagem vale mesmo sem resposta
+  // (teto da demonstração), como a do texto na recepção.
+  if (m.midia === "audio" && r.autor === "patient" && semResposta && r.agenteAtivo) {
+    agendar("audio", () => tratarAudio(r, m.audio, { responder: responde, ocorridaEm: m.ocorridaEm }))
+    return r
   }
+
+  if (responde) agendar("resposta", () => responderConversa(r))
   return r
 }
