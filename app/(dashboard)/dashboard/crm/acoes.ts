@@ -1,5 +1,6 @@
 "use server"
 
+import { unstable_rethrow } from "next/navigation"
 import { z } from "zod"
 import type { ResultadoDaBuscaDoCrm } from "@/components/crm/busca-do-crm"
 import { requireClinicContext } from "@/lib/auth/context"
@@ -28,6 +29,9 @@ export async function buscar(termo: unknown): Promise<ResultadoDaBuscaDoCrm> {
     if (!isDemo || !podeAcessar(role, ROTA)) return { ids: [], erro: null }
     return { ids: idsQueCasam(OPORTUNIDADES, t.data), erro: null }
   } catch (erro) {
+    // O redirect("/login") de requireClinicContext é um erro interno do Next:
+    // segue adiante, não vira "Não foi possível buscar".
+    unstable_rethrow(erro)
     console.error("Falha na busca do CRM", erroParaLog(erro))
     return { ids: [], erro: "Não foi possível buscar. Tente de novo." }
   }

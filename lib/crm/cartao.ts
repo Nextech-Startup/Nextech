@@ -1,7 +1,6 @@
 import { mascararTelefone } from "@/lib/formatters/telefone"
+import { DIA_MS } from "./metricas"
 import { ROTULO_DA_ETAPA, type EventoDaOportunidade, type Oportunidade } from "./tipos"
-
-const DIA_MS = 86_400_000
 
 /** "Parado há N dias" fica em tom de alerta a partir daqui (spec crm-v1, "Cartão"). */
 export const DIAS_PARA_ALERTA = 3

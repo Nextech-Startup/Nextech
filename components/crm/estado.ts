@@ -1,5 +1,5 @@
 import { aplicarMovimento, mensagemDoMovimento, validarMovimento, type PedidoDeMovimento } from "@/lib/crm/movimento"
-import type { Oportunidade, Referencia } from "@/lib/crm/tipos"
+import { ETAPAS_ABERTAS, type EtapaAberta, type Oportunidade, type Referencia } from "@/lib/crm/tipos"
 
 /**
  * O quadro no navegador. Na parte 1 é a única fonte: mover no protótipo não
@@ -21,4 +21,19 @@ export function reduzirCrm(e: EstadoDoCrm, ev: EventoDoCrm): EstadoDoCrm {
     oportunidades: e.oportunidades.map((o) => (o === alvo ? aplicarMovimento(o, ev.pedido, ev.em, ev.autor) : o)),
     aviso: null,
   }
+}
+
+/**
+ * No celular só uma coluna aparece. Quando a busca chega, a etapa mostrada
+ * fica se tiver algum achado aberto; senão, passa para a primeira etapa
+ * aberta que tenha. Sem achado aberto, nada muda (a coluna mostra o vazio).
+ */
+export function etapaComResultado(
+  atual: EtapaAberta,
+  ops: readonly Oportunidade[],
+  ids: readonly string[],
+): EtapaAberta {
+  const achadas = ops.filter((o) => o.encerradaEm === null && ids.includes(o.id))
+  if (achadas.some((o) => o.etapa === atual)) return atual
+  return ETAPAS_ABERTAS.find((e) => achadas.some((o) => o.etapa === e)) ?? atual
 }

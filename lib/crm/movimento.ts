@@ -94,6 +94,33 @@ export function lerValorEmCentavos(texto: string): number | null {
   return Number(inteiro) * 100 + Number(fracao.padEnd(2, "0"))
 }
 
+/** Os campos do formulário de fechamento, como chegam do FormData. */
+export type CamposDoFechamento = { procedimento: string | null; valor: string | null; motivo: string | null }
+
+export type ResultadoDoFechamento = { pedido: PedidoDeMovimento; erro: null } | { pedido: null; erro: string }
+
+/**
+ * Monta o pedido de Ganho/Perdido a partir do formulário e passa pela mesma
+ * regra do quadro (`validarMovimento`). Só sai pedido se a regra aceita.
+ */
+export function montarPedidoDeFechamento(
+  op: Oportunidade,
+  para: "ganho" | "perdido",
+  campos: CamposDoFechamento,
+  procedimentos: readonly Referencia[],
+): ResultadoDoFechamento {
+  const pedido: PedidoDeMovimento = { oportunidadeId: op.id, de: op.etapa, para }
+  if (para === "ganho") {
+    pedido.procedimento = procedimentos.find((p) => p.id === campos.procedimento) ?? null
+    pedido.valorCentavos = lerValorEmCentavos(campos.valor ?? "")
+  } else {
+    pedido.motivo = ehMotivoDePerda(campos.motivo) ? campos.motivo : null
+  }
+  const r = validarMovimento(op, pedido)
+  if (r.status !== "ok") return { pedido: null, erro: mensagemDoMovimento(r) ?? "Não foi possível mover." }
+  return { pedido, erro: null }
+}
+
 export function mensagemDoMovimento(r: ResultadoDoMovimento): string | null {
   switch (r.status) {
     case "ok":

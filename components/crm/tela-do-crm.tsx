@@ -8,7 +8,7 @@ import { faixaDoFunil, PERIODOS, resumoDoPeriodo, type PeriodoEmDias } from "@/l
 import type { PedidoDeMovimento } from "@/lib/crm/movimento"
 import type { Etapa, EtapaAberta, Oportunidade, Referencia } from "@/lib/crm/tipos"
 import { BuscaDoCrm, type ResultadoDaBuscaDoCrm } from "./busca-do-crm"
-import { reduzirCrm } from "./estado"
+import { etapaComResultado, reduzirCrm } from "./estado"
 import { FaixaDoFunil } from "./faixa-do-funil"
 import { ListaDeEncerradas } from "./lista-de-encerradas"
 import { PainelDaOportunidade } from "./painel-da-oportunidade"
@@ -51,6 +51,12 @@ export function TelaDoCrm(p: PropsDaTelaDoCrm) {
   const base = { periodo: p.periodo, responsavel: p.responsavel, vista: p.vista, resultado: p.encerradas.resultado, motivo: p.encerradas.motivo }
   const opAberta = estado.oportunidades.find((o) => o.id === aberta) ?? null
 
+  function aoResultadoDaBusca(r: ResultadoDaBuscaDoCrm | null) {
+    setBusca(r)
+    // No celular, não deixar a busca cair numa coluna vazia quando outra tem o achado.
+    if (r && !r.erro) setEtapaNoCelular((atual) => etapaComResultado(atual, doResponsavel, r.ids))
+  }
+
   function mover(pedido: PedidoDeMovimento) {
     despachar({ tipo: "mover", pedido, em: p.agora, autor: p.eu })
   }
@@ -71,7 +77,7 @@ export function TelaDoCrm(p: PropsDaTelaDoCrm) {
       />
 
       <div className="grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-center">
-        <BuscaDoCrm buscar={p.buscar} aoResultado={setBusca} />
+        <BuscaDoCrm buscar={p.buscar} aoResultado={aoResultadoDaBusca} />
         <FiltroSegmentado
           rotulo="Responsável"
           atual={p.responsavel}
@@ -121,7 +127,7 @@ export function TelaDoCrm(p: PropsDaTelaDoCrm) {
         </>
       ) : (
         <ListaDeEncerradas
-          ops={filtrarEncerradas(visiveis, p.encerradas)}
+          ops={filtrarEncerradas(visiveis, p.encerradas, p.agora, p.periodo)}
           filtro={p.encerradas}
           hrefDe={(f) => hrefDoCrm(p.caminho, { ...base, vista: "encerradas", ...f })}
           aoAbrir={setAberta}

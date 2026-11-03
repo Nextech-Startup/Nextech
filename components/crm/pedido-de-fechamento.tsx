@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import { Botao, Campo, Input, Select } from "@/components/patterns/formulario"
-import { lerValorEmCentavos, mensagemDoMovimento, validarMovimento, type PedidoDeMovimento } from "@/lib/crm/movimento"
+import { montarPedidoDeFechamento, type PedidoDeMovimento } from "@/lib/crm/movimento"
 import { nomeDoPaciente } from "@/lib/crm/cartao"
-import { MOTIVOS_DE_PERDA, ROTULO_DO_MOTIVO, ehMotivoDePerda, type Oportunidade, type Referencia } from "@/lib/crm/tipos"
+import { MOTIVOS_DE_PERDA, ROTULO_DO_MOTIVO, type Oportunidade, type Referencia } from "@/lib/crm/tipos"
 
 /**
  * Ganho pede procedimento e valor; Perdido pede o motivo da lista. É um
@@ -35,19 +35,15 @@ export function PedidoDeFechamento({
   function confirmar(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const dados = new FormData(e.currentTarget)
-    const pedido: PedidoDeMovimento = { oportunidadeId: op.id, de: op.etapa, para }
-    if (para === "ganho") {
-      pedido.procedimento = procedimentos.find((p) => p.id === dados.get("procedimento")) ?? null
-      pedido.valorCentavos = lerValorEmCentavos(String(dados.get("valor") ?? ""))
-    } else {
-      const motivo = dados.get("motivo")
-      pedido.motivo = ehMotivoDePerda(motivo) ? motivo : null
+    const campo = (nome: string) => {
+      const v = dados.get(nome)
+      return typeof v === "string" ? v : null
     }
-    const r = validarMovimento(op, pedido)
-    if (r.status !== "ok") return setErro(mensagemDoMovimento(r))
+    const r = montarPedidoDeFechamento(op, para, { procedimento: campo("procedimento"), valor: campo("valor"), motivo: campo("motivo") }, procedimentos)
+    if (r.erro !== null) return setErro(r.erro)
     // Fecha antes de desmontar: assim o foco volta ao elemento de origem, não ao body.
     ref.current?.close()
-    aoConfirmar(pedido)
+    aoConfirmar(r.pedido)
   }
 
   return (

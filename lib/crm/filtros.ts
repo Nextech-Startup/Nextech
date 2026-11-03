@@ -1,4 +1,4 @@
-import { PERIODOS, type PeriodoEmDias } from "./metricas"
+import { noPeriodo, PERIODOS, type PeriodoEmDias } from "./metricas"
 import { ehMotivoDePerda, type MotivoDePerda, type Oportunidade } from "./tipos"
 
 /**
@@ -57,9 +57,18 @@ export function filtrarPorResponsavel(
   return [...ops]
 }
 
-export function filtrarEncerradas(ops: readonly Oportunidade[], f: FiltroDeEncerradas): Oportunidade[] {
+/**
+ * As encerradas do período, na mesma janela de `faixaDoFunil`: o número de
+ * ganhas/perdidas da faixa é o tamanho da lista para onde ele leva.
+ */
+export function filtrarEncerradas(
+  ops: readonly Oportunidade[],
+  f: FiltroDeEncerradas,
+  agora: string,
+  dias: PeriodoEmDias,
+): Oportunidade[] {
   return ops
-    .filter((o) => o.encerradaEm !== null)
+    .filter((o) => noPeriodo(o.encerradaEm, agora, dias))
     .filter((o) => f.resultado === "todas" || o.etapa === f.resultado)
     .filter((o) => !f.motivo || o.motivoDePerda === f.motivo)
     .sort((a, b) => Date.parse(b.encerradaEm!) - Date.parse(a.encerradaEm!))

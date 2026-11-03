@@ -8,9 +8,14 @@ import { ETAPAS_ABERTAS, type Etapa, type EtapaAberta, type Oportunidade } from 
 export const PERIODOS = [7, 30, 90] as const
 export type PeriodoEmDias = (typeof PERIODOS)[number]
 
-const DIA_MS = 86_400_000
+export const DIA_MS = 86_400_000
 
-function noPeriodo(instante: string | null, agora: string, dias: number): boolean {
+/**
+ * A janela do período, a mesma para a faixa, o resumo e a lista das
+ * encerradas: de `agora` até `dias` atrás, com as duas pontas incluídas.
+ * Instante no futuro (relógio adiantado) fica fora.
+ */
+export function noPeriodo(instante: string | null, agora: string, dias: number): boolean {
   if (!instante) return false
   const atras = Date.parse(agora) - Date.parse(instante)
   return atras >= 0 && atras <= dias * DIA_MS

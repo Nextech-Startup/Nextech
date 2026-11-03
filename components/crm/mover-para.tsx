@@ -1,3 +1,4 @@
+import { nomeDoPaciente } from "@/lib/crm/cartao"
 import { etapasDeDestino } from "@/lib/crm/movimento"
 import { ROTULO_DA_ETAPA, ehEtapa, type Etapa, type Oportunidade } from "@/lib/crm/tipos"
 
@@ -11,7 +12,7 @@ export function MoverPara({ op, aoMover }: { op: Oportunidade; aoMover: (op: Opo
   if (destinos.length === 0) return null
   return (
     <select
-      aria-label={`Mover ${op.paciente.nome ?? "oportunidade"} para…`}
+      aria-label={`Mover ${nomeDoPaciente(op)} para…`}
       value=""
       onChange={(e) => {
         if (ehEtapa(e.target.value)) aoMover(op, e.target.value)
