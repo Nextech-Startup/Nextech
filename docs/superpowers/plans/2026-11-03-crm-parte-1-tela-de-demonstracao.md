@@ -2883,7 +2883,7 @@ Carregue `ui-ux` e `frontend-design` antes.
   - a busca por "mariana" filtra o quadro, e a URL continua sem o termo.
 - **Fora da demonstração:** com uma conta de clínica comum, `/dashboard/crm` dá 404 e o menu mostra "CRM" como "em breve". Se não houver credencial de clínica comum no script, este ponto fica coberto por `tests/architecture/rotas.test.ts` e pela página, e isso tem de ficar anotado como não conferido no navegador.
 - Se o login da demonstração não funcionar, a revisão fica **pendente com o Jhones**, como na parte 5b, e isso entra no relatório e no `docs/status.md`.
-- [ ] Corrigir o que a captura mostrar, rodar `npx vitest run components/crm lib/crm` e fazer o commit `fix(crm): ajustes da revisão visual`, se houver.
+- [x] Corrigir o que a captura mostrar, rodar `npx vitest run components/crm lib/crm` e fazer o commit `fix(crm): ajustes da revisão visual`, se houver.
 
 ---
 

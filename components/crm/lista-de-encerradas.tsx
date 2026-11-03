@@ -47,7 +47,8 @@ export function ListaDeEncerradas({
         <ul className="divide-y divide-hairline rounded-card border border-hairline bg-surface-1">
           {ops.map((o) => (
             <li key={o.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-sm">
-              <button type="button" onClick={() => aoAbrir(o.id)} className="min-w-0 flex-1 truncate text-left font-medium text-ink-1 hover:underline">
+              {/* No celular o nome ocupa a linha inteira; o resto quebra embaixo, sem cortar o nome. */}
+              <button type="button" onClick={() => aoAbrir(o.id)} className="min-w-0 basis-full truncate text-left sm:basis-0 sm:flex-1 font-medium text-ink-1 hover:underline">
                 {nomeDoPaciente(o)}
               </button>
               <StatusBadge tone={o.etapa === "ganho" ? "success" : "danger"}>{o.etapa === "ganho" ? "Ganho" : "Perdido"}</StatusBadge>

@@ -95,7 +95,7 @@ function Arrastavel({ op, children }: { op: Oportunidade; children: (alca: React
     <li
       ref={setNodeRef}
       style={transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined}
-      className={cn("list-none", isDragging && "relative z-10 opacity-80")}
+      className={cn("list-none", isDragging && "relative z-10 rounded-card shadow-lg")}
     >
       {children(alca)}
     </li>
