@@ -3135,6 +3135,8 @@ export async function salvarDetalhes(d: DetalhesDaOportunidade): Promise<Resulta
 Run: `npx vitest run lib/crm tests/crm/leitura.test.ts tests/architecture/boundaries.test.ts`
 Esperado: PASS (a trava de fronteiras confere que `mutations.ts` usa `requireClinicContextForWrite` e que ninguém instancia client).
 
+> **Correção na execução:** `montarOportunidade` trata a nota que não decifra (blob corrompido, chave trocada, AAD de outra clínica) como nota indisponível: `nota: null`, sem lançar e sem log (o teste do plano que esperava o lançamento foi trocado). O tipo `Oportunidade` não tem campo de indicador, então a forma mais simples é a nota nula. Testes novos: nenhum `console` chamado na montagem nem na gravação, `clinic_id` da cifra vindo da sessão, owner/Starter e professional/Pro não gravam, e a nota cifrada no banco sem texto puro.
+
 - [ ] **Passo 9: commit**
 
 ```bash
