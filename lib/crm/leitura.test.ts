@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { cifrarConteudo } from "@/lib/conversations/conteudo"
-import { montarOportunidade, type LinhaDaOportunidade } from "./leitura"
+import { buscarIdsNoCrm, carregarCrmDaClinica, montarOportunidade, type Cliente, type LinhaDaOportunidade } from "./leitura"
 
 const CLINICA = "c-1"
 const EM = "2026-11-03T12:00:00.000Z"
@@ -71,15 +71,26 @@ describe("montarOportunidade", () => {
     expect(op.nota).toBe("Prefere manhã")
   })
 
-  it("nota que não decifra (outra clínica, blob corrompido, chave trocada) vira nota indisponível: nula, sem lançar e sem logar", () => {
-    const espioes = (["log", "info", "warn", "error", "debug"] as const).map((m) => vi.spyOn(console, m).mockImplementation(() => {}))
+  it("nota que não decifra (outra clínica, blob corrompido, não-base64) vira ilegível: nula, notaIlegivel, sem lançar; console.error uma vez por blob, sem dado", () => {
+    const erro = vi.spyOn(console, "error").mockImplementation(() => {})
     const corrompido = cifrarConteudo(CLINICA, "Segredo corrompido").slice(0, -6) + "AAAAAA"
-    for (const blob of [cifrarConteudo("outra", "Segredo da outra"), corrompido, "nao-e-base64-valido!!"]) {
+    const blobs = [cifrarConteudo("outra", "Segredo da outra"), corrompido, "nao-e-base64-valido!!"]
+    for (const blob of blobs) {
       const op = montarOportunidade(CLINICA, linha({ notes_encrypted: blob }), EQUIPE)
       expect(op.nota).toBeNull()
+      expect(op.notaIlegivel).toBe(true)
       expect(op.id).toBe("op-1")
     }
-    for (const e of espioes) expect(e).not.toHaveBeenCalled()
+    expect(erro).toHaveBeenCalledTimes(blobs.length)
+    expect(erro.mock.calls[0][0]).toBe("Falha ao decifrar nota do CRM")
+    expect(erro.mock.calls[0][1]).toMatchObject({ oportunidade: "op-1" })
+    const tudo = JSON.stringify(erro.mock.calls)
+    for (const proibido of ["Segredo", "Gertrudes", "5581999990000", ...blobs]) expect(tudo).not.toContain(proibido)
+  })
+
+  it("nota ausente ou legível não é ilegível", () => {
+    expect(montarOportunidade(CLINICA, linha(), EQUIPE).notaIlegivel).toBe(false)
+    expect(montarOportunidade(CLINICA, linha({ notes_encrypted: cifrarConteudo(CLINICA, "ok") }), EQUIPE).notaIlegivel).toBe(false)
   })
 
   it("a nota decifrada nunca aparece em log", () => {
@@ -98,5 +109,38 @@ describe("montarOportunidade", () => {
     expect(montarOportunidade(CLINICA, linha({ stage: "perdido", lost_reason: "preco", closed_at: EM }), EQUIPE).motivoDePerda).toBe("preco")
     expect(() => montarOportunidade(CLINICA, linha({ stage: "fechado" }), EQUIPE)).toThrow("Linha do CRM fora do formato esperado.")
     expect(() => montarOportunidade(CLINICA, linha({ patients: null }), EQUIPE)).toThrow("Linha do CRM fora do formato esperado.")
+  })
+})
+
+describe("erros do PostgREST na leitura", () => {
+  const original = { code: "22P02", message: "valor rejeitado: maria-secreta", details: "maria-secreta", hint: null }
+
+  it("a busca lança Error genérico, sem o termo, com o original em cause", async () => {
+    const supabase = { rpc: vi.fn(async () => ({ data: null, error: original })) } as unknown as Cliente
+    const e = await buscarIdsNoCrm(supabase, CLINICA, "maria-secreta").catch((x) => x)
+    expect(e).toBeInstanceOf(Error)
+    expect(e.message).not.toContain("maria")
+    expect(e.cause).toBe(original)
+  })
+
+  it("o carregamento lança Error genérico para cada consulta que falha", async () => {
+    const consulta = (erro: unknown) => {
+      const r = { data: [], error: erro }
+      const q: Record<string, unknown> = { then: (ok: (v: unknown) => unknown) => Promise.resolve(r).then(ok) }
+      for (const m of ["select", "eq", "or", "order", "limit"]) q[m] = () => q
+      return q
+    }
+    for (const falha of [0, 1, 2]) {
+      const erros = [null, null, null]
+      erros[falha] = original as never
+      const supabase = {
+        from: (t: string) => consulta(t === "opportunities" ? erros[0] : erros[1]),
+        rpc: () => consulta(erros[2]),
+      } as unknown as Cliente
+      const e = await carregarCrmDaClinica(supabase, CLINICA, EM).catch((x) => x)
+      expect(e, String(falha)).toBeInstanceOf(Error)
+      expect(e.message).not.toContain("maria")
+      expect(e.cause).toBe(original)
+    }
   })
 })

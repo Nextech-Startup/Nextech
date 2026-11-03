@@ -1,6 +1,6 @@
 import { requireClinicContext } from "@/lib/auth/context"
 import { acessoAoCrm, type AcessoAoCrm } from "./acesso"
-import { buscarIdsNoCrm, carregarCrmDaClinica, type Cliente, type DadosDoCrm } from "./leitura"
+import { buscarIdsNoCrm, carregarCrmDaClinica, type DadosDoCrm } from "./leitura"
 
 /**
  * O CRM da clínica da sessão. Não recebe `clinic_id`: vem do vínculo do
@@ -26,10 +26,10 @@ async function contextoDoCrm() {
 
 export async function carregarCrm(agora: string): Promise<DadosDoCrm> {
   const { supabase, clinicId } = await contextoDoCrm()
-  return carregarCrmDaClinica(supabase as unknown as Cliente, clinicId, agora)
+  return carregarCrmDaClinica(supabase, clinicId, agora)
 }
 
 export async function buscarNoCrm(termo: string): Promise<string[]> {
   const { supabase, clinicId } = await contextoDoCrm()
-  return buscarIdsNoCrm(supabase as unknown as Cliente, clinicId, termo)
+  return buscarIdsNoCrm(supabase, clinicId, termo)
 }

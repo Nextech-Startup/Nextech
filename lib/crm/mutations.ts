@@ -30,14 +30,29 @@ export async function moverOportunidade(p: PedidoDeMovimento): Promise<Resultado
 export async function salvarDetalhes(d: DetalhesDaOportunidade): Promise<ResultadoDosDetalhes> {
   const { supabase, clinicId, role, plan } = await requireClinicContextForWrite()
   if (acessoAoCrm(role, plan) !== "liberado") return "nao-encontrada"
+  // Nota ausente = não mexer: repassa o blob atual, sem decifrar (um blob ilegível não se perde).
+  let blob: string | null
+  if (d.nota === undefined) {
+    const atual = await supabase
+      .from("opportunities")
+      .select("notes_encrypted")
+      .eq("id", d.oportunidadeId)
+      .eq("clinic_id", clinicId)
+      .maybeSingle()
+    if (atual.error) throw new Error("Falha ao salvar a oportunidade", { cause: atual.error })
+    if (!atual.data) return "nao-encontrada"
+    blob = (atual.data as { notes_encrypted: string | null }).notes_encrypted
+  } else {
+    // Cifrada aqui, com a clínica da sessão como AAD: o texto claro não sai da aplicação.
+    blob = d.nota ? cifrarConteudo(clinicId, d.nota) : null
+  }
   const { data, error } = await supabase.rpc("update_opportunity_details", {
     p_opportunity_id: d.oportunidadeId,
     p_procedure_id: d.procedimentoId,
     p_value_cents: d.valorCentavos,
     p_owner_user_id: d.responsavelId,
     p_next_action_at: d.proximaAcao,
-    // Cifrada aqui, com a clínica da sessão como AAD: o texto claro não sai da aplicação.
-    p_notes_encrypted: d.nota ? cifrarConteudo(clinicId, d.nota) : null,
+    p_notes_encrypted: blob,
   })
   if (error) throw new Error("Falha ao salvar a oportunidade", { cause: error })
   return lerResultadoDosDetalhes(data)

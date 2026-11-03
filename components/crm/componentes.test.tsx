@@ -30,6 +30,7 @@ function op(p: Partial<Oportunidade> = {}): Oportunidade {
     proximaAcao: null,
     motivoDePerda: null,
     nota: "Prefere horário de manhã.",
+    notaIlegivel: false,
     urgente: false,
     eventos: [
       { id: "e1", de: null, para: "novo", em: "2026-09-25T09:00:00-03:00", autor: null },

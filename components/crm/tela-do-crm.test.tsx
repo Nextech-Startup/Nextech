@@ -24,6 +24,7 @@ function op(id: string, nome: string, etapa: Oportunidade["etapa"], p: Partial<O
     proximaAcao: null,
     motivoDePerda: etapa === "perdido" ? "preco" : null,
     nota: null,
+    notaIlegivel: false,
     urgente: false,
     eventos: [{ id: `${id}-e1`, de: null, para: etapa, em: AGORA, autor: null }],
     ...p,

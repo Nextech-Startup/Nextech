@@ -1,13 +1,25 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 const rpc = vi.fn()
+/** O maybeSingle() da releitura do blob atual da nota. */
+const leitura = vi.fn()
+const filtros: [string, unknown][] = []
+const from = vi.fn((tabela: string) => {
+  filtros.length = 0
+  const q = {
+    select: (colunas: string) => (filtros.push([`${tabela}.select`, colunas]), q),
+    eq: (c: string, v: unknown) => (filtros.push([c, v]), q),
+    maybeSingle: () => leitura(),
+  }
+  return q
+})
 const ctx = vi.hoisted(() => ({ valor: {} as Record<string, unknown> }))
 vi.mock("@/lib/auth/context", () => ({
   requireClinicContext: vi.fn(async () => ctx.valor),
   requireClinicContextForWrite: vi.fn(async () => ctx.valor),
 }))
 
-import { decifrarConteudo } from "@/lib/conversations/conteudo"
+import { cifrarConteudo, decifrarConteudo } from "@/lib/conversations/conteudo"
 import { moverOportunidade, salvarDetalhes } from "./mutations"
 import { buscarNoCrm, carregarCrm, SemAcessoAoCrm } from "./queries"
 
@@ -18,9 +30,12 @@ beforeAll(() => {
   process.env.MESSAGE_CONTENT_ENCRYPTION_KEY ??= Buffer.alloc(32, 7).toString("base64")
 })
 
+afterEach(() => vi.restoreAllMocks())
+
 beforeEach(() => {
   rpc.mockReset()
-  ctx.valor = { clinicId: "c-1", role: "staff", plan: "pro", userId: "u-1", email: "a@x.com", isDemo: false, supabase: { rpc } }
+  leitura.mockReset()
+  ctx.valor = { clinicId: "c-1", role: "staff", plan: "pro", userId: "u-1", email: "a@x.com", isDemo: false, supabase: { rpc, from } }
 })
 
 describe("trava de papel e de plano na lib", () => {
@@ -85,7 +100,6 @@ describe("log", () => {
     rpc.mockResolvedValueOnce({ data: null, error: { code: "23514", message: "Prefere manhã", details: null, hint: null } })
     await salvarDetalhes(detalhes).catch(() => {})
     for (const e of espioes) expect(e).not.toHaveBeenCalled()
-    vi.restoreAllMocks()
   })
 })
 
@@ -100,10 +114,42 @@ describe("salvarDetalhes", () => {
     expect(args).toMatchObject({ p_opportunity_id: ID, p_value_cents: 5000, p_procedure_id: null, p_owner_user_id: null, p_next_action_at: null })
   })
 
-  it("sem nota, manda null (apaga a nota)", async () => {
+  it("nota null apaga: manda null e nem relê o banco", async () => {
     rpc.mockResolvedValue({ data: "ok", error: null })
     await salvarDetalhes({ ...detalhes, nota: null })
     expect(rpc.mock.calls[0][1].p_notes_encrypted).toBeNull()
+    expect(from).not.toHaveBeenCalled()
+  })
+
+  it("nota ausente preserva o blob atual, inclusive um ilegível, sem decifrar; relê pela sessão, filtrando a clínica", async () => {
+    rpc.mockResolvedValue({ data: "ok", error: null })
+    for (const blob of [cifrarConteudo("c-1", "Prefere manhã"), "blob-ilegivel-qualquer", null]) {
+      rpc.mockClear()
+      leitura.mockResolvedValueOnce({ data: { notes_encrypted: blob }, error: null })
+      const { nota: _nota, ...semNota } = detalhes
+      expect(await salvarDetalhes(semNota)).toBe("ok")
+      expect(rpc.mock.calls[0][1].p_notes_encrypted).toBe(blob)
+    }
+    expect(filtros).toContainEqual(["id", ID])
+    expect(filtros).toContainEqual(["clinic_id", "c-1"])
+    expect(filtros).toContainEqual(["opportunities.select", "notes_encrypted"])
+  })
+
+  it("nota ausente e oportunidade não encontrada na releitura: nao-encontrada, sem gravar", async () => {
+    leitura.mockResolvedValueOnce({ data: null, error: null })
+    const { nota: _nota, ...semNota } = detalhes
+    expect(await salvarDetalhes(semNota)).toBe("nao-encontrada")
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it("erro na releitura vira Error genérico, com o original em cause", async () => {
+    const original = { code: "XX000", message: "Prefere manhã", details: null, hint: null }
+    leitura.mockResolvedValueOnce({ data: null, error: original })
+    const { nota: _nota, ...semNota } = detalhes
+    const erro = await salvarDetalhes(semNota).catch((e) => e)
+    expect(erro.message).toBe("Falha ao salvar a oportunidade")
+    expect(erro.cause).toBe(original)
+    expect(rpc).not.toHaveBeenCalled()
   })
 
   it("o erro do PostgREST vira Error genérico", async () => {

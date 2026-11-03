@@ -69,6 +69,7 @@ function oportunidade(b: Base, passos: Passo[]): Oportunidade {
     proximaAcao: b.proximaAcao ?? null,
     motivoDePerda: b.motivo ?? null,
     nota: b.nota ?? null,
+    notaIlegivel: false,
     urgente,
     eventos: passos.map(([etapa, quando, autor], i) => ({
       id: `${b.id}-e${i + 1}`,

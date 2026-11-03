@@ -21,6 +21,7 @@ function op(p: Partial<Oportunidade> = {}): Oportunidade {
     proximaAcao: null,
     motivoDePerda: null,
     nota: null,
+    notaIlegivel: false,
     urgente: false,
     eventos: [{ id: "op-1-e1", de: null, para: "novo", em: AGORA, autor: null }],
     ...p,

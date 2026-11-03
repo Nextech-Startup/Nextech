@@ -55,7 +55,17 @@ describe("lerDetalhes", () => {
   })
 
   it("campo que não é texto (arquivo no FormData) conta como vazio", () => {
-    expect(lerDetalhes(campos({ nota: null, valor: null })).detalhes?.nota).toBeNull()
+    expect(lerDetalhes(campos({ valor: null })).detalhes?.valorCentavos).toBeNull()
+  })
+
+  it("nota: campo ausente do formulário = não mexer (undefined); enviado vazio ou em branco = apagar (null); texto = texto", () => {
+    const ausente = lerDetalhes(campos({ nota: null })).detalhes!
+    expect(ausente.nota).toBeUndefined()
+    expect("nota" in ausente).toBe(false)
+    expect(lerDetalhes(campos({ nota: new File(["x"], "x.txt") })).detalhes?.nota).toBeUndefined()
+    expect(lerDetalhes(campos({ nota: "" })).detalhes?.nota).toBeNull()
+    expect(lerDetalhes(campos({ nota: "   " })).detalhes?.nota).toBeNull()
+    expect(lerDetalhes(campos({ nota: " oi " })).detalhes?.nota).toBe("oi")
   })
 })
 

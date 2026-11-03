@@ -17,8 +17,12 @@ export type DetalhesDaOportunidade = {
   responsavelId: string | null
   /** Instante ISO (UTC). */
   proximaAcao: string | null
-  /** Texto claro: a lib cifra antes de gravar. */
-  nota: string | null
+  /**
+   * Três estados. Ausente (`undefined`): não mexer, a lib preserva o blob
+   * atual (inclusive um ilegível). `null`: apagar. Texto claro: a lib cifra
+   * antes de gravar.
+   */
+  nota?: string | null
 }
 
 /** Os campos como chegam do FormData (`form.get`). */
@@ -59,6 +63,8 @@ export function lerDetalhes(c: CamposDosDetalhes): LeituraDosDetalhes {
     if (!proximaAcao) return falha("Data da próxima ação inválida.")
   }
 
+  // Campo ausente do formulário (ou que não é texto) = não mexer; enviado vazio = apagar.
+  const enviouNota = typeof c.nota === "string"
   const nota = texto(c.nota)
   if (nota.length > TAMANHO_MAXIMO_DA_NOTA) return falha(`A nota passa de ${TAMANHO_MAXIMO_DA_NOTA} caracteres.`)
 
@@ -69,7 +75,7 @@ export function lerDetalhes(c: CamposDosDetalhes): LeituraDosDetalhes {
       valorCentavos,
       responsavelId: responsavel || null,
       proximaAcao,
-      nota: nota || null,
+      ...(enviouNota ? { nota: nota || null } : {}),
     },
     erro: null,
   }

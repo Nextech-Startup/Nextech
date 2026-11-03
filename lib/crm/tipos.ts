@@ -85,6 +85,8 @@ export type Oportunidade = {
   motivoDePerda: MotivoDePerda | null
   /** Na parte 2, decifrada no servidor; nunca em log nem em URL. */
   nota: string | null
+  /** A nota existe mas não decifra (chave trocada, blob corrompido): a tela mostra "nota indisponível" e não a trata como vazia. */
+  notaIlegivel: boolean
   urgente: boolean
   /** Do mais antigo para o mais novo; o primeiro é a abertura. */
   eventos: EventoDaOportunidade[]

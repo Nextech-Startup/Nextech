@@ -1,6 +1,7 @@
 import type { createServiceClient } from "@/lib/supabase/server"
 import { padraoDeBusca } from "@/lib/conversations/busca"
 import { decifrarConteudo } from "@/lib/conversations/conteudo"
+import { erroParaLog } from "@/lib/security/erro-para-log"
 import { nomeDoMembro } from "./equipe"
 import { DIA_MS, PERIODOS } from "./metricas"
 import { ehEtapa, ehMotivoDePerda, type EventoDaOportunidade, type Oportunidade, type Referencia } from "./tipos"
@@ -65,14 +66,17 @@ export type DadosDoCrm = { oportunidades: Oportunidade[]; procedimentos: Referen
 
 /**
  * Nota que não decifra (blob corrompido, chave trocada, AAD de outra clínica)
- * é nota indisponível: nula. Lançar derrubaria o funil inteiro por causa de
- * um campo. Sem log: a falha do AES-GCM não leva dado, mas o contexto leva.
+ * é nota ilegível: texto nulo e indicador, para a tela não a tratar como
+ * vazia. Lançar derrubaria o funil inteiro por causa de um campo. O log leva
+ * só o id e o tipo/código do erro (erroParaLog), nunca o texto.
  */
-function decifrarNota(clinicId: string, blob: string): string | null {
+function decifrarNota(clinicId: string, oportunidadeId: string, blob: string | null): { texto: string | null; ilegivel: boolean } {
+  if (!blob) return { texto: null, ilegivel: false }
   try {
-    return decifrarConteudo(clinicId, blob)
-  } catch {
-    return null
+    return { texto: decifrarConteudo(clinicId, blob), ilegivel: false }
+  } catch (erro) {
+    console.error("Falha ao decifrar nota do CRM", { oportunidade: oportunidadeId, ...erroParaLog(erro) })
+    return { texto: null, ilegivel: true }
   }
 }
 
@@ -82,6 +86,7 @@ export function montarOportunidade(
   equipe: ReadonlyMap<string, Referencia>,
 ): Oportunidade {
   if (!l.patients || !ehEtapa(l.stage)) throw new LinhaDoCrmInvalida()
+  const nota = decifrarNota(clinicId, l.id, l.notes_encrypted)
   const eventos: EventoDaOportunidade[] = [...l.opportunity_events]
     .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))
     .map((e) => {
@@ -114,7 +119,8 @@ export function montarOportunidade(
     proximaAcao: l.next_action_at,
     motivoDePerda: ehMotivoDePerda(l.lost_reason) ? l.lost_reason : null,
     // Decifrada só aqui, no servidor (lgpd-security).
-    nota: l.notes_encrypted ? decifrarNota(clinicId, l.notes_encrypted) : null,
+    nota: nota.texto,
+    notaIlegivel: nota.ilegivel,
     urgente: l.conversations?.is_urgent ?? false,
     eventos,
   }
@@ -134,9 +140,10 @@ export async function carregarCrmDaClinica(supabase: Cliente, clinicId: string, 
     supabase.from("procedures").select("id, name").eq("clinic_id", clinicId).eq("active", true).order("name"),
     supabase.rpc("crm_team", { p_clinic_id: clinicId }),
   ])
-  if (linhas.error) throw linhas.error
-  if (procedimentos.error) throw procedimentos.error
-  if (membros.error) throw membros.error
+  // O erro do PostgREST repete o valor rejeitado: nunca sobe cru (o original fica em cause).
+  if (linhas.error) throw new Error("Falha ao carregar as oportunidades", { cause: linhas.error })
+  if (procedimentos.error) throw new Error("Falha ao carregar os procedimentos", { cause: procedimentos.error })
+  if (membros.error) throw new Error("Falha ao carregar a equipe", { cause: membros.error })
 
   const equipe = ((membros.data ?? []) as { user_id: string; email: string | null }[]).map(
     (m): Referencia => ({ id: m.user_id, nome: nomeDoMembro(m.email) }),
@@ -161,6 +168,6 @@ export async function buscarIdsNoCrm(supabase: Cliente, clinicId: string, termo:
     p_nome: padrao.nome,
     p_telefone: padrao.telefone,
   })
-  if (error) throw error
+  if (error) throw new Error("Falha ao buscar as oportunidades", { cause: error })
   return (data ?? []) as string[]
 }

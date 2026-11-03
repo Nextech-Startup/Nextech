@@ -3137,6 +3137,8 @@ Esperado: PASS (a trava de fronteiras confere que `mutations.ts` usa `requireCli
 
 > **Correção na execução:** `montarOportunidade` trata a nota que não decifra (blob corrompido, chave trocada, AAD de outra clínica) como nota indisponível: `nota: null`, sem lançar e sem log (o teste do plano que esperava o lançamento foi trocado). O tipo `Oportunidade` não tem campo de indicador, então a forma mais simples é a nota nula. Testes novos: nenhum `console` chamado na montagem nem na gravação, `clinic_id` da cifra vindo da sessão, owner/Starter e professional/Pro não gravam, e a nota cifrada no banco sem texto puro.
 
+> **Correção na execução (rodada 1):** (I1) `Oportunidade.notaIlegivel`: a nota que não decifra deixa de ser igual à vazia (`nota: null` + `notaIlegivel: true`). Em `DetalhesDaOportunidade` a nota tem três estados: ausente (`undefined`, campo fora do formulário) = não mexer; `null` (enviado vazio) = apagar; texto = cifrar. `salvarDetalhes` com a nota ausente relê `notes_encrypted` pela sessão (filtro `id` e `clinic_id`), sem decifrar, e repassa o blob à RPC, para uma gravação não apagar nota recuperável (chave trocada num deploy). (I2) a falha de decifrar loga `console.error("Falha ao decifrar nota do CRM", { oportunidade, ...erroParaLog })`. (M1) os erros do PostgREST da leitura viram `Error` genérico com `cause`. (M2) `vi.restoreAllMocks()` em `afterEach`. (M3) o `as unknown as Cliente` de `queries.ts` saiu: a tipagem aceita.
+
 - [ ] **Passo 9: commit**
 
 ```bash
@@ -3147,6 +3149,8 @@ git commit -m "feat(crm): leitura decifrada e escritas pela sessão, com trava d
 ---
 
 ### Tarefa 6: Página real, ações e tempo real
+
+> **Nota da rodada 1 da Tarefa 5:** a gaveta (painel/formulário) mostra "nota indisponível" quando `notaIlegivel` e só envia o campo `nota` se o usuário mexeu nele (campo ausente = não mexer, `salvarDetalhes` preserva o blob).
 
 **Arquivos:**
 - Modificar: `lib/conversations/ao-vivo.ts`, `components/conversations/ao-vivo.tsx`, `lib/navigation/dashboard-nav.ts` (status "pronto"), `app/(dashboard)/dashboard/crm/page.tsx`, `app/(dashboard)/dashboard/crm/acoes.ts`
@@ -3726,6 +3730,9 @@ Esperado: PASS. O `tsc` só fecha na Tarefa 7.
 ---
 
 ### Tarefa 7: A tela grava, ressincroniza e mostra o resumo compacto
+
+> **Nota da rodada 1 da Tarefa 5:** o formulário da gaveta mostra "nota indisponível" quando `notaIlegivel` e só envia o campo `nota` se o usuário mexer nele (ausente = não mexer).
+
 
 **Arquivos:**
 - Modificar: `components/crm/estado.ts`, `components/crm/tela-do-crm.tsx`, `components/crm/painel-da-oportunidade.tsx`, `components/crm/resumo-do-periodo.tsx`

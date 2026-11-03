@@ -20,6 +20,7 @@ const op = (id: string, etapa: Oportunidade["etapa"]): Oportunidade => ({
   proximaAcao: null,
   motivoDePerda: null,
   nota: null,
+  notaIlegivel: false,
   urgente: false,
   eventos: [{ id: `${id}-e1`, de: null, para: etapa, em: AGORA, autor: null }],
 })

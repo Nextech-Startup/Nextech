@@ -23,6 +23,7 @@ function op(id: string, aberta: string, trilha: Etapa[], p: Partial<Oportunidade
     proximaAcao: null,
     motivoDePerda: etapa === "perdido" ? "preco" : null,
     nota: null,
+    notaIlegivel: false,
     urgente: false,
     eventos: trilha.map((para, i) => ({ id: `${id}-e${i + 1}`, de: i === 0 ? null : trilha[i - 1], para, em: aberta, autor: null })),
     ...p,
