@@ -82,10 +82,11 @@ describe("TelaDoCrm", () => {
 })
 
 describe("PainelDaOportunidade como modal", () => {
-  it("é um diálogo modal focável (Esc e foco inicial ficam no componente)", () => {
+  it("é um <dialog> nativo (showModal dá Esc, foco preso e fundo inerte) e fica fechado até abrir", () => {
     const h = renderToStaticMarkup(<PainelDaOportunidade op={op("a", "Ana Aberta", "novo")} aoFechar={() => {}} aoMover={() => {}} />)
-    expect(h).toContain('role="dialog"')
-    expect(h).toContain('aria-modal="true"')
-    expect(h).toContain('tabindex="-1"')
+    expect(h).toMatch(/^<dialog /)
+    expect(h).toContain("aria-label=\"Oportunidade de Ana Aberta\"")
+    expect(h).not.toMatch(/<dialog[^>]* open[ =>]/)
+    expect(h).toContain("open:grid")
   })
 })

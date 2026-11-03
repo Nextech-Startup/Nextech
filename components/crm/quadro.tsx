@@ -39,6 +39,41 @@ function anuncios(ops: readonly Oportunidade[]): Announcements {
   }
 }
 
+type Coordinates = { x: number; y: number }
+type RetanguloDeColuna = { left: number; top: number; width: number; height: number }
+
+/**
+ * O pulo do teclado: ← e → levam o cartão para o centro da coluna vizinha
+ * (o padrão do dnd-kit andaria 25 px por tecla e nunca trocaria de coluna).
+ * Pura, para testar sem navegador. Colunas escondidas (largura 0, como no
+ * celular) e outros droppables ficam de fora.
+ */
+export function pularDeColuna(
+  evento: { code: string },
+  args: {
+    currentCoordinates: Coordinates
+    context: { droppableRects: ReadonlyMap<string | number, RetanguloDeColuna>; collisionRect: { width: number; height: number } | null }
+  },
+): Coordinates | undefined {
+  if (evento.code !== "ArrowLeft" && evento.code !== "ArrowRight") return undefined
+  const { currentCoordinates: atual, context } = args
+  const largura = context.collisionRect?.width ?? 0
+  const altura = context.collisionRect?.height ?? 0
+  const colunas = [...context.droppableRects]
+    .filter(([id, r]) => String(id).startsWith(COLUNA) && r.width > 0)
+    .map(([, r]) => r)
+    .sort((a, b) => a.left - b.left)
+  if (colunas.length === 0) return undefined
+  const centro = atual.x + largura / 2
+  const distancia = (r: RetanguloDeColuna) => Math.abs(centro - (r.left + r.width / 2))
+  const indice = colunas.reduce((melhor, r, i) => (distancia(r) < distancia(colunas[melhor]) ? i : melhor), 0)
+  const alvo = colunas[indice + (evento.code === "ArrowRight" ? 1 : -1)]
+  if (!alvo) return undefined
+  // Mantém a altura, mas dentro da coluna de destino, para a colisão acertar nela.
+  const y = Math.min(Math.max(atual.y, alvo.top), Math.max(alvo.top, alvo.top + alvo.height - altura))
+  return { x: alvo.left + alvo.width / 2 - largura / 2, y }
+}
+
 const INSTRUCOES =
   "Para mover um cartão, foque a alça e aperte espaço. Use as setas para trocar de coluna e espaço de novo para soltar. Esc cancela."
 
@@ -103,7 +138,7 @@ export function Quadro({
   aoAbrir: (id: string) => void
   aoMover: (op: Oportunidade, para: Etapa) => void
 }) {
-  const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor))
+  const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: pularDeColuna }))
 
   function soltar({ active, over }: DragEndEvent) {
     if (!over) return
@@ -115,6 +150,7 @@ export function Quadro({
 
   return (
     <DndContext
+      id="crm-quadro"
       sensors={sensores}
       onDragEnd={soltar}
       accessibility={{ announcements: anuncios(ops), screenReaderInstructions: { draggable: INSTRUCOES } }}

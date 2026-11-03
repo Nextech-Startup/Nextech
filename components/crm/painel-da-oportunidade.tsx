@@ -36,26 +36,21 @@ export function PainelDaOportunidade({
     tom: ev.para === "ganho" ? "success" : ev.para === "perdido" ? "danger" : ev.autor ? "neutral" : "info",
   }))
   const encerrada = op.encerradaEm !== null
-  const ref = useRef<HTMLElement>(null)
+  const ref = useRef<HTMLDialogElement>(null)
 
-  // Comportamento de modal: o foco entra no painel ao abrir e volta ao cartão ao fechar.
+  // <dialog> nativo com showModal(): foco preso, fundo inerte, Esc fecha e o foco
+  // volta ao cartão. Esc e o botão chegam aqui pelo evento close.
   useEffect(() => {
-    const anterior = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    ref.current?.focus()
-    return () => anterior?.focus()
+    const d = ref.current
+    if (d && !d.open) d.showModal()
   }, [])
 
   return (
-    <aside
+    <dialog
       ref={ref}
-      role="dialog"
-      aria-modal="true"
-      tabIndex={-1}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") aoFechar()
-      }}
+      onClose={aoFechar}
       aria-label={`Oportunidade de ${nomeDoPaciente(op)}`}
-      className="fixed inset-0 z-40 grid outline-none content-start gap-5 overflow-y-auto bg-surface-0 p-4 md:inset-y-0 md:right-0 md:left-auto md:w-[420px] md:border-l md:border-hairline md:shadow-xl"
+      className="m-0 h-dvh max-h-none w-full max-w-none content-start gap-5 overflow-y-auto border-0 bg-surface-0 p-4 text-ink-1 backdrop:bg-black/40 open:grid md:left-auto md:w-[420px] md:border-l md:border-hairline md:shadow-xl fixed inset-0 md:inset-y-0 md:right-0"
     >
       <header className="flex items-start gap-3">
         <div className="grid min-w-0 flex-1 gap-1">
@@ -67,7 +62,7 @@ export function PainelDaOportunidade({
             {!encerrada && <MoverPara op={op} aoMover={aoMover} />}
           </div>
         </div>
-        <button type="button" onClick={aoFechar} aria-label="Fechar" className="rounded-control p-1.5 text-ink-3 hover:bg-surface-1 hover:text-ink-1">
+        <button type="button" onClick={() => ref.current?.close()} aria-label="Fechar" className="rounded-control p-1.5 text-ink-3 hover:bg-surface-1 hover:text-ink-1">
           <X className="size-4" aria-hidden="true" />
         </button>
       </header>
@@ -104,6 +99,6 @@ export function PainelDaOportunidade({
       )}
 
       <LinhaDoTempo rotulo="Histórico da oportunidade" eventos={eventos} />
-    </aside>
+    </dialog>
   )
 }

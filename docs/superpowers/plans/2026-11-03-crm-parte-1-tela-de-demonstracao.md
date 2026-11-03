@@ -2618,7 +2618,7 @@ describe("TelaDoCrm", () => {
 
 - [x] **Passo 10: rodar** `npx vitest run components/crm`. Esperado: PASSA. Se o `DndContext` reclamar de `document` no ambiente `node`, envolva só o `renderToStaticMarkup` deste arquivo com `// @vitest-environment jsdom` **somente se** `jsdom` já for dependência. Senão, relate: não instale o `jsdom` sem decidir.
 
-> Correção na execução: o `PainelDaOportunidade` (T4) ganhou `role="dialog"`, `aria-modal`, foco ao abrir (devolvido ao fechar) e Esc para fechar, e o teste confere os atributos. O restante seguiu o plano sem mudança.
+> Correção na execução: o `PainelDaOportunidade` (T4) virou um `<dialog>` nativo aberto com `showModal()` (Esc, foco preso, fundo inerte, devolução de foco). Na revisão da T5: `DndContext` ganhou `id="crm-quadro"` (hidratação), o `KeyboardSensor` usa `pularDeColuna` (setas trocam de coluna) e `PedidoDeFechamento` fecha o diálogo antes de confirmar.
 
 - [x] **Passo 11: commit**
 

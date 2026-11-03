@@ -45,6 +45,8 @@ export function PedidoDeFechamento({
     }
     const r = validarMovimento(op, pedido)
     if (r.status !== "ok") return setErro(mensagemDoMovimento(r))
+    // Fecha antes de desmontar: assim o foco volta ao elemento de origem, não ao body.
+    ref.current?.close()
     aoConfirmar(pedido)
   }
 
