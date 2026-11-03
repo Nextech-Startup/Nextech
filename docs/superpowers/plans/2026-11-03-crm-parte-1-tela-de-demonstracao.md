@@ -1323,7 +1323,7 @@ Carregue as skills `ui-ux` e `frontend-design` antes. A faixa do funil é o elem
 
 Nenhum destes componentes usa hook. Eles rodam dentro da árvore cliente da tarefa 5, mas não têm `"use client"` próprio, e por isso o teste os desenha com `renderToStaticMarkup`.
 
-- [ ] **Passo 1: escrever o teste que falha**, em `components/crm/componentes.test.tsx`
+- [x] **Passo 1: escrever o teste que falha**, em `components/crm/componentes.test.tsx`
 
 ```tsx
 import { renderToStaticMarkup } from "react-dom/server"
@@ -1493,9 +1493,9 @@ describe("ListaDeEncerradas", () => {
 })
 ```
 
-- [ ] **Passo 2: rodar** `npx vitest run components/crm/componentes.test.tsx`. Esperado: FALHA, por faltarem os módulos.
+- [x] **Passo 2: rodar** `npx vitest run components/crm/componentes.test.tsx`. Esperado: FALHA, por faltarem os módulos.
 
-- [ ] **Passo 3: implementar `components/crm/cartao-da-oportunidade.tsx`**
+- [x] **Passo 3: implementar `components/crm/cartao-da-oportunidade.tsx`**
 
 ```tsx
 import type { ReactNode } from "react"
@@ -1567,7 +1567,7 @@ export function CartaoDaOportunidade({
 }
 ```
 
-- [ ] **Passo 4: implementar `components/crm/faixa-do-funil.tsx`**
+- [x] **Passo 4: implementar `components/crm/faixa-do-funil.tsx`**
 
 ```tsx
 import Link from "next/link"
@@ -1642,7 +1642,9 @@ export function FaixaDoFunil({
 }
 ```
 
-- [ ] **Passo 5: implementar `components/crm/resumo-do-periodo.tsx`**
+- [x] **Passo 5: implementar `components/crm/resumo-do-periodo.tsx`**
+
+> Correção na execução: o KpiCard do kit tem a prop `pendente` (traço + explicação), que é o que "sem base" pede; conversão e tempo médio usam `pendente` em vez de `detail`.
 
 ```tsx
 import { FiltroSegmentado } from "@/components/patterns/filtro-segmentado"
@@ -1692,7 +1694,7 @@ export function ResumoDoPeriodo({
 }
 ```
 
-- [ ] **Passo 6: implementar `components/crm/mover-para.tsx`**
+- [x] **Passo 6: implementar `components/crm/mover-para.tsx`**
 
 ```tsx
 import { etapasDeDestino } from "@/lib/crm/movimento"
@@ -1728,7 +1730,7 @@ export function MoverPara({ op, aoMover }: { op: Oportunidade; aoMover: (op: Opo
 }
 ```
 
-- [ ] **Passo 7: implementar `components/crm/painel-da-oportunidade.tsx`**
+- [x] **Passo 7: implementar `components/crm/painel-da-oportunidade.tsx`**
 
 ```tsx
 import Link from "next/link"
@@ -1824,7 +1826,7 @@ export function PainelDaOportunidade({
 }
 ```
 
-- [ ] **Passo 8: implementar `components/crm/lista-de-encerradas.tsx`**
+- [x] **Passo 8: implementar `components/crm/lista-de-encerradas.tsx`**
 
 ```tsx
 import { FiltroSegmentado } from "@/components/patterns/filtro-segmentado"
@@ -1899,9 +1901,9 @@ export function ListaDeEncerradas({
 
 Confira a prop de `Vazio` em `components/patterns/vazio.tsx`. O exemplo usa `children`, como em `busca-da-fila.tsx`.
 
-- [ ] **Passo 9: rodar** `npx vitest run components/crm`. Esperado: PASSA. Se o `title` dentro da faixa (Passo 4) quebrar o teste do `100%`, procure o texto da passagem fora do `title`.
+- [x] **Passo 9: rodar** `npx vitest run components/crm`. Esperado: PASSA. Se o `title` dentro da faixa (Passo 4) quebrar o teste do `100%`, procure o texto da passagem fora do `title`.
 
-- [ ] **Passo 10: commit**
+- [x] **Passo 10: commit**
 
 ```bash
 git add components/crm
