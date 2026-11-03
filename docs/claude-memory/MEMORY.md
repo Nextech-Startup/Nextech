@@ -11,3 +11,4 @@
 - [Economia de tokens](economia-de-tokens.md) — ler só o necessário, plano enxuto, código escrito uma vez
 - [Fase de protótipo, sem clientes](nextech-fase-de-prototipo.md) — dado de exemplo aceitável; conta de demonstração pelo clinica@; canal Evolution só local; prioridade nas specs do produto
 - [Instalador externo e o .env](instalador-externo-e-env.md) — aios-core sobrescreveu o .env sem backup; copiar .env antes de instalador; chaves de API são tarefa do Jhones
+- [Credenciais da demo no script](credenciais-da-demo-no-script.md) — senhas do clinica@/admin@ no shot-referencia.mjs aceitas pelo Jhones; não alertar
