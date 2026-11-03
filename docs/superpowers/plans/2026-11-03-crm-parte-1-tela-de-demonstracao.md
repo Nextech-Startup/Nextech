@@ -2640,7 +2640,7 @@ git commit -m "feat(crm): quadro com arrastar, mover para, fechamento e busca"
 - Consome: `TelaDoCrm`, `ResultadoDaBuscaDoCrm` (tarefa 5); `OPORTUNIDADES` e `PROCEDIMENTOS_DO_CRM` (tarefa 3); `MEMBROS` (`app/_fixtures/equipe.ts`); `requireClinicContext()` → `{ role, isDemo, clinicId }`; `podeAcessar(role, rota)`; `relogioDaDemonstracao(AGORA)`; `PermissaoNegada({ titulo, rota, role, demo })`.
 - Produz: a rota `/dashboard/crm` e a action `buscar(termo: unknown): Promise<ResultadoDaBuscaDoCrm>`.
 
-- [ ] **Passo 1: escrever o teste do menu que falha.** Em `lib/navigation/navigation.test.ts`, num `describe` novo no fim do arquivo:
+- [x] **Passo 1: escrever o teste do menu que falha.** Em `lib/navigation/navigation.test.ts`, num `describe` novo no fim do arquivo:
 
 ```ts
 describe("CRM no menu (spec crm-v1)", () => {
@@ -2664,7 +2664,9 @@ describe("CRM no menu (spec crm-v1)", () => {
 
 Rode `npx vitest run lib/navigation/navigation.test.ts`. Esperado: FALHA nos dois testes novos.
 
-- [ ] **Passo 2: acrescentar o item** em `lib/navigation/dashboard-nav.ts`, no grupo "Operação", logo depois de Conversas:
+> Correção na execução: três testes existentes de `navigation.test.ts` contavam os itens de Operação sem o CRM (Operação do owner, staff e "em breve" fora da demonstração); atualizados para incluir "CRM" depois de Conversas, como o passo 2 do plano já previa.
+
+- [x] **Passo 2: acrescentar o item** em `lib/navigation/dashboard-nav.ts`, no grupo "Operação", logo depois de Conversas:
 
 ```ts
       {
@@ -2678,7 +2680,7 @@ Rode `npx vitest run lib/navigation/navigation.test.ts`. Esperado: FALHA nos doi
 
 Rode `npx vitest run lib/navigation`. Esperado: PASSA. Se outro teste do menu contar itens de Operação, atualize o número e anote no commit.
 
-- [ ] **Passo 3: escrever o teste da action que falha**, em `app/(dashboard)/dashboard/crm/acoes.test.ts`
+- [x] **Passo 3: escrever o teste da action que falha**, em `app/(dashboard)/dashboard/crm/acoes.test.ts`
 
 ```ts
 import { readFileSync } from "node:fs"
@@ -2739,7 +2741,7 @@ describe("página do CRM", () => {
 
 Rode `npx vitest run "app/(dashboard)/dashboard/crm/acoes.test.ts"`. Esperado: FALHA, por faltar o `./acoes`.
 
-- [ ] **Passo 4: implementar `app/(dashboard)/dashboard/crm/acoes.ts`**
+- [x] **Passo 4: implementar `app/(dashboard)/dashboard/crm/acoes.ts`**
 
 ```ts
 "use server"
@@ -2780,7 +2782,7 @@ export async function buscar(termo: unknown): Promise<ResultadoDaBuscaDoCrm> {
 
 Se `" ".repeat(81)` passasse pelo `trim()` e virasse vazio, o `min(1)` recusaria do mesmo jeito. O teste com 81 `x` cobre o máximo.
 
-- [ ] **Passo 5: implementar `app/(dashboard)/dashboard/crm/page.tsx`**
+- [x] **Passo 5: implementar `app/(dashboard)/dashboard/crm/page.tsx`**
 
 ```tsx
 import type { Metadata } from "next"
@@ -2847,13 +2849,13 @@ export default async function CrmPage({
 }
 ```
 
-- [ ] **Passo 6: `loading.tsx`.** Copie `app/(dashboard)/dashboard/sequences/loading.tsx` para `app/(dashboard)/dashboard/crm/loading.tsx`. Se ele não existir, use o de `conversations`. Troque só o título e o rótulo para "CRM".
+- [x] **Passo 6: `loading.tsx`.** Copie `app/(dashboard)/dashboard/sequences/loading.tsx` para `app/(dashboard)/dashboard/crm/loading.tsx`. Se ele não existir, use o de `conversations`. Troque só o título e o rótulo para "CRM".
 
-- [ ] **Passo 7: rodar** `npx vitest run "app/(dashboard)/dashboard/crm" lib/navigation tests/architecture tests/demo`. Esperado: PASSA. A trava `rotas.test.ts` exige o `if (!isDemo) notFound()` na página, e a `prototipos.test.ts` exige `isDemo` na página e na action que importam fixture.
+- [x] **Passo 7: rodar** `npx vitest run "app/(dashboard)/dashboard/crm" lib/navigation tests/architecture tests/demo`. Esperado: PASSA. A trava `rotas.test.ts` exige o `if (!isDemo) notFound()` na página, e a `prototipos.test.ts` exige `isDemo` na página e na action que importam fixture.
 
-- [ ] **Passo 8: `npx tsc --noEmit`.** Esperado: sem erro.
+- [x] **Passo 8: `npx tsc --noEmit`.** Esperado: sem erro.
 
-- [ ] **Passo 9: commit**
+- [x] **Passo 9: commit**
 
 ```bash
 git add lib/navigation "app/(dashboard)/dashboard/crm"
