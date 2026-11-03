@@ -1,3 +1,4 @@
+import { ROTULO_DO_PLANO, type ClinicPlan } from "@/lib/agent-config/schema"
 import type { ClinicRole } from "@/lib/auth/context"
 import type { NavGroup, NavItem, ResolvedNavGroup, ResolvedNavItem } from "./schema"
 
@@ -34,11 +35,13 @@ export const DASHBOARD_NAV: readonly NavGroup[] = [
         roles: ["owner", "staff"],
       },
       {
-        // spec crm-v1. Parte 1 só na demonstração; a tela real chega na parte 2.
+        // spec crm-v1. Pro e HealthTech; no Starter, o selo "Pro" e o convite.
+        // Continua "em-breve" até a página real (parte 2, tarefa 6).
         label: "CRM",
         href: "/dashboard/crm",
         status: "em-breve",
         roles: ["owner", "staff"],
+        planos: ["pro", "healthtech"],
       },
       { label: "Agenda", href: "/dashboard/schedule", status: "em-breve" },
       { label: "Pacientes", href: "/dashboard/patients", status: "em-breve" },
@@ -143,6 +146,12 @@ export function hrefDaMinhaConta(demo: boolean): string | null {
   return statusNoPainel(conta, demo) === "pronto" ? conta.href : null
 }
 
+/** O selo do plano que falta. Sem plano informado (painel interno, testes antigos), sem selo. */
+function seloDoPlano(item: NavItem, plano: ClinicPlan | undefined): { selo?: string } {
+  if (!item.planos || !plano || item.planos.includes(plano)) return {}
+  return { selo: ROTULO_DO_PLANO[item.planos[0]] }
+}
+
 /**
  * Aplica o papel e o caminho atual ao mapa. Grupo que ficou sem item
  * algum some inteiro — um cabeçalho "Gestão" vazio só ocuparia
@@ -151,14 +160,23 @@ export function hrefDaMinhaConta(demo: boolean): string | null {
 export function resolveDashboardNav(
   role: ClinicRole,
   pathname: string,
-  { demo = false, grupos = DASHBOARD_NAV }: { demo?: boolean; grupos?: readonly NavGroup[] } = {},
+  {
+    demo = false,
+    plano,
+    grupos = DASHBOARD_NAV,
+  }: { demo?: boolean; plano?: ClinicPlan; grupos?: readonly NavGroup[] } = {},
 ): ResolvedNavGroup[] {
   const visiveis = grupos
     .map((grupo) => ({
       label: grupo.label,
       items: grupo.items
         .filter((item) => !item.roles || item.roles.includes(role))
-        .map((item) => ({ label: item.label, href: item.href, status: statusNoPainel(item, demo) })),
+        .map((item) => ({
+          label: item.label,
+          href: item.href,
+          status: statusNoPainel(item, demo),
+          ...seloDoPlano(item, plano),
+        })),
     }))
     .filter((grupo) => grupo.items.length > 0)
 

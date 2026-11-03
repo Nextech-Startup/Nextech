@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { PLANOS, type ClinicPlan } from "@/lib/agent-config/schema"
 import { createServerClient } from "@/lib/supabase/server"
 
 export type ClinicRole = "owner" | "staff" | "professional"
@@ -23,6 +24,11 @@ export type ClinicContext = {
    * o papel: decide o que a tela desenha, nunca o acesso a dado.
    */
   isDemo: boolean
+  /**
+   * O plano da clínica (`clinics.plan`), na mesma consulta do vínculo. Decide
+   * telas e ações por plano (CRM). Sem plano conhecido, Starter: falha fechada.
+   */
+  plan: ClinicPlan
   supabase: Supabase
 }
 
@@ -118,7 +124,7 @@ async function resolverVinculo(supabase: Supabase, identidade: Identidade | null
 
   const { data: membership } = await supabase
     .from("clinic_members")
-    .select("clinic_id, role, clinics(is_demo)")
+    .select("clinic_id, role, clinics(is_demo, plan)")
     .eq("user_id", identidade.id)
     .limit(1)
     .maybeSingle()
@@ -129,7 +135,8 @@ async function resolverVinculo(supabase: Supabase, identidade: Identidade | null
 
   // Sem a marca na resposta, a clínica é tratada como comum: a tela real,
   // ou 404 nas rotas que só existem na demonstração.
-  const clinica = membership.clinics as { is_demo?: boolean } | null
+  const clinica = membership.clinics as { is_demo?: boolean; plan?: string } | null
+  const plano = clinica?.plan
 
   return {
     clinicId: membership.clinic_id as string,
@@ -137,6 +144,7 @@ async function resolverVinculo(supabase: Supabase, identidade: Identidade | null
     userId: identidade.id,
     email: identidade.email,
     isDemo: clinica?.is_demo === true,
+    plan: (PLANOS as readonly string[]).includes(plano ?? "") ? (plano as ClinicPlan) : "starter",
     supabase,
   }
 }

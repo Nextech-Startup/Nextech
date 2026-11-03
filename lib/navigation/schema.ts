@@ -1,3 +1,4 @@
+import type { ClinicPlan } from "@/lib/agent-config/schema"
 import type { ClinicRole } from "@/lib/auth/context"
 
 /**
@@ -13,6 +14,11 @@ export type NavItem = {
   status: "pronto" | "em-breve"
   /** Papéis que enxergam o item. Ausente = todos os papéis do painel. */
   roles?: readonly ClinicRole[]
+  /**
+   * Planos que usam a tela. Ausente = todos. Fora deles, o item continua no
+   * menu (a tela abre o convite) com o selo do primeiro plano da lista.
+   */
+  planos?: readonly ClinicPlan[]
 }
 
 export type NavGroup = {
@@ -27,6 +33,8 @@ export type ResolvedNavItem = {
   status: NavItem["status"]
   /** Verdadeiro quando o item é a rota atual (ou uma rota filha dela). */
   active: boolean
+  /** "Pro": o plano da clínica não tem a tela; ela abre o convite. */
+  selo?: string
 }
 
 export type ResolvedNavGroup = {

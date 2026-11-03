@@ -46,3 +46,13 @@ describe("painel interno", () => {
     expect(mostraSelo({ tipo: "interno" })).toBe(false)
   })
 })
+
+describe("plano no menu", () => {
+  it("o plano chega ao menu: CRM com selo Pro no Starter", () => {
+    const { painel } = shellDaClinica("owner", false, "starter")
+    const crm = gruposDoPainel(painel, "/dashboard")
+      .flatMap((g) => g.items)
+      .find((i) => i.href === "/dashboard/crm")
+    expect(crm?.selo).toBe("Pro")
+  })
+})

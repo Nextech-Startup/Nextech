@@ -126,6 +126,11 @@ function ItemPronto({ item }: { item: ResolvedNavItem }) {
         <Link href={item.href} aria-current={item.active ? "page" : undefined}>
           <Icone />
           <span>{item.label}</span>
+          {item.selo && (
+            <span className="ml-auto rounded-pill border border-hairline px-1.5 text-[0.6875rem] text-ink-3 group-data-[collapsible=icon]:hidden">
+              {item.selo}
+            </span>
+          )}
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>

@@ -249,6 +249,22 @@ describe("requireClinicContext: conta de demonstração", () => {
     expect((await requireClinicContext()).isDemo).toBe(false)
   })
 
+  it("o plano vem da mesma consulta do vínculo", async () => {
+    sessao()
+    mockMembership({ clinic_id: "clinic-1", role: "owner", clinics: { is_demo: false, plan: "pro" } })
+    const { requireClinicContext } = await import("@/lib/auth/context")
+    expect((await requireClinicContext()).plan).toBe("pro")
+  })
+
+  it("sem plano conhecido na resposta, a clínica conta como Starter (falha fechada)", async () => {
+    const { requireClinicContext } = await import("@/lib/auth/context")
+    for (const clinics of [null, { is_demo: false }, { is_demo: false, plan: "enterprise" }]) {
+      sessao()
+      mockMembership({ clinic_id: "clinic-1", role: "owner", clinics })
+      expect((await requireClinicContext()).plan).toBe("starter")
+    }
+  })
+
   it("lê a marca na mesma consulta do vínculo", async () => {
     sessao()
     const select = vi.fn(() => ({
@@ -265,6 +281,6 @@ describe("requireClinicContext: conta de demonstração", () => {
     const { requireClinicContext } = await import("@/lib/auth/context")
     await requireClinicContext()
     expect(mockFrom).toHaveBeenCalledTimes(1)
-    expect(select).toHaveBeenCalledWith("clinic_id, role, clinics(is_demo)")
+    expect(select).toHaveBeenCalledWith("clinic_id, role, clinics(is_demo, plan)")
   })
 })

@@ -1,3 +1,4 @@
+import type { ClinicPlan } from "@/lib/agent-config/schema"
 import type { ClinicRole } from "@/lib/auth/context"
 import type { ResolvedNavGroup } from "@/lib/navigation/schema"
 import { hrefDaMinhaConta, resolveDashboardNav } from "@/lib/navigation/dashboard-nav"
@@ -11,6 +12,8 @@ export type Painel =
       role: ClinicRole
       /** Conta de demonstração: todo item do menu abre, com o dado de exemplo. */
       demo: boolean
+      /** O plano decide o selo dos itens que exigem plano (CRM). */
+      plano?: ClinicPlan
     }
   | { tipo: "interno" }
 
@@ -20,7 +23,7 @@ export type Painel =
  */
 export function gruposDoPainel(painel: Painel, pathname: string): ResolvedNavGroup[] {
   return painel.tipo === "clinica"
-    ? resolveDashboardNav(painel.role, pathname, { demo: painel.demo })
+    ? resolveDashboardNav(painel.role, pathname, { demo: painel.demo, plano: painel.plano })
     : resolveAdminNav(pathname)
 }
 
@@ -29,9 +32,9 @@ export function gruposDoPainel(painel: Painel, pathname: string): ResolvedNavGro
  * o destino do logo e o de "Minha conta". Um lugar só decide o que muda na
  * conta de demonstração, e o layout só repassa.
  */
-export function shellDaClinica(role: ClinicRole, demo: boolean) {
+export function shellDaClinica(role: ClinicRole, demo: boolean, plano?: ClinicPlan) {
   return {
-    painel: { tipo: "clinica", role, demo } satisfies Painel,
+    painel: { tipo: "clinica", role, demo, plano } satisfies Painel,
     marca: primeiraRotaVisivel(role, demo) ?? "/dashboard",
     conta: hrefDaMinhaConta(demo) ?? undefined,
   }

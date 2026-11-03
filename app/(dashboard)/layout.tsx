@@ -28,7 +28,7 @@ export default async function DashboardLayout({
 
   // Atalho entre os painéis: só para quem é das duas coisas.
   const [daEquipe, clinica] = await Promise.all([isPlatformAdmin(), getCurrentClinic()])
-  const { painel, marca, conta } = shellDaClinica(ctx.role, ctx.isDemo)
+  const { painel, marca, conta } = shellDaClinica(ctx.role, ctx.isDemo, ctx.plan)
 
   return (
     <PanelShell

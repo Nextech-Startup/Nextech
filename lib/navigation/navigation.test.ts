@@ -369,3 +369,29 @@ describe("CRM no menu (spec crm-v1)", () => {
     expect(itens("staff", false).find((i) => i.href === "/dashboard/crm")?.status).toBe("em-breve")
   })
 })
+
+describe("CRM e o plano", () => {
+  const crm = (plano?: "starter" | "pro" | "healthtech") =>
+    resolveDashboardNav("owner", "/dashboard/crm", { plano })
+      .flatMap((g) => g.items)
+      .find((i) => i.href === "/dashboard/crm")
+
+  it("no Starter, aparece com o selo Pro", () => {
+    expect(crm("starter")?.selo).toBe("Pro")
+  })
+  it("no Pro e no HealthTech, sem selo", () => {
+    expect(crm("pro")?.selo).toBeUndefined()
+    expect(crm("healthtech")?.selo).toBeUndefined()
+  })
+  it("sem plano informado (painel interno, chamadas antigas), sem selo", () => {
+    expect(crm()?.selo).toBeUndefined()
+  })
+  it("item sem planos nunca tem selo", () => {
+    const itens = resolveDashboardNav("owner", "/dashboard", { plano: "starter" }).flatMap((g) => g.items)
+    expect(itens.filter((i) => i.href !== "/dashboard/crm").every((i) => i.selo === undefined)).toBe(true)
+  })
+  it("o profissional não vê o item", () => {
+    const itens = resolveDashboardNav("professional", "/dashboard", { plano: "pro" }).flatMap((g) => g.items)
+    expect(itens.map((i) => i.href)).not.toContain("/dashboard/crm")
+  })
+})
