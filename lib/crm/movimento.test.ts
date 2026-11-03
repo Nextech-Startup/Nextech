@@ -4,6 +4,7 @@ import {
   etapasDeDestino,
   lerValorEmCentavos,
   mensagemDoMovimento,
+  montarPedidoDeFechamento,
   validarMovimento,
   type PedidoDeMovimento,
 } from "./movimento"
@@ -152,5 +153,46 @@ describe("mensagemDoMovimento", () => {
     expect(mensagemDoMovimento({ status: "sem-mudanca" })).toBe("Este cartão mudou de etapa antes. O quadro foi atualizado.")
     expect(mensagemDoMovimento({ status: "nao-encontrada" })).toBe("Oportunidade não encontrada.")
     expect(mensagemDoMovimento({ status: "invalido", erro: "Escolha o motivo da perda." })).toBe("Escolha o motivo da perda.")
+  })
+})
+
+describe("montarPedidoDeFechamento (formulário de Ganho/Perdido)", () => {
+  const procs = [CLAREAMENTO]
+  const campos = (c: Partial<{ procedimento: string | null; valor: string | null; motivo: string | null }>) => ({
+    procedimento: null,
+    valor: null,
+    motivo: null,
+    ...c,
+  })
+
+  it("Ganho sem procedimento: erro e nenhum pedido", () => {
+    expect(montarPedidoDeFechamento(op(), "ganho", campos({ valor: "1.200,00" }), procs)).toEqual({ pedido: null, erro: "Escolha o procedimento fechado." })
+  })
+  it("Ganho com procedimento fora da lista: erro", () => {
+    expect(montarPedidoDeFechamento(op(), "ganho", campos({ procedimento: "proc-x", valor: "100" }), procs).erro).toBe("Escolha o procedimento fechado.")
+  })
+  it("Ganho sem valor ou com valor que não é dinheiro: erro", () => {
+    for (const valor of [null, "", "abc", "0"]) {
+      expect(montarPedidoDeFechamento(op(), "ganho", campos({ procedimento: CLAREAMENTO.id, valor }), procs)).toEqual({ pedido: null, erro: "Informe o valor fechado." })
+    }
+  })
+  it('Ganho: "1.200,00" vira 120000 centavos e o pedido passa na regra', () => {
+    const r = montarPedidoDeFechamento(op(), "ganho", campos({ procedimento: CLAREAMENTO.id, valor: "1.200,00" }), procs)
+    expect(r).toEqual({ pedido: { oportunidadeId: "op-1", de: "novo", para: "ganho", procedimento: CLAREAMENTO, valorCentavos: 120000 }, erro: null })
+    expect(validarMovimento(op(), r.pedido!)).toEqual({ status: "ok" })
+  })
+  it("Perdido sem motivo ou com motivo fora da lista: erro", () => {
+    for (const motivo of [null, "caro"]) {
+      expect(montarPedidoDeFechamento(op(), "perdido", campos({ motivo }), procs)).toEqual({ pedido: null, erro: "Escolha o motivo da perda." })
+    }
+  })
+  it("Perdido com motivo: pedido válido", () => {
+    const r = montarPedidoDeFechamento(op(), "perdido", campos({ motivo: "preco" }), procs)
+    expect(r).toEqual({ pedido: { oportunidadeId: "op-1", de: "novo", para: "perdido", motivo: "preco" }, erro: null })
+    expect(validarMovimento(op(), r.pedido!)).toEqual({ status: "ok" })
+  })
+  it("oportunidade já encerrada: a mesma mensagem da regra", () => {
+    const ganha = op({ etapa: "ganho", encerradaEm: AGORA })
+    expect(montarPedidoDeFechamento(ganha, "perdido", campos({ motivo: "preco" }), procs).erro).toBe("Oportunidade encerrada não volta ao funil.")
   })
 })

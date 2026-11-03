@@ -1,5 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
+import { nomeDoPaciente } from "@/lib/crm/cartao"
+import { hrefDoCrm, type FiltroDeEncerradas } from "@/lib/crm/filtros"
 import { faixaDoFunil, resumoDoPeriodo } from "@/lib/crm/metricas"
 import type { Oportunidade } from "@/lib/crm/tipos"
 import { CartaoDaOportunidade } from "./cartao-da-oportunidade"
@@ -143,6 +145,12 @@ describe("MoverPara", () => {
     expect(h).toContain('value="ganho"')
     expect(h).not.toContain('value="agendado"')
   })
+  it("paciente sem nome: o rótulo usa o telefone mascarado, como o cartão", () => {
+    const semNome = op({ paciente: { id: "pac-7", nome: null, telefone: "+5581988887777", optOut: false } })
+    const h = html(<MoverPara op={semNome} aoMover={nada} />)
+    expect(h).toContain(`aria-label="Mover ${nomeDoPaciente(semNome)} para…"`)
+    expect(h).not.toContain("Mover oportunidade")
+  })
 })
 
 describe("ListaDeEncerradas", () => {
@@ -157,6 +165,15 @@ describe("ListaDeEncerradas", () => {
     expect(todas).not.toContain("Motivo da perda")
     const perdidas = html(<ListaDeEncerradas ops={encerradas} filtro={{ resultado: "perdido", motivo: null }} hrefDe={() => "/x"} aoAbrir={nada} />)
     expect(perdidas).toContain("Motivo da perda")
+  })
+  it("os links de resultado e motivo mantêm período e responsável e nunca levam busca", () => {
+    const hrefDe = (f: FiltroDeEncerradas) =>
+      hrefDoCrm("/dashboard/crm", { periodo: 7, responsavel: "meus", vista: "encerradas", ...f })
+    const h = html(<ListaDeEncerradas ops={encerradas} filtro={{ resultado: "perdido", motivo: null }} hrefDe={hrefDe} aoAbrir={nada} />)
+    expect(h).toContain('href="/dashboard/crm?periodo=7&amp;responsavel=meus&amp;vista=encerradas"')
+    expect(h).toContain('href="/dashboard/crm?periodo=7&amp;responsavel=meus&amp;vista=encerradas&amp;resultado=ganho"')
+    expect(h).toContain('href="/dashboard/crm?periodo=7&amp;responsavel=meus&amp;vista=encerradas&amp;resultado=perdido&amp;motivo=preco"')
+    expect(h).not.toContain("q=")
   })
   it("vazio explica o recorte", () => {
     const h = html(<ListaDeEncerradas ops={[]} filtro={{ resultado: "ganho", motivo: null }} hrefDe={() => "/x"} aoAbrir={nada} />)

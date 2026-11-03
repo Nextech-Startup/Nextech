@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { Oportunidade } from "@/lib/crm/tipos"
-import { reduzirCrm, type EstadoDoCrm } from "./estado"
+import { etapaComResultado, reduzirCrm, type EstadoDoCrm } from "./estado"
 
 const AGORA = "2026-09-28T14:32:00-03:00"
 const ANA = { id: "m-ana", nome: "Ana Paula Souza" }
@@ -48,5 +48,23 @@ describe("reduzirCrm", () => {
 
   it("fechar o aviso", () => {
     expect(reduzirCrm(inicial, { tipo: "fechar-aviso" }).aviso).toBeNull()
+  })
+})
+
+describe("etapaComResultado (celular)", () => {
+  const ops = [op("n", "novo"), op("ag", "agendado"), op("c", "compareceu"), { ...op("g", "ganho"), encerradaEm: AGORA }]
+
+  it("a etapa mostrada tem achado: fica", () => {
+    expect(etapaComResultado("agendado", ops, ["ag", "c"])).toBe("agendado")
+  })
+  it("a etapa mostrada não tem: vai para a primeira etapa aberta que tem", () => {
+    // Buscar "mariana" na demonstração acha op-08, em Agendado, com Novo na tela.
+    expect(etapaComResultado("novo", ops, ["c", "ag"])).toBe("agendado")
+  })
+  it("encerrada não conta, porque não está no quadro", () => {
+    expect(etapaComResultado("novo", ops, ["g"])).toBe("novo")
+  })
+  it("nenhum achado: não muda", () => {
+    expect(etapaComResultado("compareceu", ops, [])).toBe("compareceu")
   })
 })

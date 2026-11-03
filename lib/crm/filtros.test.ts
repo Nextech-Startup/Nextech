@@ -9,6 +9,7 @@ import {
   lerResponsavel,
   lerVista,
 } from "./filtros"
+import { DIA_MS } from "./metricas"
 import type { Etapa, Oportunidade } from "./tipos"
 
 const AGORA = "2026-09-28T14:32:00-03:00"
@@ -88,11 +89,22 @@ describe("filtrarEncerradas", () => {
     op("p2", "perdido", { encerradaEm: "2026-09-22T10:00:00-03:00", motivoDePerda: "outro" }),
   ]
   it("só as encerradas, da mais recente para a mais antiga", () => {
-    expect(filtrarEncerradas(ops, { resultado: "todas", motivo: null }).map((o) => o.id)).toEqual(["p1", "p2", "g"])
+    expect(filtrarEncerradas(ops, { resultado: "todas", motivo: null }, AGORA, 30).map((o) => o.id)).toEqual(["p1", "p2", "g"])
   })
   it("por resultado e motivo", () => {
-    expect(filtrarEncerradas(ops, { resultado: "ganho", motivo: null }).map((o) => o.id)).toEqual(["g"])
-    expect(filtrarEncerradas(ops, { resultado: "perdido", motivo: "outro" }).map((o) => o.id)).toEqual(["p2"])
+    expect(filtrarEncerradas(ops, { resultado: "ganho", motivo: null }, AGORA, 30).map((o) => o.id)).toEqual(["g"])
+    expect(filtrarEncerradas(ops, { resultado: "perdido", motivo: "outro" }, AGORA, 30).map((o) => o.id)).toEqual(["p2"])
+  })
+  it("só as encerradas no período, na janela da faixa", () => {
+    // 7 dias: a janela começa em 21/09 às 14:32. g (20/09) fica fora.
+    expect(filtrarEncerradas(ops, { resultado: "todas", motivo: null }, AGORA, 7).map((o) => o.id)).toEqual(["p1", "p2"])
+  })
+  it("fronteira: exatamente `dias` atrás entra; um milissegundo antes, não; no futuro, não", () => {
+    const limite = new Date(Date.parse(AGORA) - 7 * DIA_MS).toISOString()
+    const antes = new Date(Date.parse(AGORA) - 7 * DIA_MS - 1).toISOString()
+    const futuro = new Date(Date.parse(AGORA) + 1).toISOString()
+    const bordas = [op("limite", "ganho", { encerradaEm: limite }), op("antes", "ganho", { encerradaEm: antes }), op("futuro", "ganho", { encerradaEm: futuro })]
+    expect(filtrarEncerradas(bordas, { resultado: "todas", motivo: null }, AGORA, 7).map((o) => o.id)).toEqual(["limite"])
   })
 })
 

@@ -71,6 +71,13 @@ describe("faixaDoFunil", () => {
     expect(faixaDoFunil([], AGORA, 7).etapas.map((e) => e.passagem)).toEqual([null, null, null, null])
   })
 
+  it("perdida que passou por Qualificado entra na base da passagem", () => {
+    // Novo → Qualificado → Perdido: chegou a Qualificado (passou de Novo) e não chegou a Agendado.
+    const perdida = op("q", "2026-09-26T10:00:00-03:00", ["novo", "qualificado", "perdido"], { encerradaEm: "2026-09-27T10:00:00-03:00" })
+    const agendada = op("ag", "2026-09-26T10:00:00-03:00", ["novo", "qualificado", "agendado"])
+    expect(faixaDoFunil([perdida, agendada], AGORA, 7).etapas.map((e) => e.passagem)).toEqual([1, 1 / 2, 0, null])
+  })
+
   it("instante no futuro não está no período", () => {
     const futura = op("z", "2026-09-29T10:00:00-03:00", ["novo"])
     expect(faixaDoFunil([futura], AGORA, 7).etapas[0].passagem).toBeNull()

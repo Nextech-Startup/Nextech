@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
+import { filtrarEncerradas } from "@/lib/crm/filtros"
+import { faixaDoFunil, resumoDoPeriodo } from "@/lib/crm/metricas"
 import { validarMovimento } from "@/lib/crm/movimento"
 import { ETAPAS_ABERTAS, ehEtapaAberta } from "@/lib/crm/tipos"
+import { AGORA as AGORA_DA_FIXTURE } from "./agora"
 import { CONVERSAS } from "./conversas"
 import { OPORTUNIDADES, PROCEDIMENTOS_DO_CRM } from "./crm"
 
@@ -61,5 +64,46 @@ describe("oportunidades de exemplo", () => {
       const para = o.etapa === "novo" ? "qualificado" : "novo"
       expect(validarMovimento(o, { oportunidadeId: o.id, de: o.etapa, para }).status, o.id).toBe("ok")
     }
+  })
+})
+
+describe("7, 30 e 90 dias mudam os números (oportunidades de exemplo)", () => {
+  const faixa = (d: 7 | 30 | 90) => faixaDoFunil(OPORTUNIDADES, AGORA_DA_FIXTURE, d)
+  const resumo = (d: 7 | 30 | 90) => resumoDoPeriodo(OPORTUNIDADES, AGORA_DA_FIXTURE, d)
+
+  it("ganhas e perdidas da faixa", () => {
+    expect([7, 30, 90].map((d) => [faixa(d as 7).ganhas, faixa(d as 7).perdidas])).toEqual([
+      [1, 0],
+      [3, 3],
+      [4, 3],
+    ])
+  })
+
+  it("passagem: a base cresce com o período (em 30 e 90 dias inclui a perdida op-15, que passou por Qualificado)", () => {
+    const passagens = (d: 7 | 30 | 90) => faixa(d).etapas.map((e) => e.passagem)
+    expect(passagens(7)).toEqual([5 / 7, 2 / 5, 0, null])
+    expect(passagens(30)).toEqual([11 / 14, 6 / 11, 4 / 6, null])
+    expect(passagens(90)).toEqual([13 / 17, 7 / 13, 5 / 7, null])
+  })
+
+  it("contagem e valor das colunas não dependem do período", () => {
+    const colunas = (d: 7 | 30 | 90) => faixa(d).etapas.map((e) => [e.contagem, e.valorCentavos])
+    expect(colunas(7)).toEqual(colunas(90))
+  })
+
+  it("resumo: valor ganho, conversão e dias até fechar", () => {
+    expect(resumo(7)).toEqual({ valorGanhoCentavos: 110000, conversao: 0, diasAteFechar: 5.3 })
+    expect(resumo(30)).toEqual({ valorGanhoCentavos: 555000, conversao: 3 / 14, diasAteFechar: 9.5 })
+    expect(resumo(90)).toEqual({ valorGanhoCentavos: 705000, conversao: 4 / 17, diasAteFechar: 10.9 })
+  })
+})
+
+describe("faixa e lista das encerradas sobre as oportunidades de exemplo", () => {
+  it.each([7, 30, 90] as const)("%i dias: o número de ganhas/perdidas é o tamanho da lista", (dias) => {
+    const faixa = faixaDoFunil(OPORTUNIDADES, AGORA_DA_FIXTURE, dias)
+    const lista = (resultado: "ganho" | "perdido") =>
+      filtrarEncerradas(OPORTUNIDADES, { resultado, motivo: null }, AGORA_DA_FIXTURE, dias).length
+    expect(lista("ganho")).toBe(faixa.ganhas)
+    expect(lista("perdido")).toBe(faixa.perdidas)
   })
 })

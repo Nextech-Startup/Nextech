@@ -69,6 +69,12 @@ describe("podeAcessar", () => {
     expect(podeAcessar("staff", "/dashboard/agents")).toBe(false)
     expect(podeAcessar("professional", "/dashboard")).toBe(false)
   })
+
+  it("CRM (spec crm-v1): owner e staff abrem; o profissional não", () => {
+    expect(podeAcessar("owner", "/dashboard/crm")).toBe(true)
+    expect(podeAcessar("staff", "/dashboard/crm")).toBe(true)
+    expect(podeAcessar("professional", "/dashboard/crm")).toBe(false)
+  })
 })
 
 describe("quemAcessa", () => {

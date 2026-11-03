@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const ctx = vi.hoisted(() => ({ valor: { role: "staff", isDemo: true, clinicId: "c" } as Record<string, unknown> }))
 vi.mock("@/lib/auth/context", () => ({ requireClinicContext: vi.fn(async () => ctx.valor) }))
 
+import { redirect } from "next/navigation"
 import { requireClinicContext } from "@/lib/auth/context"
 import { buscar } from "./acoes"
 
@@ -36,12 +37,29 @@ describe("buscar (CRM, demonstração)", () => {
     expect(requireClinicContext).not.toHaveBeenCalled()
   })
 
-  it("a falha não leva o termo para o log", async () => {
+  it("a falha não leva o termo para o log, nem quando a mensagem do erro o repete", async () => {
     const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
-    vi.mocked(requireClinicContext).mockRejectedValueOnce(new Error("sessão caiu"))
+    vi.mocked(requireClinicContext).mockRejectedValueOnce(new Error("falha com Mariana Araújo"))
     const r = await buscar("Mariana Araújo")
     expect(r).toEqual({ ids: [], erro: "Não foi possível buscar. Tente de novo." })
-    expect(JSON.stringify(espiao.mock.calls)).not.toContain("Mariana")
+    expect(espiao).toHaveBeenCalledTimes(1)
+    const logado = JSON.stringify(espiao.mock.calls)
+    expect(logado).not.toContain("Mariana")
+    expect(logado).not.toContain("Araújo")
+    espiao.mockRestore()
+  })
+
+  it("sessão vencida: o redirect para /login segue adiante, não vira erro de busca", async () => {
+    const espiao = vi.spyOn(console, "error").mockImplementation(() => {})
+    let erroDoRedirect: unknown
+    try {
+      redirect("/login")
+    } catch (e) {
+      erroDoRedirect = e
+    }
+    vi.mocked(requireClinicContext).mockRejectedValueOnce(erroDoRedirect)
+    await expect(buscar("mariana")).rejects.toBe(erroDoRedirect)
+    expect(espiao).not.toHaveBeenCalled()
     espiao.mockRestore()
   })
 })
