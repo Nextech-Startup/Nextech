@@ -33,6 +33,13 @@ export const DASHBOARD_NAV: readonly NavGroup[] = [
         status: "pronto",
         roles: ["owner", "staff"],
       },
+      {
+        // spec crm-v1. Parte 1 só na demonstração; a tela real chega na parte 2.
+        label: "CRM",
+        href: "/dashboard/crm",
+        status: "em-breve",
+        roles: ["owner", "staff"],
+      },
       { label: "Agenda", href: "/dashboard/schedule", status: "em-breve" },
       { label: "Pacientes", href: "/dashboard/patients", status: "em-breve" },
     ],

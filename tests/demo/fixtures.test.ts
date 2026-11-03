@@ -8,6 +8,7 @@ import { CONVERSAS } from "@/app/_fixtures/conversas"
 import { ALTERACOES, CONVITES, MEMBROS } from "@/app/_fixtures/equipe"
 import { fichaDoPaciente } from "@/app/_fixtures/fichas"
 import { INTEGRACOES } from "@/app/_fixtures/integracoes"
+import { OPORTUNIDADES } from "@/app/_fixtures/crm"
 import { MINHA_CONTA } from "@/app/_fixtures/minha-conta"
 import { PACIENTES } from "@/app/_fixtures/pacientes"
 import { SEQUENCIAS } from "@/app/_fixtures/sequencias"
@@ -29,6 +30,7 @@ const FIXTURES: Record<string, unknown> = {
   FICHAS: PACIENTES.map((p) => fichaDoPaciente(p.id)),
   INTEGRACOES,
   MINHA_CONTA,
+  OPORTUNIDADES,
   PACIENTES,
   SEQUENCIAS,
   TEMPLATES,

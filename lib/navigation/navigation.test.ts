@@ -24,10 +24,11 @@ describe("mapa do painel da clínica", () => {
     ])
   })
 
-  it("Operação lista visão geral, conversas, agenda e pacientes", () => {
-    expect(rotulos("owner").slice(0, 4)).toEqual([
+  it("Operação lista visão geral, conversas, CRM, agenda e pacientes", () => {
+    expect(rotulos("owner").slice(0, 5)).toEqual([
       "Visão geral",
       "Conversas",
+      "CRM",
       "Agenda",
       "Pacientes",
     ])
@@ -93,6 +94,7 @@ describe("filtro por papel", () => {
     expect(rotulos("staff")).toEqual([
       "Visão geral",
       "Conversas",
+      "CRM",
       "Agenda",
       "Pacientes",
       "Sequências",
@@ -309,6 +311,7 @@ describe("conta de demonstração", () => {
       resolveDashboardNav("owner", "/dashboard"),
     )
     expect(itens("owner", false).filter((i) => i.status === "em-breve").map((i) => i.label)).toEqual([
+      "CRM",
       "Agenda",
       "Pacientes",
       "Sequências",
@@ -346,5 +349,23 @@ describe("item ativo mais específico", () => {
       .flatMap((g) => g.items)
       .filter((i) => i.active)
     expect(ativos.map((i) => i.label)).toEqual(["Perfil da clínica"])
+  })
+})
+
+describe("CRM no menu (spec crm-v1)", () => {
+  it("em Operação, logo abaixo de Conversas, para owner e staff, ainda em breve", () => {
+    const operacao = DASHBOARD_NAV.find((g) => g.label === "Operação")!
+    const hrefs = operacao.items.map((i) => i.href)
+    expect(hrefs.indexOf("/dashboard/crm")).toBe(hrefs.indexOf("/dashboard/conversations") + 1)
+    const crm = operacao.items.find((i) => i.href === "/dashboard/crm")!
+    expect(crm).toMatchObject({ label: "CRM", status: "em-breve", roles: ["owner", "staff"] })
+  })
+
+  it("o profissional não vê o item; na demonstração ele abre", () => {
+    const itens = (role: "owner" | "staff" | "professional", demo: boolean) =>
+      resolveDashboardNav(role, "/dashboard", { demo }).flatMap((g) => g.items)
+    expect(itens("professional", true).some((i) => i.href === "/dashboard/crm")).toBe(false)
+    expect(itens("staff", true).find((i) => i.href === "/dashboard/crm")?.status).toBe("pronto")
+    expect(itens("staff", false).find((i) => i.href === "/dashboard/crm")?.status).toBe("em-breve")
   })
 })

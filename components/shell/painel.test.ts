@@ -26,7 +26,8 @@ describe("shell de uma clínica comum", () => {
   it("o menu continua com os itens em breve", () => {
     const { painel } = shellDaClinica("owner", false)
     // Conversas virou tela real na parte 4 do motor de conversa.
-    expect(itens(painel).filter((i) => i.status === "em-breve")).toHaveLength(7)
+    // CRM entrou como em breve fora da demonstração (spec crm-v1, parte 1).
+    expect(itens(painel).filter((i) => i.status === "em-breve")).toHaveLength(8)
   })
 
   it("sem link de Minha conta e sem selo", () => {

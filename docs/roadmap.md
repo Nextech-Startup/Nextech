@@ -222,9 +222,9 @@ A lentidão dos filtros de Conversas (~1,9 s por clique) vinha de idas em série
 - Consome `duration_minutes` de `Procedure` (`clinic-profile-v1.md`) — **já disponível** desde 2026-09-16, via `getDuracaoDoProcedimento()`, que cai na duração padrão da política quando o procedimento não tem a própria
 - `scheduling_policies` (antecedência mínima, prazo de cancelamento, política de falta) e `professionals.google_calendar_id` — cada profissional pode ter o próprio calendário — também já existem
 
-## CRM próprio — o funil comercial da clínica (spec escrita, 2026-10-11)
+## CRM próprio — o funil comercial da clínica (parte 1 pronta em 2026-11-03)
 - `docs/specs/crm-v1.md`: o que acontece depois da qualificação (Novo, Qualificado, Agendado, Compareceu, Ganho, Perdido), para a clínica que não tem CRM externo. Pro e HealthTech; o dado é gravado em todo plano.
-- Em duas partes: a 1 (oportunidades, automação no banco, quadro com arrastar e menu) e a 2 (números do funil). Falta o Jhones revisar a spec; o plano da parte 1 sai numa sessão nova.
+- Em duas partes: a 1 (a tela completa na conta de demonstração, com dado de exemplo e as regras puras em `lib/crm/`) — **pronta em 2026-11-03** — e a 2 (backend: tabelas, automação no banco, RPC de movimento, tela real e trava de plano). Próxima sessão: o plano da parte 2.
 - É a fonte: na fase 6, o adaptador de CRM externo só espelha para fora, pela interface `CrmAdapter`.
 
 ## Fase 6 — Primeiro CRM adapter
