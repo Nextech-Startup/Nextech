@@ -62,7 +62,7 @@
 **Interfaces:**
 - Produz: os tipos `Etapa`, `EtapaAberta`, `MotivoDePerda`, `Referencia`, `EventoDaOportunidade`, `Oportunidade`, `PedidoDeMovimento` e `ResultadoDoMovimento`; as constantes `ETAPAS`, `ETAPAS_ABERTAS`, `MOTIVOS_DE_PERDA`, `ROTULO_DA_ETAPA` e `ROTULO_DO_MOTIVO`; as funções `ehEtapa`, `ehEtapaAberta`, `ehMotivoDePerda`, `validarMovimento(op, pedido)`, `aplicarMovimento(op, pedido, em, autor)`, `etapasDeDestino(op)`, `lerValorEmCentavos(texto)` e `mensagemDoMovimento(resultado)`.
 
-- [ ] **Passo 1: escrever `lib/crm/tipos.ts`** (só tipos e constantes, sem teste próprio)
+- [x] **Passo 1: escrever `lib/crm/tipos.ts`** (só tipos e constantes, sem teste próprio)
 
 ```ts
 /**
@@ -158,7 +158,7 @@ export type Oportunidade = {
 }
 ```
 
-- [ ] **Passo 2: escrever o teste que falha**, em `lib/crm/movimento.test.ts`
+- [x] **Passo 2: escrever o teste que falha**, em `lib/crm/movimento.test.ts`
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -319,12 +319,12 @@ describe("mensagemDoMovimento", () => {
 })
 ```
 
-- [ ] **Passo 3: rodar e ver falhar**
+- [x] **Passo 3: rodar e ver falhar**
 
 Rode: `npx vitest run lib/crm/movimento.test.ts`
 Esperado: FALHA, com "Failed to resolve import ./movimento".
 
-- [ ] **Passo 4: implementar `lib/crm/movimento.ts`**
+- [x] **Passo 4: implementar `lib/crm/movimento.ts`**
 
 ```ts
 import {
@@ -437,12 +437,12 @@ export function mensagemDoMovimento(r: ResultadoDoMovimento): string | null {
 }
 ```
 
-- [ ] **Passo 5: rodar e ver passar**
+- [x] **Passo 5: rodar e ver passar**
 
 Rode: `npx vitest run lib/crm/movimento.test.ts`
 Esperado: PASSA.
 
-- [ ] **Passo 6: commit**
+- [x] **Passo 6: commit**
 
 ```bash
 git add lib/crm/tipos.ts lib/crm/movimento.ts lib/crm/movimento.test.ts
