@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { Oportunidade } from "@/lib/crm/tipos"
-import { etapaComResultado, reduzirCrm, type EstadoDoCrm } from "./estado"
+import { estadoInicial, etapaComResultado, reduzirCrm, type EstadoDoCrm } from "./estado"
 
 const AGORA = "2026-09-28T14:32:00-03:00"
 const ANA = { id: "m-ana", nome: "Ana Paula Souza" }
@@ -25,7 +25,7 @@ const op = (id: string, etapa: Oportunidade["etapa"]): Oportunidade => ({
   eventos: [{ id: `${id}-e1`, de: null, para: etapa, em: AGORA, autor: null }],
 })
 
-const inicial: EstadoDoCrm = { oportunidades: [op("a", "novo"), op("b", "agendado")], aviso: "antigo" }
+const inicial: EstadoDoCrm = { ...estadoInicial([op("a", "novo"), op("b", "agendado")]), aviso: "antigo" }
 
 describe("reduzirCrm", () => {
   it("move a oportunidade pela regra da lib e limpa o aviso", () => {
@@ -67,5 +67,36 @@ describe("etapaComResultado (celular)", () => {
   })
   it("nenhum achado: não muda", () => {
     expect(etapaComResultado("compareceu", ops, [])).toBe("compareceu")
+  })
+})
+
+describe("sincronizar com o servidor (router.refresh)", () => {
+  it("as props novas substituem o quadro, e o aviso fica", () => {
+    const antes = { ...estadoInicial([op("op-1", "novo")]), aviso: "Este cartão mudou de etapa antes. O quadro foi atualizado." }
+    const novas = [op("op-1", "agendado"), op("op-2", "novo")]
+    const depois = reduzirCrm(antes, { tipo: "sincronizar", oportunidades: novas })
+    expect(depois.oportunidades).toBe(novas)
+    expect(depois.origem).toBe(novas)
+    expect(depois.aviso).toBe(antes.aviso)
+  })
+
+  it("desfaz o movimento otimista que o servidor recusou", () => {
+    const doServidor = [op("op-1", "novo")]
+    const movido = reduzirCrm(estadoInicial(doServidor), {
+      tipo: "mover",
+      pedido: { oportunidadeId: "op-1", de: "novo", para: "agendado" },
+      em: AGORA,
+      autor: { id: "m", nome: "Marina" },
+    })
+    expect(movido.oportunidades[0].etapa).toBe("agendado")
+    expect(movido.origem).toBe(doServidor)
+    const refeito = reduzirCrm(movido, { tipo: "sincronizar", oportunidades: doServidor })
+    expect(refeito.oportunidades[0].etapa).toBe("novo")
+  })
+
+  it("avisar mostra a mensagem do servidor", () => {
+    expect(reduzirCrm(estadoInicial([]), { tipo: "avisar", aviso: "Não foi possível mover. Tente de novo." }).aviso).toBe(
+      "Não foi possível mover. Tente de novo.",
+    )
   })
 })

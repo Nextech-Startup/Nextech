@@ -128,6 +128,30 @@ describe("ResumoDoPeriodo", () => {
   })
 })
 
+describe("ResumoDoPeriodo no celular", () => {
+  it("tem a faixa compacta só abaixo de sm e os KPIs grandes só a partir de sm", () => {
+    const h = renderToStaticMarkup(
+      <ResumoDoPeriodo
+        resumo={{ valorGanhoCentavos: 1240000, conversao: 0.18, diasAteFechar: 9.5 }}
+        periodo={30}
+        hrefDoPeriodo={{ 7: "/a", 30: "/b", 90: "/c" }}
+      />,
+    )
+    expect(h).toMatch(/<dl[^>]*sm:hidden/)
+    expect(h).toMatch(/class="[^"]*hidden[^"]*sm:grid/)
+    expect(h).toContain("Até fechar")
+    expect(h).toContain("9,5 dias")
+  })
+
+  it("sem base, a faixa compacta mostra o traço, nunca zero", () => {
+    const h = renderToStaticMarkup(
+      <ResumoDoPeriodo resumo={{ valorGanhoCentavos: 0, conversao: null, diasAteFechar: null }} periodo={30} hrefDoPeriodo={{ 7: "/a", 30: "/b", 90: "/c" }} />,
+    )
+    const compacta = h.match(/<dl[\s\S]*?<\/dl>/)?.[0] ?? ""
+    expect(compacta.match(/—/g)?.length).toBe(2)
+  })
+})
+
 describe("PainelDaOportunidade", () => {
   it("campos, nota, linha do tempo e o link para a conversa", () => {
     const h = html(<PainelDaOportunidade op={op()} aoFechar={nada} aoMover={nada} />)

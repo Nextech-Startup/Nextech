@@ -36,10 +36,9 @@ export const DASHBOARD_NAV: readonly NavGroup[] = [
       },
       {
         // spec crm-v1. Pro e HealthTech; no Starter, o selo "Pro" e o convite.
-        // Continua "em-breve" até a página real (parte 2, tarefa 6).
         label: "CRM",
         href: "/dashboard/crm",
-        status: "em-breve",
+        status: "pronto",
         roles: ["owner", "staff"],
         planos: ["pro", "healthtech"],
       },

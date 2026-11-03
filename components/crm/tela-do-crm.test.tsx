@@ -1,6 +1,14 @@
 import { renderToStaticMarkup } from "react-dom/server"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
+
+// O renderToStaticMarkup não tem o App Router montado.
+vi.mock("next/navigation", async (original) => ({
+  ...(await original<typeof import("next/navigation")>()),
+  useRouter: () => ({ refresh: vi.fn() }),
+}))
+
 import type { Oportunidade } from "@/lib/crm/tipos"
+import { formularioParaEnvio } from "./formulario-da-oportunidade"
 import { PainelDaOportunidade } from "./painel-da-oportunidade"
 import { TelaDoCrm, type PropsDaTelaDoCrm } from "./tela-do-crm"
 
@@ -89,5 +97,93 @@ describe("PainelDaOportunidade como modal", () => {
     expect(h).toContain("aria-label=\"Oportunidade de Ana Aberta\"")
     expect(h).not.toMatch(/<dialog[^>]* open[ =>]/)
     expect(h).toContain("open:grid")
+  })
+})
+
+const REAL = "4f1c2b6e-9a1d-4c3e-8b7a-2d5e6f708192"
+const gravar = { mover: vi.fn(async () => ({ erro: null })), salvar: vi.fn(async () => ({ erro: null })), equipe: [ANA] }
+const edicao = { procedimentos: [], equipe: [ANA], salvar: gravar.salvar, aoSalvar: () => {} }
+
+describe("tela real", () => {
+  it("mostra o ao vivo quando recebe", () => {
+    const h = renderToStaticMarkup(<TelaDoCrm {...props()} gravar={gravar} aoVivo={<span>pílula-ao-vivo</span>} />)
+    expect(h).toContain("pílula-ao-vivo")
+  })
+})
+
+describe("painel: edição só na oportunidade real", () => {
+  it("real com gravação: o formulário, com a nota no campo", () => {
+    const h = renderToStaticMarkup(
+      <PainelDaOportunidade
+        op={op(REAL, "Gertrudes", "agendado", { nota: "Prefere manhã", valorCentavos: 120050 })}
+        aoFechar={() => {}}
+        aoMover={() => {}}
+        edicao={edicao}
+      />,
+    )
+    expect(h).toMatch(/<textarea[^>]*>Prefere manhã<\/textarea>/)
+    expect(h).toContain('name="valor"')
+    expect(h).toContain("1.200,50")
+    expect(h).toContain(`value="${REAL}"`)
+    expect(h).not.toContain("Editar campos")
+  })
+
+  // Uma textarea com name sempre envia o texto, e "" apagaria a nota
+  // (lerDetalhes: campo vazio = apagar). Sem edição, o campo não vai.
+  it("a nota não muda sem querer: a textarea não tem name", () => {
+    const h = renderToStaticMarkup(
+      <PainelDaOportunidade op={op(REAL, "Gertrudes", "agendado", { nota: "Prefere manhã" })} aoFechar={() => {}} aoMover={() => {}} edicao={edicao} />,
+    )
+    expect(h).toContain("<textarea")
+    expect(h).not.toContain('name="nota"')
+  })
+
+  it("nota ilegível: mostra o aviso, sem campo de nota", () => {
+    const h = renderToStaticMarkup(
+      <PainelDaOportunidade
+        op={op(REAL, "Gertrudes", "agendado", { nota: null, notaIlegivel: true })}
+        aoFechar={() => {}}
+        aoMover={() => {}}
+        edicao={edicao}
+      />,
+    )
+    expect(h).toContain("Nota indisponível")
+    expect(h).not.toContain("<textarea")
+    expect(h).not.toContain('name="nota"')
+  })
+
+  it("de exemplo (ou sem gravação): o botão inerte, sem formulário", () => {
+    const h = renderToStaticMarkup(<PainelDaOportunidade op={op("op-1", "Gertrudes", "agendado")} aoFechar={() => {}} aoMover={() => {}} />)
+    expect(h).toContain("Editar campos")
+    expect(h).not.toContain("<form")
+    expect(h).not.toContain('name="nota"')
+  })
+
+  it("sem edição, a nota ilegível aparece como indisponível, não como vazia", () => {
+    const h = renderToStaticMarkup(
+      <PainelDaOportunidade op={op("op-1", "Gertrudes", "agendado", { nota: null, notaIlegivel: true })} aoFechar={() => {}} aoMover={() => {}} />,
+    )
+    expect(h).toContain("Nota indisponível")
+    expect(h).not.toContain("Sem nota.")
+  })
+})
+
+describe("formularioParaEnvio (a nota só vai quando foi editada)", () => {
+  const form = (nota?: string) => {
+    const f = new FormData()
+    f.set("oportunidade", REAL)
+    if (nota !== undefined) f.set("nota", nota)
+    return f
+  }
+
+  it("sem edição: o campo nota não vai, nem se algo o tiver posto no formulário", () => {
+    expect(formularioParaEnvio(form(), null).has("nota")).toBe(false)
+    expect(formularioParaEnvio(form(""), null).has("nota")).toBe(false)
+    expect(formularioParaEnvio(form(), null).get("oportunidade")).toBe(REAL)
+  })
+
+  it("com edição: o texto editado vai, e o vazio vai vazio (apagar)", () => {
+    expect(formularioParaEnvio(form(), "Prefere tarde").get("nota")).toBe("Prefere tarde")
+    expect(formularioParaEnvio(form(), "").get("nota")).toBe("")
   })
 })

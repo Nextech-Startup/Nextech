@@ -3725,6 +3725,8 @@ Os testes que contam itens "em breve" fora da demonstração (`lib/navigation/na
 Run: `npx vitest run lib/crm lib/conversations/ao-vivo.test.ts "app/(dashboard)/dashboard/crm" tests/architecture lib/navigation components/shell tests/demo`
 Esperado: PASS. O `tsc` só fecha na Tarefa 7.
 
+> **Correção na execução:** (1) `tests/architecture/prototipos.test.ts` exige que a página de item pronto que importa `_fixtures` use a fixture num ramo `if (isDemo)`: a página do passo 8 passou do ternário para dois retornos (`if (isDemo) { … }` e o caminho comum), com as props compartilhadas num objeto `comum`; o comportamento é o mesmo. (2) `tests/architecture/estados.test.ts` procurava `podeAcessar(` na página de rota restrita: passa a aceitar também `acessoAoCrm(`, que confere o papel por `podeAcessar` antes do plano. (3) O inventário "só as telas que existem hoje estão prontas" de `lib/navigation/navigation.test.ts` ganha `/dashboard/crm`, e os casos de "CRM no menu" passam de "em-breve" para "pronto". (4) Teste novo em `acoes.test.ts`: `salvar` sem o campo `nota` não manda `nota` à lib (preserva), e com `nota=""` manda `null` (apaga).
+
 - [ ] **Passo 10: não commitar ainda.** Siga para a Tarefa 7: as props novas da tela (`gravar`, `aoVivo`, `procedimentosDeExemplo`) só existem lá, e o commit sai junto, com o `tsc` limpo.
 
 ---
@@ -4206,6 +4208,8 @@ export function ResumoDoPeriodo({
   )
 }
 ```
+
+> **Correção na execução:** (1) Nota de três estados (Tarefa 5): a `textarea` da nota **não tem `name`**; o texto fica num estado (`null` = não editada) e `formularioParaEnvio(form, nota)` põe o campo só quando a pessoa mexeu (vazio = apagar) e o tira em qualquer outro caso. Com `notaIlegivel`, o formulário mostra "Nota indisponível" e não tem campo de nota; sem edição, o painel mostra "Nota indisponível no momento." em vez de "Sem nota.". O teste do passo 2 que esperava `name="nota"` virou: textarea com o texto e sem `name`; mais casos para a ilegível, para o exemplo sem `<form>` e para `formularioParaEnvio`. (2) O envio é por `onSubmit` com `preventDefault`, e não `action={…}`: o React 19 limpa o formulário ao fim de uma `action`, e a pessoa perderia o que digitou quando o servidor recusa. Depois de salvar, "Campos salvos." (`role="status"`). (3) O formulário tem `key={op.id}`. (4) Na edição, o painel não repete em leitura os campos editáveis (procedimento, valor, responsável, próxima ação, nota); ficam motivo da perda e "Aberta em".
 
 - [ ] **Passo 9: rodar tudo o que a tela toca e o TypeScript**
 

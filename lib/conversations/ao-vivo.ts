@@ -44,20 +44,22 @@ export function agruparChamadas(fn: () => void, ms: number): (() => void) & { ca
 }
 
 /**
- * Entra no canal privado da clínica. O tópico leva o `clinic_id` da
- * sessão, mas quem decide a entrada é a policy do banco: pedir o tópico de
- * outra clínica dá erro de canal, e nada chega. Devolve a função que sai do
- * canal e descarta o refresh pendente.
+ * Entra num canal privado de avisos sem dado. O tópico leva o `clinic_id`
+ * da sessão, mas quem decide a entrada é a policy do banco: pedir o tópico
+ * de outra clínica dá erro de canal, e nada chega. Devolve a função que sai
+ * do canal e descarta o refresh pendente. Usado por Conversas e pelo CRM;
+ * é o único lugar que importa o client do navegador (boundaries.test.ts).
  */
-export function assinarConversas(
-  clinicId: string,
+export function assinarAvisos(
+  topico: string,
+  evento: string,
   ouvintes: { aoMudar: () => void; aoEstado: (e: EstadoDoAoVivo) => void },
 ): () => void {
   const supabase = createBrowserSupabase()
   const aoMudar = agruparChamadas(ouvintes.aoMudar, ESPERA_DO_REFRESH_MS)
   const canal = supabase
-    .channel(topicoDaClinica(clinicId), { config: { private: true } })
-    .on("broadcast", { event: EVENTO_DO_AVISO }, () => aoMudar())
+    .channel(topico, { config: { private: true } })
+    .on("broadcast", { event: evento }, () => aoMudar())
   let encerrada = false
 
   // O canal privado exige o token da sessão no Realtime antes da entrada.
@@ -77,4 +79,12 @@ export function assinarConversas(
     aoMudar.cancelar()
     void supabase.removeChannel(canal)
   }
+}
+
+/** O canal da tela de Conversas. */
+export function assinarConversas(
+  clinicId: string,
+  ouvintes: { aoMudar: () => void; aoEstado: (e: EstadoDoAoVivo) => void },
+): () => void {
+  return assinarAvisos(topicoDaClinica(clinicId), EVENTO_DO_AVISO, ouvintes)
 }

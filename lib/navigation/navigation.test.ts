@@ -136,6 +136,8 @@ describe("itens de tela não construída", () => {
       "/dashboard",
       // conversation-engine-v1, parte 4 (2026-10-11).
       "/dashboard/conversations",
+      // crm-v1, parte 2 (2026-11-03).
+      "/dashboard/crm",
       "/dashboard/agents",
       "/dashboard/settings",
     ])
@@ -311,7 +313,6 @@ describe("conta de demonstração", () => {
       resolveDashboardNav("owner", "/dashboard"),
     )
     expect(itens("owner", false).filter((i) => i.status === "em-breve").map((i) => i.label)).toEqual([
-      "CRM",
       "Agenda",
       "Pacientes",
       "Sequências",
@@ -353,20 +354,20 @@ describe("item ativo mais específico", () => {
 })
 
 describe("CRM no menu (spec crm-v1)", () => {
-  it("em Operação, logo abaixo de Conversas, para owner e staff, ainda em breve", () => {
+  it("em Operação, logo abaixo de Conversas, para owner e staff, tela pronta", () => {
     const operacao = DASHBOARD_NAV.find((g) => g.label === "Operação")!
     const hrefs = operacao.items.map((i) => i.href)
     expect(hrefs.indexOf("/dashboard/crm")).toBe(hrefs.indexOf("/dashboard/conversations") + 1)
     const crm = operacao.items.find((i) => i.href === "/dashboard/crm")!
-    expect(crm).toMatchObject({ label: "CRM", status: "em-breve", roles: ["owner", "staff"] })
+    expect(crm).toMatchObject({ label: "CRM", status: "pronto", roles: ["owner", "staff"] })
   })
 
-  it("o profissional não vê o item; na demonstração ele abre", () => {
+  it("o profissional não vê o item; para owner e staff ele abre, com ou sem demonstração", () => {
     const itens = (role: "owner" | "staff" | "professional", demo: boolean) =>
       resolveDashboardNav(role, "/dashboard", { demo }).flatMap((g) => g.items)
     expect(itens("professional", true).some((i) => i.href === "/dashboard/crm")).toBe(false)
     expect(itens("staff", true).find((i) => i.href === "/dashboard/crm")?.status).toBe("pronto")
-    expect(itens("staff", false).find((i) => i.href === "/dashboard/crm")?.status).toBe("em-breve")
+    expect(itens("staff", false).find((i) => i.href === "/dashboard/crm")?.status).toBe("pronto")
   })
 })
 
@@ -389,6 +390,10 @@ describe("CRM e o plano", () => {
   it("item sem planos nunca tem selo", () => {
     const itens = resolveDashboardNav("owner", "/dashboard", { plano: "starter" }).flatMap((g) => g.items)
     expect(itens.filter((i) => i.href !== "/dashboard/crm").every((i) => i.selo === undefined)).toBe(true)
+  })
+  it("é tela pronta, e acende na própria rota", () => {
+    expect(crm("pro")).toMatchObject({ status: "pronto", active: true })
+    expect(crm("starter")).toMatchObject({ status: "pronto", selo: "Pro" })
   })
   it("o profissional não vê o item", () => {
     const itens = resolveDashboardNav("professional", "/dashboard", { plano: "pro" }).flatMap((g) => g.items)

@@ -1,20 +1,28 @@
 "use client"
 
-import { useMemo, useReducer, useState } from "react"
+import { useMemo, useReducer, useState, type ReactNode } from "react"
+import { useRouter } from "next/navigation"
 import { FiltroSegmentado } from "@/components/patterns/filtro-segmentado"
 import { PageHeader } from "@/components/patterns/page-header"
 import { filtrarEncerradas, filtrarPorResponsavel, hrefDoCrm, type FiltroDeEncerradas, type FiltroDeResponsavel, type Vista } from "@/lib/crm/filtros"
+import { ehIdDoBanco } from "@/lib/crm/ids"
 import { faixaDoFunil, PERIODOS, resumoDoPeriodo, type PeriodoEmDias } from "@/lib/crm/metricas"
 import type { PedidoDeMovimento } from "@/lib/crm/movimento"
 import type { Etapa, EtapaAberta, Oportunidade, Referencia } from "@/lib/crm/tipos"
 import { BuscaDoCrm, type ResultadoDaBuscaDoCrm } from "./busca-do-crm"
-import { etapaComResultado, reduzirCrm } from "./estado"
+import { estadoInicial, etapaComResultado, reduzirCrm } from "./estado"
 import { FaixaDoFunil } from "./faixa-do-funil"
 import { ListaDeEncerradas } from "./lista-de-encerradas"
 import { PainelDaOportunidade } from "./painel-da-oportunidade"
 import { PedidoDeFechamento } from "./pedido-de-fechamento"
 import { Quadro } from "./quadro"
 import { ResumoDoPeriodo } from "./resumo-do-periodo"
+
+export type Gravacao = {
+  mover: (pedido: PedidoDeMovimento) => Promise<{ erro: string | null }>
+  salvar: (form: FormData) => Promise<{ erro: string | null }>
+  equipe: Referencia[]
+}
 
 export type PropsDaTelaDoCrm = {
   oportunidades: Oportunidade[]
@@ -25,17 +33,31 @@ export type PropsDaTelaDoCrm = {
   vista: Vista
   encerradas: FiltroDeEncerradas
   procedimentos: Referencia[]
+  /** Na demonstração, os procedimentos das oportunidades de exemplo. */
+  procedimentosDeExemplo?: Referencia[]
   caminho: string
   buscar: (termo: string) => Promise<ResultadoDaBuscaDoCrm>
+  /** As ações do servidor. Sem elas, nada grava (o protótipo da parte 1). */
+  gravar?: Gravacao
+  /** A pílula do tempo real (AoVivo), montada pela página. */
+  aoVivo?: ReactNode
 }
 
 /**
  * A tela do CRM (spec crm-v1, "A tela"). Responde primeiro quantos estão em
  * cada etapa, quanto isso vale e o que está parado. Os números saem do
- * estado do navegador: mover um cartão atualiza a faixa na hora.
+ * estado do navegador: mover um cartão atualiza a faixa na hora. Com
+ * `gravar`, a oportunidade real grava pelas server actions e a tela relê o
+ * servidor; a de exemplo (id que não é uuid) move só no navegador.
  */
 export function TelaDoCrm(p: PropsDaTelaDoCrm) {
-  const [estado, despachar] = useReducer(reduzirCrm, { oportunidades: p.oportunidades, aviso: null })
+  const router = useRouter()
+  const [estado, despachar] = useReducer(reduzirCrm, p.oportunidades, estadoInicial)
+  // O router.refresh() traz props novas: o servidor é a fonte, e o quadro
+  // volta a ela (inclusive desfazendo o movimento que ele recusou). Ajuste
+  // durante a renderização, como a doc do React recomenda para estado
+  // derivado de props, sem um efeito que pintaria o quadro velho antes.
+  if (estado.origem !== p.oportunidades) despachar({ tipo: "sincronizar", oportunidades: p.oportunidades })
   const [aberta, setAberta] = useState<string | null>(null)
   const [fechando, setFechando] = useState<{ op: Oportunidade; para: "ganho" | "perdido" } | null>(null)
   const [etapaNoCelular, setEtapaNoCelular] = useState<EtapaAberta>("novo")
@@ -57,18 +79,29 @@ export function TelaDoCrm(p: PropsDaTelaDoCrm) {
     if (r && !r.erro) setEtapaNoCelular((atual) => etapaComResultado(atual, doResponsavel, r.ids))
   }
 
-  function mover(pedido: PedidoDeMovimento) {
+  /** As de exemplo fecham com os procedimentos de exemplo; as reais, com os do perfil. */
+  const procedimentosDe = (op: Oportunidade) =>
+    !ehIdDoBanco(op.id) && p.procedimentosDeExemplo ? p.procedimentosDeExemplo : p.procedimentos
+
+  async function mover(pedido: PedidoDeMovimento) {
     despachar({ tipo: "mover", pedido, em: p.agora, autor: p.eu })
+    if (!p.gravar || !ehIdDoBanco(pedido.oportunidadeId)) return
+    const r = await p.gravar.mover(pedido).catch(() => ({ erro: "Não foi possível mover. Tente de novo." }))
+    if (r.erro) despachar({ tipo: "avisar", aviso: r.erro })
+    router.refresh()
   }
 
   function aoMover(op: Oportunidade, para: Etapa) {
     if (para === "ganho" || para === "perdido") return setFechando({ op, para })
-    mover({ oportunidadeId: op.id, de: op.etapa, para })
+    void mover({ oportunidadeId: op.id, de: op.etapa, para })
   }
 
   return (
     <div className="grid gap-6">
-      <PageHeader title="CRM" description="O funil comercial da clínica: de quem escreveu até quem fechou." />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <PageHeader title="CRM" description="O funil comercial da clínica: de quem escreveu até quem fechou." />
+        {p.aoVivo}
+      </div>
 
       <ResumoDoPeriodo
         resumo={resumo}
@@ -134,16 +167,27 @@ export function TelaDoCrm(p: PropsDaTelaDoCrm) {
         />
       )}
 
-      {opAberta && <PainelDaOportunidade op={opAberta} aoFechar={() => setAberta(null)} aoMover={aoMover} />}
+      {opAberta && (
+        <PainelDaOportunidade
+          op={opAberta}
+          aoFechar={() => setAberta(null)}
+          aoMover={aoMover}
+          edicao={
+            p.gravar && ehIdDoBanco(opAberta.id)
+              ? { procedimentos: p.procedimentos, equipe: p.gravar.equipe, salvar: p.gravar.salvar, aoSalvar: () => router.refresh() }
+              : undefined
+          }
+        />
+      )}
 
       {fechando && (
         <PedidoDeFechamento
           op={fechando.op}
           para={fechando.para}
-          procedimentos={p.procedimentos}
+          procedimentos={procedimentosDe(fechando.op)}
           aoCancelar={() => setFechando(null)}
           aoConfirmar={(pedido) => {
-            mover(pedido)
+            void mover(pedido)
             setFechando(null)
           }}
         />

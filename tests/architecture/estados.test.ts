@@ -67,7 +67,8 @@ describe("acesso por papel nas rotas reais", () => {
   it("rota que nem todo papel abre confere o papel na própria página", () => {
     const semGuarda = doPainel.filter((f) => {
       const papeis = papeisDaRota(rotaDoArquivo(f)) ?? []
-      return papeis.length < 3 && !readFileSync(f, "utf8").includes("podeAcessar(")
+      // acessoAoCrm (lib/crm/acesso.ts) confere o papel por podeAcessar antes do plano.
+      return papeis.length < 3 && !/\b(podeAcessar|acessoAoCrm)\(/.test(readFileSync(f, "utf8"))
     })
     expect(semGuarda).toEqual([])
   })

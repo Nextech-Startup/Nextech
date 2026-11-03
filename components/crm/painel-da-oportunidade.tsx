@@ -7,26 +7,34 @@ import { LinhaDoTempo, type EventoDaLinha } from "@/components/patterns/linha-do
 import { ListaDeDados } from "@/components/patterns/lista-de-dados"
 import { StatusBadge } from "@/components/patterns/status-badge"
 import { nomeDoPaciente, tituloDoEvento } from "@/lib/crm/cartao"
-import { ROTULO_DA_ETAPA, ROTULO_DO_MOTIVO, type Etapa, type Oportunidade } from "@/lib/crm/tipos"
+import { ROTULO_DA_ETAPA, ROTULO_DO_MOTIVO, type Etapa, type Oportunidade, type Referencia } from "@/lib/crm/tipos"
 import { formatarDataCurta, formatarHora } from "@/lib/formatters/data"
 import { formatarMoeda } from "@/lib/formatters/numero"
+import { FormularioDaOportunidade } from "./formulario-da-oportunidade"
 import { MoverPara } from "./mover-para"
 
 const quando = (em: string) => `${formatarDataCurta(em)}, ${formatarHora(em)}`
 
 /**
- * O painel lateral do cartão (tela cheia no celular). Na parte 1, os campos
- * são leitura: editar procedimento, valor, responsável, próxima ação e nota
- * chega com as server actions da parte 2.
+ * O painel lateral do cartão (tela cheia no celular). Na oportunidade real,
+ * os campos se editam no formulário; na de exemplo, são leitura.
  */
 export function PainelDaOportunidade({
   op,
   aoFechar,
   aoMover,
+  edicao,
 }: {
   op: Oportunidade
   aoFechar: () => void
   aoMover: (op: Oportunidade, para: Etapa) => void
+  /** Só na oportunidade real com gravação. Na de exemplo, o botão fica inerte. */
+  edicao?: {
+    procedimentos: Referencia[]
+    equipe: Referencia[]
+    salvar: (form: FormData) => Promise<{ erro: string | null }>
+    aoSalvar: () => void
+  }
 }) {
   const eventos: EventoDaLinha[] = [...op.eventos].reverse().map((ev) => ({
     id: ev.id,
@@ -67,30 +75,43 @@ export function PainelDaOportunidade({
         </button>
       </header>
 
+      {/* Na edição, os campos editáveis ficam só no formulário, sem repetir. */}
       <ListaDeDados
         itens={[
-          { termo: "Procedimento", valor: op.procedimento?.nome ?? "Não informado" },
-          { termo: "Valor", valor: op.valorCentavos !== null ? formatarMoeda(op.valorCentavos) : "Não informado" },
-          { termo: "Responsável", valor: op.responsavel?.nome ?? "Sem responsável" },
-          { termo: "Próxima ação", valor: op.proximaAcao ? quando(op.proximaAcao) : "Nenhuma" },
+          ...(edicao
+            ? []
+            : [
+                { termo: "Procedimento", valor: op.procedimento?.nome ?? "Não informado" },
+                { termo: "Valor", valor: op.valorCentavos !== null ? formatarMoeda(op.valorCentavos) : "Não informado" },
+                { termo: "Responsável", valor: op.responsavel?.nome ?? "Sem responsável" },
+                { termo: "Próxima ação", valor: op.proximaAcao ? quando(op.proximaAcao) : "Nenhuma" },
+              ]),
           ...(op.motivoDePerda ? [{ termo: "Motivo da perda", valor: ROTULO_DO_MOTIVO[op.motivoDePerda] }] : []),
           { termo: "Aberta em", valor: quando(op.abertaEm) },
         ]}
       />
 
-      <section className="grid gap-1.5">
-        <h3 className="text-sm font-medium text-ink-1">Nota</h3>
-        <p className="text-sm whitespace-pre-line text-ink-2">{op.nota ?? "Sem nota."}</p>
-      </section>
-
-      <button
-        type="button"
-        disabled
-        title="Protótipo: a edição chega com o backend do CRM"
-        className="justify-self-start rounded-control border border-hairline px-3 py-1.5 text-sm text-ink-3"
-      >
-        Editar campos
-      </button>
+      {edicao ? (
+        // key: outra oportunidade nunca herda a nota editada desta.
+        <FormularioDaOportunidade key={op.id} op={op} {...edicao} />
+      ) : (
+        <>
+          <section className="grid gap-1.5">
+            <h3 className="text-sm font-medium text-ink-1">Nota</h3>
+            <p className="text-sm whitespace-pre-line text-ink-2">
+              {op.notaIlegivel ? "Nota indisponível no momento." : (op.nota ?? "Sem nota.")}
+            </p>
+          </section>
+          <button
+            type="button"
+            disabled
+            title="Oportunidade de exemplo: a edição vale para as reais"
+            className="justify-self-start rounded-control border border-hairline px-3 py-1.5 text-sm text-ink-3"
+          >
+            Editar campos
+          </button>
+        </>
+      )}
 
       {op.conversaId && (
         <Link href={`/dashboard/conversations?c=${op.conversaId}`} className="justify-self-start text-sm font-medium text-ink-1 underline underline-offset-2">
