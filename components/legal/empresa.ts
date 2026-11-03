@@ -13,7 +13,7 @@ export const EMPRESA = {
 } as const
 
 /** Data da publicação do texto. Muda junto com qualquer alteração dele. */
-export const ATUALIZADO_EM = "26/10/2026"
+export const ATUALIZADO_EM = "03/11/2026"
 
 /** Prazo de resposta a pedido de titular (LGPD, art. 19, II). */
 export const PRAZO_DE_RESPOSTA = "15 dias"

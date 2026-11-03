@@ -32,7 +32,7 @@ Toda afirmação de fato (fornecedor, medida de segurança, prazo, mecanismo) pr
 | Isolamento por clínica no banco (RLS por `clinic_id`) e sessão viva | migrations; regra 2 do `CLAUDE.md` |
 | Logs sem conteúdo de mensagem nem dado de paciente | `lib/security` (erro só com tipo e código), regra 3 do `CLAUDE.md` |
 | Acesso de suporte só com justificativa e prazo, registrado na trilha de auditoria | `/admin/audit`, `docs/specs/admin-audit-v1.md` |
-| IA: o conteúdo vai ao modelo só para gerar a resposta, sem retenção e sem treino | `lib/ai/client.ts` (`data_collection: "deny"`, `zdr: true`) |
+| IA: o conteúdo vai ao modelo só para gerar a resposta, sem treino; o Google registra o pedido por tempo limitado, contra abuso (desde 2026-11-03, sem ZDR) | `lib/ai/client.ts` (`data_collection: "deny"`) |
 | Exclusão do paciente redige o conteúdo das conversas | `feat(patients): exclusão redige o conteúdo das conversas do paciente` |
 | Opt-out do paciente vale na hora e em todas as sequências | regra 8 da skill `lgpd-security`, recepção em `lib/conversations` |
 | Urgência escala para um humano da clínica | `feat(conversations): urgência escala a conversa` |

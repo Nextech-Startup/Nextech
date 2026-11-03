@@ -30,7 +30,7 @@ Arquitetura decidida em 2026-09-16, documentada em `docs/superpowers/specs/2026-
   - falha da IA ou do envio passa para a equipe com `ai_failed_at`;
   - a retomada em 24h conta do mais recente entre a ação humana e a falha.
   - a decisão é tomada duas vezes: antes da geração, pela regra pura, e na reserva, com paciente, agente e conversa travados nessa ordem. A reserva é a palavra final, faz a retomada e devolve telefone e credencial para o envio. Achado da revisão de segurança.
-- **OpenRouter:** toda chamada com `data_collection: "deny"` e `zdr: true`, fixos no código. O modelo vem só da env. O modelo não recebe telefone nem nome do paciente.
+- **OpenRouter:** toda chamada com `data_collection: "deny"`, fixo no código (sem `zdr` desde 2026-11-03, ver Qualificação). O modelo vem só da env. O modelo não recebe telefone nem nome do paciente.
 - **A conexão do WhatsApp prova a posse do número** na Graph API. Credencial inventada não conecta mais, nem em staging.
 - **Parte 3 (2026-09-27):**
   - opt-out e urgência são detectados **na recepção, antes do 200**, e não na resposta: a marca nunca se perde num `after()` que morreu;
@@ -41,10 +41,10 @@ Arquitetura decidida em 2026-09-16, documentada em `docs/superpowers/specs/2026-
   - o reenvio da Meta agenda a resposta enquanto a mensagem não tem resposta nem reserva;
   - a `confirm_ai_reply` não fecha sessão vencida (só não conta nela): quem fecha é a recepção, pelo `occurred_at`, ou o cron. Fechar pelo relógio do envio abria atendimento a mais com mensagem atrasada.
 - **Qualificação (2026-09-27, decisões do Jhones):**
-  - **mesma chamada** ao OpenRouter, com saída estruturada (`response_format` `json_schema` estrito, `{ resposta, intencao_de_agendar }`) e `provider.require_parameters: true` só quando há formato. O `zdr` e o `deny` continuam fixos, e o JSON é validado do nosso lado (`lerSaidaDoModelo`);
+  - **mesma chamada** ao OpenRouter, com saída estruturada (`response_format` `json_schema` estrito, `{ resposta, intencao_de_agendar }`) e `provider.require_parameters: true` só quando há formato. O `deny` continua fixo, e o JSON é validado do nosso lado (`lerSaidaDoModelo`);
   - `qualified_at` é gravado **logo depois da geração**, antes da reserva, com `is null`. Vale mesmo que a resposta não saia, e a falha ao gravar só loga;
   - `finish_reason: "length"` é falha da IA (`resposta-truncada`): texto cortado nunca sai;
-  - em 2026-09-27, só os 4 endpoints Vertex do Gemini 2.5 Flash eram ZDR, todos com saída estruturada. Conferir o modelo de produção antes do go-live.
+  - Sem ZDR desde 2026-11-03 (decisão do Jhones): o `google/gemini-2.5-flash` perdeu os endpoints do Vertex, os únicos com retenção zero, e só o Google AI Studio o serve. O AI Studio pago não usa o conteúdo para melhorar produtos, mas registra pedido e resposta por tempo limitado contra abuso; a política de privacidade diz isso. Voltar ao ZDR é trocar de modelo (ver `docs/infra-setup.md`).
 - **Parte 4, tela de Conversas (2026-10-11):**
   - **Tempo real por Broadcast privado por clínica** (`conversas:<clinic_id>`, trigger com `realtime.send`, policy em `realtime.messages`), sem dado no aviso: a tela só faz `router.refresh()` e o servidor redesenha decifrado. O `postgres_changes` mandava ao anônimo um envelope a cada mudança de qualquer clínica (decisão do Jhones);
   - **ações do painel = RPC de linha única:** `update … where <estado esperado>` mais o evento em `conversation_events`, na mesma transação. Trava só a conversa, então não entra na ordem de trava da IA. A resposta é `ok`, `sem-mudanca` ou `nao-encontrada`;

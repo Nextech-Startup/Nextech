@@ -114,7 +114,9 @@ export default function PoliticaDePrivacidade() {
         </p>
         <p>
           O conteúdo da conversa é enviado ao modelo de inteligência artificial só para gerar a resposta. Exigimos do
-          provedor que não guarde esse conteúdo e não o use para treinar modelos.
+          provedor que não use esse conteúdo para treinar modelos. O provedor do modelo (Google) mantém um registro
+          do pedido e da resposta por tempo limitado, só para detectar e prevenir abuso do serviço e para cumprir
+          exigência legal, e depois o descarta.
         </p>
         <p>
           A equipe da clínica pode assumir qualquer conversa a qualquer momento, pelo painel ou respondendo pelo

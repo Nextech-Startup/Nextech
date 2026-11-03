@@ -6,9 +6,16 @@ import type { MensagemDoModelo } from "@/lib/agent-config/prompt"
  * modelo e de provedor por configuração.
  *
  * O que sai daqui é dado de saúde. Toda chamada exige provedor que não
- * guarda nem treina com o dado (`data_collection: "deny"`) e endpoint de
- * retenção zero (`zdr: true`). É política, não escolha de modelo, e por
- * isso fica fixa aqui (lgpd-security: revisar o que sai da infraestrutura).
+ * treina com o dado (`data_collection: "deny"`). É política, não escolha de
+ * modelo, e por isso fica fixa aqui (lgpd-security: revisar o que sai da
+ * infraestrutura).
+ *
+ * Sem `zdr: true` (decisão do Jhones, 2026-11-03): o Gemini 2.5 Flash
+ * perdeu os endpoints do Vertex, os únicos com retenção zero, e hoje só o
+ * Google AI Studio o serve. O AI Studio pago registra o pedido por tempo
+ * limitado, só contra abuso, e a política de privacidade diz isso. Voltar
+ * a exigir ZDR é trocar o modelo por um que o tenha, junto com o texto
+ * da política (`tests/legal/paginas-legais.test.tsx` confere os dois).
  *
  * Com `formato`, o pedido exige saída estruturada (JSON schema estrito) e
  * `require_parameters`: sem ele, um provedor que ignora o `response_format`
@@ -83,7 +90,7 @@ export async function gerarResposta(
             json_schema: { name: formato.nome, strict: true, schema: formato.schema },
           },
         }),
-        provider: { data_collection: "deny", zdr: true, ...(formato && { require_parameters: true }) },
+        provider: { data_collection: "deny", ...(formato && { require_parameters: true }) },
       }),
       signal: AbortSignal.timeout(TEMPO_MAXIMO_MS),
     })

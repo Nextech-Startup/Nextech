@@ -149,7 +149,7 @@ Plano: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-2.md`.
 - **Falha da IA ou do envio:** a conversa passa para a equipe sem mandar nada ao paciente. Erro inesperado e `failed` avisado depois pela Meta também. O wrapper é conservador: qualquer erro gera alerta, inclusive falso positivo.
 - **Revisões:** segurança com conferência; QA com os achados tratados, mas a conferência dessas correções fica para a próxima sessão.
 - **LGPD:**
-  - o OpenRouter é chamado com `data_collection: "deny"` e `zdr: true`;
+  - o OpenRouter é chamado com `data_collection: "deny"` (o `zdr: true` saiu em 2026-11-03, ver as pendências);
   - o modelo não recebe telefone nem nome;
   - o log leva só tipo e código.
 - **Prova de posse do número na conexão** (`connectWhatsapp`), que fecha o achado S1 da parte 1.
@@ -171,7 +171,7 @@ Planos: `docs/superpowers/plans/2026-09-27-motor-de-conversa-parte-3.md` e `docs
 - **Revisões:** `security-reviewer` e `qa-reviewer`, com conferência. Os achados e as decisões estão no status da execução do plano.
 - **Qualificação (`qualified_at`):**
   - a mesma chamada ao OpenRouter devolve `{ resposta, intencao_de_agendar }` por saída estruturada, com `require_parameters`;
-  - o `zdr` e o `deny` seguem fixos, e o JSON é validado do nosso lado;
+  - o `deny` segue fixo, e o JSON é validado do nosso lado;
   - a gravação acontece logo depois da geração, uma vez só, e vale mesmo que a resposta não saia;
   - resposta cortada pelo limite de tokens nunca sai: vira falha da IA;
   - é a fonte do funil do `dashboard-overview-v1.md`.
@@ -311,12 +311,12 @@ Spec `docs/specs/evolution-demo-v1.md`; plano `docs/superpowers/plans/2026-10-11
 - [ ] **Antes de assinar o webhook da Meta em produção (bloqueio de go-live):**
   - ~~a triagem de urgência, o opt-out e a varredura das respostas `pending`~~: entraram na parte 3 da 3b;
   - ~~a qualificação~~: entrou na parte 3 da 3b;
-  - **conferir o `OPENROUTER_MODEL` de produção:** a resposta exige endpoint com ZDR e saída estruturada ao mesmo tempo. Sem nenhum, todo pedido falha fechado e toda conversa vai para a equipe. Em 2026-09-27, o `google/gemini-2.5-flash` tinha 4 endpoints assim, todos do Google Vertex. Observação da revisão de segurança da qualificação;
+  - ~~conferir o `OPENROUTER_MODEL` de produção~~: em 2026-11-03 o `google/gemini-2.5-flash` não tinha mais endpoint ZDR, e toda chamada falhava. Sem ZDR desde 2026-11-03 (decisão do Jhones): o `google/gemini-2.5-flash` perdeu os endpoints do Vertex, os únicos com retenção zero, e só o Google AI Studio o serve. O AI Studio pago não usa o conteúdo para melhorar produtos, mas registra pedido e resposta por tempo limitado contra abuso; a política de privacidade diz isso;
   - ~~a parte 4 (tela de Conversas)~~: entrou em 2026-10-11. A equipe desfaz a urgência pelo painel ("Marcar como resolvida"), e a urgente fica no topo da fila;
   - a correção da posse do WhatsApp e o MFA no painel interno (itens acima);
   - a triagem de áudio, que vem com a transcrição (parte 5). Até lá, áudio com relato de urgência não escala;
   - o limite de atendimentos do plano (fase 7). Até lá, a IA responde sem conferir o limite
-- [ ] **Envs da IA e da Meta na Vercel**, nos três ambientes: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` e `WHATSAPP_API_VERSION`, e o ZDR do grupo Google na conta do OpenRouter. Passo a passo em `docs/infra-setup.md`
+- [ ] **Envs da IA e da Meta na Vercel**, nos três ambientes: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` e `WHATSAPP_API_VERSION`. Passo a passo em `docs/infra-setup.md`
 - [ ] **`MESSAGE_CONTENT_ENCRYPTION_KEY` na Vercel**, nos três ambientes, uma chave por ambiente. Sem ela, o webhook responde 500 a toda mensagem. Passo a passo em `docs/infra-setup.md`, seção da Meta
 
 - [x] ~~**Revisar o PR #4**~~ — mergeado em 2026-09-16 (commit `80f2423`), com fase 3c, `patient-v1` e `clinic-profile-v1`. `main` e `staging` estão no mesmo ponto

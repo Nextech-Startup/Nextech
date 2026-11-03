@@ -53,9 +53,9 @@ Duas classes de segredo, que não se misturam:
 - [ ] Confirmar o percentual de margem que o OpenRouter cobra sobre o preço do provedor — entra na conta de custo por atendimento, junto com o custo do WhatsApp (ver skill `lgpd-security` e `integrations`).
 - [ ] Verificar sintaxe atual de cache de prompt pro Gemini via OpenRouter, se for usar (mecanismo diferente do `cache_control` da Anthropic).
 - [ ] Na Vercel, nos três ambientes: `OPENROUTER_API_KEY` e `OPENROUTER_MODEL` (hoje `google/gemini-2.5-flash`). O client (`lib/ai/client.ts`, motor de conversa, parte 2) não tem valor padrão: sem as duas, toda resposta da IA falha e a conversa passa para a equipe.
-- [ ] Na conta do OpenRouter, em Privacy, ligar a retenção zero (ZDR) do grupo de modelos Google, como segunda camada. O código já exige `data_collection: "deny"` e `zdr: true` em toda chamada. Pela documentação conferida em 2026-09-27, o Gemini tem endpoint ZDR pelo Vertex (o AI Studio não tem).
+- [ ] Na conta do OpenRouter, em Privacy, **não** ligar a retenção zero (ZDR) como exigência da conta enquanto o modelo for o `gemini-2.5-flash`: ele não tem endpoint ZDR, e a exigência derruba toda chamada (404). O código exige `data_collection: "deny"` em toda chamada. Sem ZDR desde 2026-11-03 (decisão do Jhones): o `google/gemini-2.5-flash` perdeu os endpoints do Vertex, os únicos com retenção zero, e só o Google AI Studio o serve. O AI Studio pago não usa o conteúdo para melhorar produtos, mas registra pedido e resposta por tempo limitado contra abuso; a política de privacidade diz isso.
 - [ ] Na conta do OpenRouter, conferir que o registro de prompts e respostas (logging de input/output) está desligado. O conteúdo é dado de saúde.
-- [ ] Na primeira chamada real, conferir que o modelo configurado responde com `zdr: true`. Se nenhum endpoint do modelo tiver ZDR, a chamada falha, e é preciso escolher outro modelo, e não tirar o `zdr`.
+- [ ] Para voltar ao ZDR: trocar o `OPENROUTER_MODEL` por um modelo com endpoint ZDR (em 2026-11-03, `google/gemini-3.5-flash-lite`, 3.7 e 3.8 Flash tinham, pelo Vertex, e transcreveram áudio e responderam com saída estruturada), recolocar `zdr: true` em `lib/ai/client.ts` e voltar o texto da política; o `tests/legal/paginas-legais.test.tsx` obriga os dois a andarem juntos.
 
 ## Resend (e-mail transacional)
 - [ ] Criar conta.

@@ -116,10 +116,18 @@ describe("/privacidade", () => {
     expect(texto(privacidade).includes(nome)).toBe(marca.test(codigoDoProduto()))
   })
 
-  it("a IA vai ao modelo sem retenção e sem treino, como o cliente pede ao OpenRouter", () => {
-    expect(texto(privacidade)).toMatch(/não guarde esse conteúdo e não o use para treinar/)
+  // Sem ZDR desde 2026-11-03: a política declara o registro por tempo
+  // limitado do Google. Se o `zdr: true` voltar ao cliente, a política pode
+  // voltar a prometer retenção zero, e este teste obriga a mudar os dois.
+  it("a IA vai ao modelo sem treino, e a política diz o que o provedor retém", () => {
     const cliente = readFileSync("lib/ai/client.ts", "utf8")
-    expect(cliente).toContain('data_collection: "deny", zdr: true')
+    expect(cliente).toContain('data_collection: "deny"')
+    expect(texto(privacidade)).toMatch(/não use esse conteúdo para treinar modelos/)
+    // Só a linha do pedido conta: o comentário do cliente cita o `zdr`.
+    const linhaDoProvedor = cliente.split("\n").find((l) => l.trim().startsWith("provider:")) ?? ""
+    expect(linhaDoProvedor).toContain('data_collection: "deny"')
+    const comZdr = /zdr:\s*true/.test(linhaDoProvedor)
+    expect(/mantém um registro do pedido e da resposta por tempo limitado/.test(texto(privacidade))).toBe(!comZdr)
   })
 
   it("os cookies descritos são os que o código grava", () => {

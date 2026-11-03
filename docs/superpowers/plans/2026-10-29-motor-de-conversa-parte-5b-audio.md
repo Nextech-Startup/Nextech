@@ -2,7 +2,7 @@
 
 > **Para quem executa:** SUB-SKILL OBRIGATÓRIA: `superpowers:executing-plans`, tarefa por tarefa. Carregue `lgpd-security` antes de qualquer tarefa, `integrations` antes das tarefas 1 a 3 e `supabase-postgres-best-practices` antes da tarefa 4. Os passos usam checkbox (`- [ ]`).
 
-## Status: 📝 plano escrito em 2026-10-29, não iniciado
+## Status: 🟡 em execução desde 2026-11-03 (decisões ⚖️ confirmadas pelo Jhones)
 
 **Decisões tomadas pela recomendação, com o Jhones fora** (memória `jhones-prefere-alternativas`). Revisar antes de executar: estão marcadas com ⚖️ abaixo.
 
@@ -44,11 +44,16 @@ Hoje o áudio do paciente chega ao modelo como "[áudio, que ainda não pode ser
 
 ## Tarefas
 
-### Tarefa 1: Sonda do formato (sem commit de produto)
-- [ ] Gravar um áudio real de WhatsApp (o chip da demonstração, pela Evolution) e guardar o `.ogg` fora do repositório.
-- [ ] Script no scratchpad: mandar o `.ogg` ao `google/gemini-2.5-flash` pelo OpenRouter com `format: "ogg"` e pedir a transcrição literal.
-- [ ] Se recusar ou transcrever mal: repetir pelo endpoint de STT do OpenRouter. Registrar no plano qual caminho venceu, com o custo por minuto observado.
-- [ ] Nada de áudio real de paciente na sonda: só o da equipe.
+### Tarefa 1: Sonda do formato (sem commit de produto) ✅ 2026-11-03
+
+**Resultado:** o `google/gemini-2.5-flash` aceita o Opus em OGG do WhatsApp direto em `input_audio` com `format: "ogg"`, sem conversão. Um PTT de ~5 s (11 KB) virou 159 tokens de áudio e foi transcrito literalmente ("Oi, oi, teste 1, 2, 3.") em ~2,5 s, por US$ 0,0002 (~US$ 0,002 por minuto de áudio). O endpoint de STT do OpenRouter não foi preciso.
+
+**Achado da sonda:** com `zdr: true`, toda chamada ao 2.5 Flash (texto e áudio) voltava 404: o modelo perdeu os endpoints do Vertex, os únicos com ZDR. O Jhones decidiu manter o 2.5 Flash e tirar o `zdr` (commit próprio, com a política de privacidade). Os Gemini 3.5 Flash Lite, 3.7 e 3.8 Flash têm ZDR e também transcreveram certo, para quando quiser voltar.
+
+- [x] Gravar um áudio real de WhatsApp (o chip da demonstração, pela Evolution) e guardar o `.ogg` fora do repositório.
+- [x] Script no scratchpad: mandar o `.ogg` ao `google/gemini-2.5-flash` pelo OpenRouter com `format: "ogg"` e pedir a transcrição literal.
+- [x] Se recusar ou transcrever mal: repetir pelo endpoint de STT do OpenRouter. Registrar no plano qual caminho venceu, com o custo por minuto observado.
+- [x] Nada de áudio real de paciente na sonda: só o da equipe.
 
 ### Tarefa 2: Download da mídia
 - [ ] Testes primeiro (`lib/whatsapp/midia.test.ts`): Meta em duas etapas com o Bearer do agente; Evolution; recusa acima de 5 MB sem ler o resto do corpo; erro da Meta sem o token no erro nem no log.
