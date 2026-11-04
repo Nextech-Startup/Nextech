@@ -155,7 +155,6 @@ export function EditorDeTemplate({
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_17rem]">
         <form onSubmit={submeter} className="grid content-start gap-5">
           <input type="hidden" name="template_id" value={template?.id ?? ""} />
-          <input type="hidden" name="status" value={status} />
           {!rascunho && (
             <>
               {/* Depois do envio, nome, agente, uso e categoria são os da Meta. */}

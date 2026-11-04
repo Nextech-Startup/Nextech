@@ -11,6 +11,7 @@ import type { TemplateNoBanco, VariavelDoCatalogo } from "./tipos"
  */
 
 export type MotivoDeRecusa =
+  | "outra_clinica"
   | "paciente_saiu"
   | "canal_sem_template"
   | "nao_aprovado"
@@ -27,12 +28,14 @@ export type EnvioPreparado = { ok: true; parametros: string[] } | { ok: false; m
  * matrícula, e não registrar como falha de template o que é saída do paciente.
  */
 export function prepararEnvioDeTemplate(p: {
-  template: Pick<TemplateNoBanco, "status" | "wabaId" | "usage" | "variables">
-  agente: { wabaId: string | null; phoneNumberId: string }
+  template: Pick<TemplateNoBanco, "clinicId" | "status" | "wabaId" | "usage" | "variables">
+  agente: { clinicId: string; wabaId: string | null; phoneNumberId: string }
   plano: ClinicPlan
   paciente: { optedOut: boolean; anonimizado: boolean }
   valores: ValoresDasVariaveis
 }): EnvioPreparado {
+  // Duas clínicas podem dividir uma WABA: o par WABA não basta.
+  if (p.template.clinicId !== p.agente.clinicId) return { ok: false, motivo: "outra_clinica" }
   if (p.paciente.optedOut || p.paciente.anonimizado) return { ok: false, motivo: "paciente_saiu" }
   if (canalDoAgente(p.agente.phoneNumberId) === "evolution") return { ok: false, motivo: "canal_sem_template" }
   if (p.template.status !== "approved") return { ok: false, motivo: "nao_aprovado" }

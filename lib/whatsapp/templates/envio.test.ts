@@ -5,8 +5,8 @@ import type { StatusDoTemplate, UsoDoTemplate, VariavelDoCatalogo } from "./tipo
 type Entrada = Parameters<typeof prepararEnvioDeTemplate>[0]
 
 const base: Entrada = {
-  template: { status: "approved", wabaId: "w", usage: "follow_up", variables: ["primeiro_nome_paciente"] },
-  agente: { wabaId: "w", phoneNumberId: "123" },
+  template: { clinicId: "c", status: "approved", wabaId: "w", usage: "follow_up", variables: ["primeiro_nome_paciente"] },
+  agente: { clinicId: "c", wabaId: "w", phoneNumberId: "123" },
   plano: "starter",
   paciente: { optedOut: false, anonimizado: false },
   valores: { primeiro_nome_paciente: "Mariana" },
@@ -32,13 +32,13 @@ describe("prepararEnvioDeTemplate", () => {
     expect(prepararEnvioDeTemplate(com({ template: { ...base.template, status } }))).toEqual({ ok: false, motivo: "nao_aprovado" }))
 
   it("agente na Evolution → canal_sem_template", () => {
-    expect(prepararEnvioDeTemplate(com({ agente: { wabaId: "w", phoneNumberId: "evolution:demo" } })))
+    expect(prepararEnvioDeTemplate(com({ agente: { clinicId: "c", wabaId: "w", phoneNumberId: "evolution:demo" } })))
       .toEqual({ ok: false, motivo: "canal_sem_template" })
   })
 
   it("WABA diferente ou agente sem WABA → outra_waba", () => {
-    expect(prepararEnvioDeTemplate(com({ agente: { wabaId: "z", phoneNumberId: "123" } }))).toEqual({ ok: false, motivo: "outra_waba" })
-    expect(prepararEnvioDeTemplate(com({ agente: { wabaId: null, phoneNumberId: "123" } }))).toEqual({ ok: false, motivo: "outra_waba" })
+    expect(prepararEnvioDeTemplate(com({ agente: { clinicId: "c", wabaId: "z", phoneNumberId: "123" } }))).toEqual({ ok: false, motivo: "outra_waba" })
+    expect(prepararEnvioDeTemplate(com({ agente: { clinicId: "c", wabaId: null, phoneNumberId: "123" } }))).toEqual({ ok: false, motivo: "outra_waba" })
   })
 
   it.each<UsoDoTemplate>(["lembrete", "recall", "reativacao"])("%s no Starter → uso_fora_do_plano", (usage) =>
@@ -58,11 +58,16 @@ describe("prepararEnvioDeTemplate", () => {
     expect(prepararEnvioDeTemplate(com({ paciente: { optedOut: false, anonimizado: true } }))).toEqual({ ok: false, motivo: "paciente_saiu" })
   })
 
+  it("template de outra clínica na mesma WABA → outra_clinica, antes de tudo", () => {
+    expect(prepararEnvioDeTemplate(com({ agente: { clinicId: "outra", wabaId: "w", phoneNumberId: "123" } })))
+      .toEqual({ ok: false, motivo: "outra_clinica" })
+  })
+
   it("paciente_saiu vem antes de nao_aprovado e de canal_sem_template", () => {
     const r = prepararEnvioDeTemplate(com({
       paciente: { optedOut: true, anonimizado: false },
       template: { ...base.template, status: "draft" },
-      agente: { wabaId: "w", phoneNumberId: "evolution:demo" },
+      agente: { clinicId: "c", wabaId: "w", phoneNumberId: "evolution:demo" },
     }))
     expect(r).toEqual({ ok: false, motivo: "paciente_saiu" })
   })

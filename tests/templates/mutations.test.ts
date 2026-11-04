@@ -197,13 +197,17 @@ describe("mutations de templates", () => {
         .rejects.toMatchObject({ codigo: "estado_nao_permite" })
     })
 
-    it("owner de A não salva o template de B", async () => {
+    it("owner de A não toca no template de B, em nenhuma ação", async () => {
       const { d: dB } = deps(b)
       const { id } = await criarTemplate(entrada({ agentId: b.agente }), dB)
-      const { d } = deps(a)
-      await expect(salvarTemplate(id, entrada(), d)).rejects.toMatchObject({ codigo: "nao_encontrado" })
-      await expect(excluirTemplate(id, d)).rejects.toMatchObject({ codigo: "nao_encontrado" })
-      expect(await linha(id)).not.toBeNull()
+      const { d: dA, m } = deps(a)
+      await expect(salvarTemplate(id, entrada(), dA)).rejects.toMatchObject({ codigo: "nao_encontrado" })
+      await expect(enviarParaAprovacao(id, dA)).rejects.toMatchObject({ codigo: "nao_encontrado" })
+      await expect(conferirNaMeta(id, dA)).rejects.toMatchObject({ codigo: "nao_encontrado" })
+      await expect(duplicarTemplate(id, dA)).rejects.toMatchObject({ codigo: "nao_encontrado" })
+      await expect(excluirTemplate(id, dA)).rejects.toMatchObject({ codigo: "nao_encontrado" })
+      for (const f of Object.values(m)) expect(f).not.toHaveBeenCalled()
+      expect(await linha(id)).toMatchObject({ status: "draft", clinic_id: b.id })
     })
   })
 
@@ -300,6 +304,17 @@ describe("mutations de templates", () => {
       expect(await linha(id)).toMatchObject({
         status: "pending_review", meta_template_id: antes.meta_template_id, rejection_reason: null, rejection_detail: null,
       })
+    })
+
+    it("o reenvio de MARKETING leva o rodapé de opt-out na edição", async () => {
+      const { d, m } = deps(a)
+      const id = await enviado("rejected", { usage: "recall", category: "MARKETING", body: "Oi, {{1}}! Hora do retorno." })
+      await enviarParaAprovacao(id, d)
+      const componentes = (m.editar.mock.calls[0] as [unknown, unknown[]])[1]
+      expect(componentes).toEqual([
+        { type: "BODY", text: "Oi, {{1}}! Hora do retorno.", example: { body_text: [["Mariana"]] } },
+        { type: "FOOTER", text: RODAPE_DE_OPT_OUT },
+      ])
     })
 
     it("pausado também reenvia pela edição", async () => {

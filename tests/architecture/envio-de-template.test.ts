@@ -28,12 +28,21 @@ const CHAMADORES_AUTORIZADOS: string[] = []
 
 describe("porta de envio de template", () => {
   it("só os chamadores autorizados chamam enviarTemplate, e todos passam pelo preparo", () => {
-    const arquivos = [...walk("app"), ...walk("lib"), ...walk("components")].map(normalizar)
+    const arquivos = [...walk("app"), ...walk("lib"), ...walk("components"), ...walk("scripts")].map(normalizar)
+    // Qualquer menção ao nome, e não só a chamada: `{ enviar: enviarTemplate }`
+    // e `import { enviarTemplate as enviar }` também contam.
+    // Comentário não conta: a documentação cita a porta pelo nome.
+    const codigo = (f: string) => readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "")
     const chamadores = arquivos.filter(
-      (f) => !f.endsWith("lib/whatsapp/client.ts") && /\benviarTemplate\s*\(/.test(readFileSync(f, "utf8")),
+      (f) => !f.endsWith("lib/whatsapp/client.ts") && /\benviarTemplate\b/.test(codigo(f)),
     )
     expect(chamadores.filter((f) => !CHAMADORES_AUTORIZADOS.some((ok) => f.endsWith(ok)))).toEqual([])
     for (const f of chamadores) expect(readFileSync(f, "utf8")).toMatch(/\bprepararEnvioDeTemplate\s*\(/)
+  })
+
+  it("a varredura roda na raiz do projeto (senão passaria vazia)", () => {
+    expect(existsSync("lib/whatsapp/client.ts")).toBe(true)
+    expect(walk("lib").length).toBeGreaterThan(50)
   })
 
   it("o client não monta texto livre no envio de template", () => {

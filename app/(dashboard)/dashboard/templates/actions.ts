@@ -76,15 +76,13 @@ const destino = (id: string) => `${ROTA}?t=${encodeURIComponent(id)}`
 export async function salvarOuEnviarAction(_anterior: EstadoDoTemplate, fd: FormData): Promise<EstadoDoTemplate> {
   const id = texto(fd, "template_id")
   const enviar = texto(fd, "intent") === "enviar"
-  const status = texto(fd, "status")
   let novo: string | null = null
 
   try {
     if (id) {
-      // Em análise, aprovado e desativado não se salvam; a mutation recusa.
-      if (!enviar || ["draft", "rejected", "paused"].includes(status)) {
-        await salvarTemplate(id, entradaDoFormulario(fd))
-      }
+      // Salva sempre o texto da tela; o status real quem confere é a mutation
+      // (em análise, aprovado e desativado são recusados lá).
+      await salvarTemplate(id, entradaDoFormulario(fd))
     } else {
       novo = (await criarTemplate(entradaDoFormulario(fd))).id
     }
@@ -93,8 +91,9 @@ export async function salvarOuEnviarAction(_anterior: EstadoDoTemplate, fd: Form
     revalidatePath(ROTA)
     // O rascunho novo já existe mesmo que o envio tenha falhado: a tela vai
     // para ele, e o erro aparece lá ao tentar de novo.
+    const mensagem = mensagemDeErro(erro)
     if (novo) redirect(destino(novo))
-    return { error: mensagemDeErro(erro), success: null }
+    return { error: mensagem, success: null }
   }
 
   revalidatePath(ROTA)
