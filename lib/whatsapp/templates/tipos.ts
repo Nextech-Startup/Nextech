@@ -41,3 +41,30 @@ export type TemplateNoBanco = {
   submittedAt: string | null
   updatedAt: string
 }
+
+/**
+ * O template na forma da tela (components/templates). Montado por
+ * `carregarTemplates` (queries.ts) e pela fixture da demonstração.
+ */
+export type TemplateDaTela = {
+  id: string
+  /** Nome na Meta: minúsculo, com underscore. */
+  nome: string
+  uso: UsoDoTemplate
+  categoria: CategoriaDoTemplate
+  agenteId: string
+  /** Nome do agente, para a lista e a prévia. */
+  agente: string
+  corpo: string
+  /** O que cada `{{n}}` é, em ordem. */
+  variaveis: VariavelDoCatalogo[]
+  status: StatusDoTemplate
+  motivoRejeicao: string | null
+  detalheRejeicao: string | null
+  /** Recategorização anunciada pela Meta, ainda não feita. */
+  categoriaPendente: { categoria: CategoriaDoTemplate; em: string | null } | null
+  /** O agente foi reconectado a outra WABA: a porta de envio recusa. */
+  deOutraConta: boolean
+  enviadoEm: string | null
+  atualizadoEm: string
+}
