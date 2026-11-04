@@ -2,8 +2,8 @@
  * Corpo de template do WhatsApp (whatsapp-templates-v1): variáveis
  * posicionais `{{1}}`, `{{2}}`… e as regras que a Meta aplica ao revisar.
  *
- * Regras vigentes em set/2026. Revisar contra a documentação da Meta antes
- * da fase 4 (a spec deixa isso em aberto): quando a regra mudar, muda aqui,
+ * Regras conferidas contra a documentação da Meta em 2026-11-04 (revisão
+ * da spec de templates): quando a regra mudar, muda aqui,
  * nunca na tela nem no motor de sequências.
  */
 
