@@ -1,4 +1,5 @@
 import type { ClinicPlan } from "@/lib/agent-config/schema"
+import type { UsoDoTemplate } from "@/lib/whatsapp/templates/tipos"
 
 /**
  * Atendimentos por mês de cada plano (atendimento-billing-v1). É a camada
@@ -33,4 +34,17 @@ export const TEM_CRM: Record<ClinicPlan, boolean> = {
   starter: false,
   pro: true,
   healthtech: true,
+}
+
+/**
+ * Usos de template do WhatsApp por plano (whatsapp-templates-v1, decisão
+ * 2), pela landing: o Starter tem "Agendamento + Follow-up"; os lembretes
+ * automáticos, o recall e a reativação, a partir do Pro. Quem paga a Meta
+ * é a clínica, então a trava é de produto. Espelho de
+ * `private.template_usage_allowed`.
+ */
+export const USOS_DE_TEMPLATE: Record<ClinicPlan, readonly UsoDoTemplate[]> = {
+  starter: ["follow_up"],
+  pro: ["lembrete", "recall", "reativacao", "follow_up"],
+  healthtech: ["lembrete", "recall", "reativacao", "follow_up"],
 }
