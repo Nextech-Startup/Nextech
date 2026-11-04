@@ -4228,6 +4228,8 @@ git commit -m "feat(crm): tela real com gravação, tempo real, convite do Start
 
 ---
 
+> **Correção na execução (revisão de 2026-11-04):** o `sincronizar` trocava a lista inteira e desfazia, a cada aviso ao vivo, o movimento das oportunidades de exemplo da demonstração. Agora ele preserva a versão local das que não têm id do banco (`components/crm/estado.ts`, teste em `estado.test.ts`). Fica em aberto, para decisão do Jhones: com a nota ausente, `salvarDetalhes` lê o blob e o regrava em duas idas ao banco, e uma nota salva por outra pessoa nesse intervalo se perde. A correção é a RPC aceitar "não mexer na nota" (migration nova).
+
 ### Tarefa 8: Limpeza do canal, conferência na tela, revisões e documentação
 
 **Arquivos:**

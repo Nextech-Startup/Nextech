@@ -25,6 +25,9 @@ const op = (id: string, etapa: Oportunidade["etapa"]): Oportunidade => ({
   eventos: [{ id: `${id}-e1`, de: null, para: etapa, em: AGORA, autor: null }],
 })
 
+const REAL_1 = "00000000-0000-4000-8000-000000000001"
+const REAL_2 = "00000000-0000-4000-8000-000000000002"
+
 const inicial: EstadoDoCrm = { ...estadoInicial([op("a", "novo"), op("b", "agendado")]), aviso: "antigo" }
 
 describe("reduzirCrm", () => {
@@ -72,19 +75,19 @@ describe("etapaComResultado (celular)", () => {
 
 describe("sincronizar com o servidor (router.refresh)", () => {
   it("as props novas substituem o quadro, e o aviso fica", () => {
-    const antes = { ...estadoInicial([op("op-1", "novo")]), aviso: "Este cartão mudou de etapa antes. O quadro foi atualizado." }
-    const novas = [op("op-1", "agendado"), op("op-2", "novo")]
+    const antes = { ...estadoInicial([op(REAL_1, "novo")]), aviso: "Este cartão mudou de etapa antes. O quadro foi atualizado." }
+    const novas = [op(REAL_1, "agendado"), op(REAL_2, "novo")]
     const depois = reduzirCrm(antes, { tipo: "sincronizar", oportunidades: novas })
-    expect(depois.oportunidades).toBe(novas)
+    expect(depois.oportunidades).toEqual(novas)
     expect(depois.origem).toBe(novas)
     expect(depois.aviso).toBe(antes.aviso)
   })
 
   it("desfaz o movimento otimista que o servidor recusou", () => {
-    const doServidor = [op("op-1", "novo")]
+    const doServidor = [op(REAL_1, "novo")]
     const movido = reduzirCrm(estadoInicial(doServidor), {
       tipo: "mover",
-      pedido: { oportunidadeId: "op-1", de: "novo", para: "agendado" },
+      pedido: { oportunidadeId: REAL_1, de: "novo", para: "agendado" },
       em: AGORA,
       autor: { id: "m", nome: "Marina" },
     })
@@ -92,6 +95,23 @@ describe("sincronizar com o servidor (router.refresh)", () => {
     expect(movido.origem).toBe(doServidor)
     const refeito = reduzirCrm(movido, { tipo: "sincronizar", oportunidades: doServidor })
     expect(refeito.oportunidades[0].etapa).toBe("novo")
+  })
+
+  it("mantém o movimento local das de exemplo, que o servidor não conhece", () => {
+    const doServidor = [op(REAL_1, "novo"), op("demo-1", "novo")]
+    const movido = reduzirCrm(estadoInicial(doServidor), {
+      tipo: "mover",
+      pedido: { oportunidadeId: "demo-1", de: "novo", para: "agendado" },
+      em: AGORA,
+      autor: { id: "m", nome: "Marina" },
+    })
+    const novas = [op(REAL_1, "qualificado"), op("demo-1", "novo")]
+    const depois = reduzirCrm(movido, { tipo: "sincronizar", oportunidades: novas })
+    expect(depois.oportunidades.map((o) => [o.id, o.etapa])).toEqual([
+      [REAL_1, "qualificado"],
+      ["demo-1", "agendado"],
+    ])
+    expect(depois.origem).toBe(novas)
   })
 
   it("avisar mostra a mensagem do servidor", () => {
