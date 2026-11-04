@@ -31,6 +31,13 @@ describe("erroParaLog", () => {
     })
   })
 
+  it("do Error que embrulha o erro do PostgREST (cause), fica o código dele, nunca a mensagem", () => {
+    const pg = { code: "22003", message: "value \"99999999999\" is out of range", details: null, hint: null }
+    const saida = erroParaLog(new Error("Falha ao salvar a oportunidade", { cause: pg }))
+    expect(saida).toEqual({ tipo: "Error", codigo: "22003" })
+    expect(JSON.stringify(saida)).not.toContain("99999999999")
+  })
+
   it("descarta um código que parece telefone", () => {
     const erro = Object.assign(new Error("x"), { code: "5581999112895" })
     expect(erroParaLog(erro).codigo).toBeNull()

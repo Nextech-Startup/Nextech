@@ -23,9 +23,12 @@ function seguro(valor: unknown): string | null {
 export function erroParaLog(erro: unknown): ErroParaLog {
   if (ehErroDoPostgrest(erro)) return { tipo: "postgrest", codigo: seguro(erro.code) }
   if (erro instanceof Error) {
+    // A lib embrulha o erro do PostgREST num Error com `cause`: o código
+    // (SQLSTATE) é o que diagnostica, e vem de lá. A mensagem dele, nunca.
+    const causa = erro.cause
     return {
       tipo: seguro(erro.name) ?? "Error",
-      codigo: seguro((erro as { code?: unknown }).code),
+      codigo: seguro((erro as { code?: unknown }).code) ?? (ehErroDoPostgrest(causa) ? seguro(causa.code) : null),
     }
   }
   return { tipo: typeof erro, codigo: null }

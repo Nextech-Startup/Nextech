@@ -141,7 +141,8 @@ const PEDIDO = z.object({
   de: z.string().refine(ehEtapa),
   para: z.string().refine(ehEtapa),
   procedimento: z.object({ id: z.string().uuid(), nome: z.string().max(200) }).nullish(),
-  valorCentavos: z.number().int().nullish(),
+  // O teto barra antes da RPC: acima do inteiro do Postgres ela daria 22003, não `invalido`.
+  valorCentavos: z.number().int().positive().max(VALOR_MAXIMO_CENTAVOS).nullish(),
   motivo: z.string().refine(ehMotivoDePerda).nullish(),
 })
 

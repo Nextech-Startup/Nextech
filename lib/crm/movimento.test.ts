@@ -214,6 +214,10 @@ describe("lerPedidoDeMovimento (o que chega do navegador)", () => {
       { oportunidadeId: "op-01", de: "novo", para: "agendado" },
       { oportunidadeId: ID, de: "novo", para: "perdido", motivo: "caro demais" },
       { oportunidadeId: ID, de: "novo", para: "ganho", valorCentavos: 10.5 },
+      // Acima do teto (e do inteiro do Postgres): seria 22003 na RPC, não "invalido".
+      { oportunidadeId: ID, de: "novo", para: "ganho", valorCentavos: 100_000_001 },
+      { oportunidadeId: ID, de: "novo", para: "ganho", valorCentavos: 2 ** 40 },
+      { oportunidadeId: ID, de: "novo", para: "ganho", valorCentavos: 0 },
       null,
       "novo",
     ]) {
