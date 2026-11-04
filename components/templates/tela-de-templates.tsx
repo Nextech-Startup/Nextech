@@ -3,13 +3,14 @@ import { Plus } from "lucide-react"
 import { Busca } from "@/components/patterns/busca"
 import { FiltroSegmentado } from "@/components/patterns/filtro-segmentado"
 import { Botao } from "@/components/patterns/formulario"
+import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/patterns/page-header"
 import { Vazio } from "@/components/patterns/vazio"
 import { cn } from "@/lib/utils"
 import { EditorDeTemplate } from "./editor-de-template"
 import { ROTULO_DA_CATEGORIA, ROTULO_DO_USO, type FiltroDeStatus } from "./regras"
 import { StatusDoTemplate } from "./status"
-import type { TemplateDoWhatsApp } from "./tipos"
+import type { AcoesDosTemplates, TemplateDoWhatsApp, UsoDoTemplate } from "./tipos"
 
 const SEGMENTOS: { valor: FiltroDeStatus; rotulo: string }[] = [
   { valor: "todos", rotulo: "Todos" },
@@ -17,27 +18,47 @@ const SEGMENTOS: { valor: FiltroDeStatus; rotulo: string }[] = [
   { valor: "pending_review", rotulo: "Em análise" },
   { valor: "rejected", rotulo: "Rejeitados" },
   { valor: "draft", rotulo: "Rascunhos" },
+  { valor: "paused", rotulo: "Pausados" },
+  { valor: "disabled", rotulo: "Desativados" },
 ]
+
+/** `?t=novo` abre o editor em branco. */
+export const NOVO = "novo"
 
 /**
  * Biblioteca de templates à esquerda, editor à direita; no celular, um de
  * cada vez (`?t=` abre o editor). Filtro e busca vivem na URL.
+ *
+ * `acoes` liga as server actions (tela real); sem elas, `acaoDesabilitada`
+ * diz por quê (demonstração e protótipo). `podeEscrever` falso (staff)
+ * esconde toda ação de escrita.
  */
 export function TelaDeTemplates({
   templates,
   contagens,
   filtro,
   aberto,
+  novo = false,
   celularNoEditor,
   caminho,
+  agentes,
+  usosDoPlano,
+  podeEscrever = true,
+  acoes,
   acaoDesabilitada,
 }: {
   templates: readonly TemplateDoWhatsApp[]
   contagens: Record<FiltroDeStatus, number>
   filtro: { status: FiltroDeStatus; busca: string }
   aberto: TemplateDoWhatsApp | null
+  /** O editor está num template novo, ainda não salvo. */
+  novo?: boolean
   celularNoEditor: boolean
   caminho: string
+  agentes?: readonly { id: string; nome: string }[]
+  usosDoPlano?: readonly UsoDoTemplate[]
+  podeEscrever?: boolean
+  acoes?: AcoesDosTemplates
   acaoDesabilitada?: string
 }) {
   const status = filtro.status === "todos" ? undefined : filtro.status
@@ -56,10 +77,19 @@ export function TelaDeTemplates({
         title="Templates"
         description="Mensagens aprovadas pela Meta para falar com o paciente fora da janela de 24h."
         actions={
-          <Botao type="button" disabled={Boolean(acaoDesabilitada)} title={acaoDesabilitada}>
-            <Plus data-icon aria-hidden="true" />
-            Novo template
-          </Botao>
+          !podeEscrever ? undefined : acoes ? (
+            <Button asChild>
+              <Link href={href({ status, q, t: NOVO })} scroll={false}>
+                <Plus data-icon aria-hidden="true" />
+                Novo template
+              </Link>
+            </Button>
+          ) : (
+            <Botao type="button" disabled title={acaoDesabilitada}>
+              <Plus data-icon aria-hidden="true" />
+              Novo template
+            </Botao>
+          )
         }
       />
 
@@ -114,10 +144,14 @@ export function TelaDeTemplates({
         </div>
 
         <div className={cn(!celularNoEditor && "hidden lg:block")}>
-          {aberto ? (
+          {aberto || novo ? (
             <EditorDeTemplate
-              key={aberto.id}
-              template={aberto}
+              key={aberto?.id ?? NOVO}
+              template={novo ? null : aberto}
+              agentes={agentes}
+              usosDoPlano={usosDoPlano}
+              podeEscrever={podeEscrever}
+              acoes={acoes}
               voltarHref={href({ status, q })}
               acaoDesabilitada={acaoDesabilitada}
             />

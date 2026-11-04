@@ -27,7 +27,8 @@ describe("shell de uma clínica comum", () => {
     const { painel } = shellDaClinica("owner", false)
     // Conversas virou tela real na parte 4 do motor de conversa.
     // CRM entrou como em breve na parte 1 e virou tela real na parte 2 (spec crm-v1).
-    expect(itens(painel).filter((i) => i.status === "em-breve")).toHaveLength(7)
+    // Templates virou tela real em whatsapp-templates-v1.
+    expect(itens(painel).filter((i) => i.status === "em-breve")).toHaveLength(6)
   })
 
   it("sem link de Minha conta e sem selo", () => {

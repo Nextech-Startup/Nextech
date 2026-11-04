@@ -194,13 +194,6 @@ const NOVAS: Rota[] = [
     confere: { aberta: d(sequencia) },
   },
   {
-    rota: "/dashboard/templates",
-    menu: "/dashboard/templates",
-    carregar: () => import("@/app/(dashboard)/dashboard/templates/page"),
-    busca: { t: template.id },
-    confere: { aberto: d(template) },
-  },
-  {
     rota: "/dashboard/settings/team",
     menu: "/dashboard/settings/team",
     carregar: () => import("@/app/(dashboard)/dashboard/settings/team/page"),
@@ -231,6 +224,14 @@ const NOVAS: Rota[] = [
 ]
 
 const EXISTENTES: Rota[] = [
+  {
+    // whatsapp-templates-v1: a tela real fora da demonstração.
+    rota: "/dashboard/templates",
+    menu: "/dashboard/templates",
+    carregar: () => import("@/app/(dashboard)/dashboard/templates/page"),
+    busca: { t: template.id },
+    confere: { aberto: d(template) },
+  },
   {
     rota: "/dashboard/conversations",
     menu: "/dashboard/conversations",

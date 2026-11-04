@@ -19,7 +19,8 @@ import {
  * mutations, pela sessão de escrita, nunca pelo que vem do formulário.
  */
 
-export type EstadoDoTemplate = { erro: string | null; sucesso: string | null }
+/** O formato do `Aviso` (components/patterns/formulario). */
+export type EstadoDoTemplate = { error: string | null; success: string | null }
 
 const ROTA = "/dashboard/templates"
 const GENERICO = "Não foi possível concluir. Tente de novo em instantes."
@@ -40,7 +41,20 @@ function texto(fd: FormData, campo: string): string {
   return typeof v === "string" ? v : ""
 }
 
-/** Os `<select name="variables">`, um por `{{n}}`, na ordem do corpo. */
+/**
+ * Os `<select name="variables">`, um por `{{n}}`, na ordem do corpo. Para
+ * na primeira sem escolha: tirar só a vazia deslocaria as seguintes para o
+ * `{{n}}` errado. O rascunho fica incompleto, e o envio barra.
+ */
+function associadas(valores: FormDataEntryValue[]): string[] {
+  const saida: string[] = []
+  for (const v of valores) {
+    if (typeof v !== "string" || v === "") break
+    saida.push(v)
+  }
+  return saida
+}
+
 function entradaDoFormulario(fd: FormData) {
   return {
     agentId: texto(fd, "agent_id"),
@@ -48,7 +62,7 @@ function entradaDoFormulario(fd: FormData) {
     usage: texto(fd, "usage"),
     category: texto(fd, "category"),
     body: texto(fd, "body"),
-    variables: fd.getAll("variables").filter((v): v is string => typeof v === "string"),
+    variables: associadas(fd.getAll("variables")),
   }
 }
 
@@ -80,22 +94,22 @@ export async function salvarOuEnviarAction(_anterior: EstadoDoTemplate, fd: Form
     // O rascunho novo já existe mesmo que o envio tenha falhado: a tela vai
     // para ele, e o erro aparece lá ao tentar de novo.
     if (novo) redirect(destino(novo))
-    return { erro: mensagemDeErro(erro), sucesso: null }
+    return { error: mensagemDeErro(erro), success: null }
   }
 
   revalidatePath(ROTA)
   if (novo) redirect(destino(novo))
-  return { erro: null, sucesso: enviar ? "Enviado para a análise da Meta." : "Rascunho salvo." }
+  return { error: null, success: enviar ? "Enviado para a análise da Meta." : "Rascunho salvo." }
 }
 
 export async function conferirAction(_anterior: EstadoDoTemplate, fd: FormData): Promise<EstadoDoTemplate> {
   try {
     await conferirNaMeta(texto(fd, "template_id"))
   } catch (erro) {
-    return { erro: mensagemDeErro(erro), sucesso: null }
+    return { error: mensagemDeErro(erro), success: null }
   }
   revalidatePath(ROTA)
-  return { erro: null, sucesso: "Status conferido na Meta." }
+  return { error: null, success: "Status conferido na Meta." }
 }
 
 export async function duplicarAction(_anterior: EstadoDoTemplate, fd: FormData): Promise<EstadoDoTemplate> {
@@ -103,7 +117,7 @@ export async function duplicarAction(_anterior: EstadoDoTemplate, fd: FormData):
   try {
     id = (await duplicarTemplate(texto(fd, "template_id"))).id
   } catch (erro) {
-    return { erro: mensagemDeErro(erro), sucesso: null }
+    return { error: mensagemDeErro(erro), success: null }
   }
   revalidatePath(ROTA)
   redirect(destino(id))
@@ -113,7 +127,7 @@ export async function excluirAction(_anterior: EstadoDoTemplate, fd: FormData): 
   try {
     await excluirTemplate(texto(fd, "template_id"))
   } catch (erro) {
-    return { erro: mensagemDeErro(erro), sucesso: null }
+    return { error: mensagemDeErro(erro), success: null }
   }
   revalidatePath(ROTA)
   redirect(ROTA)

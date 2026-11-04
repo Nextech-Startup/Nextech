@@ -139,6 +139,8 @@ describe("itens de tela não construída", () => {
       // crm-v1, parte 2 (2026-11-03).
       "/dashboard/crm",
       "/dashboard/agents",
+      // whatsapp-templates-v1 (2026-11-04).
+      "/dashboard/templates",
       "/dashboard/settings",
     ])
   })
@@ -316,7 +318,6 @@ describe("conta de demonstração", () => {
       "Agenda",
       "Pacientes",
       "Sequências",
-      "Templates",
       "Equipe e acessos",
       "Integrações",
       "Plano e cobrança",

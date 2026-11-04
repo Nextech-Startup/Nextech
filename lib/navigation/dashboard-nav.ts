@@ -66,7 +66,7 @@ export const DASHBOARD_NAV: readonly NavGroup[] = [
       {
         label: "Templates",
         href: "/dashboard/templates",
-        status: "em-breve",
+        status: "pronto",
         roles: ["owner", "staff"],
       },
     ],

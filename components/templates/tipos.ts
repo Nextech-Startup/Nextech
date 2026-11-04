@@ -1,23 +1,24 @@
 /**
- * Vocabulário de docs/specs/whatsapp-templates-v1.md na forma da tela. A
- * fase 4 monta estes tipos a partir de `lib/whatsapp`; a tela não muda.
+ * Vocabulário de docs/specs/whatsapp-templates-v1.md na forma da tela. Os
+ * tipos moram em `lib/whatsapp/templates/tipos.ts`, de onde a leitura
+ * (`carregarTemplates`) e a fixture da demonstração os montam.
  */
-export type StatusDoTemplate = "draft" | "pending_review" | "approved" | "rejected"
-export type CategoriaDoTemplate = "UTILITY" | "MARKETING"
-export type UsoDoTemplate = "lembrete" | "recall" | "reativacao" | "follow_up"
+export type {
+  CategoriaDoTemplate,
+  StatusDoTemplate,
+  TemplateDaTela as TemplateDoWhatsApp,
+  UsoDoTemplate,
+  VariavelDoCatalogo,
+} from "@/lib/whatsapp/templates/tipos"
 
-export type TemplateDoWhatsApp = {
-  id: string
-  /** Nome na Meta: minúsculo, com underscore. */
-  nome: string
-  uso: UsoDoTemplate
-  categoria: CategoriaDoTemplate
-  agente: string
-  corpo: string
-  /** Exemplo de cada variável, que a Meta exige para revisar. */
-  exemplos: Record<number, string>
-  status: StatusDoTemplate
-  motivoRejeicao: string | null
-  enviadoEm: string | null
-  atualizadoEm: string
+import type { EstadoDeFormulario } from "@/components/patterns/formulario"
+
+type Acao = (anterior: EstadoDeFormulario, fd: FormData) => Promise<EstadoDeFormulario>
+
+/** As server actions da tela real. Ausentes na demonstração e no protótipo. */
+export type AcoesDosTemplates = {
+  salvarOuEnviar: Acao
+  conferir: Acao
+  duplicar: Acao
+  excluir: Acao
 }
