@@ -68,10 +68,11 @@ export async function limparCanalDeDemonstracao(
 export async function conferirLimpeza(db: SupabaseClient, clinicId: string): Promise<void> {
   const contar = (tabela: string) =>
     db.from(tabela).select("*", { count: "exact", head: true }).eq("clinic_id", clinicId)
-  const [pacientes, conversas, mensagens, agentes] = await Promise.all([
+  const [pacientes, conversas, mensagens, oportunidades, agentes] = await Promise.all([
     contar("patients"),
     contar("conversations"),
     contar("messages"),
+    contar("opportunities"),
     contar("agents").or("whatsapp_phone_number_id.not.is.null,status.eq.active"),
   ])
   const sobras: string[] = []
@@ -79,6 +80,7 @@ export async function conferirLimpeza(db: SupabaseClient, clinicId: string): Pro
     ["paciente", pacientes],
     ["conversa", conversas],
     ["mensagem", mensagens],
+    ["oportunidade", oportunidades],
     ["agente conectado", agentes],
   ] as const) {
     if (r.error) throw falha(`contar ${nome}`, r.error)

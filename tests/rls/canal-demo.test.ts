@@ -204,10 +204,12 @@ describe("limparCanalDeDemonstracao", () => {
     await conversaDoInvestidor(`5500${SUFIXO.slice(-6)}001`)
     await conversaDoInvestidor(`5500${SUFIXO.slice(-6)}002`)
     expect(await contar("messages")).toBe(2)
+    // Cada conversa abriu a sua oportunidade no CRM (trigger da mensagem do paciente).
+    expect(await contar("opportunities")).toBe(2)
 
     expect(await limpar()).toEqual({ pacientesApagados: 2 })
 
-    for (const tabela of ["patients", "conversations", "messages", "attendance_sessions"]) {
+    for (const tabela of ["patients", "conversations", "messages", "attendance_sessions", "opportunities", "opportunity_events"]) {
       expect(await contar(tabela), tabela).toBe(0)
     }
     expect(await agentesDoCanal()).toEqual([
