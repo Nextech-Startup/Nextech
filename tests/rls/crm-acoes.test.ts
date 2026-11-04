@@ -343,6 +343,65 @@ describe("search_opportunities e crm_team", () => {
     const deB = await (await comoUsuario(B.equipe.owner!)).rpc("crm_team", { p_clinic_id: A.id })
     expect(deB.data).toEqual([])
   })
+
+  it("o profissional da própria clínica não busca nem vê a equipe (e-mails) do CRM", async () => {
+    await abrir(A, { nome: "Gertrudes Profissional" })
+    const profissional = await comoUsuario(A.equipe.professional!)
+    const busca = await profissional.rpc("search_opportunities", { p_clinic_id: A.id, p_nome: "%gertrudes%", p_telefone: null })
+    expect(busca.error).toBeNull()
+    expect(busca.data).toEqual([])
+    const equipe = await profissional.rpc("crm_team", { p_clinic_id: A.id })
+    expect(equipe.error).toBeNull()
+    expect(equipe.data).toEqual([])
+  })
+})
+
+describe("concorrência e plano", () => {
+  it("a equipe move enquanto a IA qualifica: sai uma etapa só, e a trilha bate com ela", async () => {
+    const { paciente, op } = await abrir(A)
+    const { data: conversa, error } = await admin.from("conversations").select("id").eq("patient_id", paciente).single()
+    if (error) throw error
+    const staff = await comoUsuario(A.equipe.staff!)
+    const [movido, qualificado] = await Promise.all([
+      staff.rpc("move_opportunity", { p_opportunity_id: op, p_from: "novo", p_to: "agendado" }),
+      admin.from("conversations").update({ qualified_at: new Date().toISOString() }).eq("id", conversa.id),
+    ])
+    expect(movido.error).toBeNull()
+    expect(qualificado.error).toBeNull()
+    const final = (await linha(op)).stage
+    const trilha = await eventos(op)
+    // Qualquer ordem vale, desde que a outra parte enxergue a primeira.
+    if (movido.data === "ok") {
+      // A equipe ganhou: Novo → Agendado, e a qualificação não move de Agendado.
+      expect(final).toBe("agendado")
+      expect(trilha.map((e) => e.to_stage)).toEqual(["novo", "agendado"])
+    } else {
+      // A IA ganhou: Novo → Qualificado, e a tela que viu Novo leva sem-mudanca.
+      expect(movido.data).toBe("sem-mudanca")
+      expect(final).toBe("qualificado")
+      expect(trilha.map((e) => e.to_stage)).toEqual(["novo", "qualificado"])
+    }
+  })
+
+  it("a clínica que cai para o Starter perde a escrita, e o dado fica", async () => {
+    const { op } = await abrir(B)
+    const owner = comoUsuario(B.equipe.owner!)
+    expect(await mover(owner, { p_opportunity_id: op, p_from: "novo", p_to: "agendado" })).toBe("ok")
+    const { error } = await admin.from("clinics").update({ plan: "starter" }).eq("id", B.id)
+    if (error) throw error
+    try {
+      expect(await mover(owner, { p_opportunity_id: op, p_from: "agendado", p_to: "compareceu" })).toBe("nao-encontrada")
+      const { data } = await (await owner).rpc("update_opportunity_details", detalhes(op, { p_value_cents: 100 }))
+      expect(data).toBe("nao-encontrada")
+      const guardada = await linha(op)
+      expect(guardada.stage).toBe("agendado")
+      expect(guardada.value_cents).toBeNull()
+      expect(await eventos(op)).toHaveLength(2)
+    } finally {
+      const { error: erroVolta } = await admin.from("clinics").update({ plan: "pro" }).eq("id", B.id)
+      if (erroVolta) throw erroVolta
+    }
+  })
 })
 
 describe("anonymize_patient (exclusão LGPD)", () => {

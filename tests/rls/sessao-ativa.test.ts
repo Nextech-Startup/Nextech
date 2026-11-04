@@ -27,6 +27,7 @@ import {
 
 let C: ClinicaDeTeste
 let conversa: string
+let oportunidade: string
 /** A sessão que vai ficar com o token antigo. */
 let antiga: SupabaseClient
 let tokenAntigo: string
@@ -35,6 +36,12 @@ beforeAll(async () => {
   C = await montarClinica("sessao-ativa", ["owner", "staff"])
   const paciente = await novoPaciente(C, { nome: "Paciente da Sessão" })
   conversa = (await registrar(C, paciente, { autor: "patient", texto: "Oi", em: emMinutos(0) })).conversa
+  // Pro, para o CRM: a mensagem do paciente abriu a oportunidade.
+  const { error: erroPlano } = await admin.from("clinics").update({ plan: "pro" }).eq("id", C.id)
+  if (erroPlano) throw erroPlano
+  const { data: op, error: erroOp } = await admin.from("opportunities").select("id").eq("patient_id", paciente).single()
+  if (erroOp) throw erroOp
+  oportunidade = op.id
 
   antiga = anonClient()
   const { data, error } = await antiga.auth.signInWithPassword({ email: C.equipe.owner!.email, password: C.equipe.owner!.password })
@@ -61,6 +68,8 @@ describe("sessão viva", () => {
     expect(vinculo).toHaveLength(2)
     expect((await carregarFila(cliente as never, C.id)).map((c) => c.id)).toEqual([conversa])
     expect(await carregarConversa(cliente as never, C.id, conversa)).not.toBeNull()
+    const { data: ops } = await cliente.from("opportunities").select("id").eq("clinic_id", C.id)
+    expect(ops).toEqual([{ id: oportunidade }])
   })
 
   it("depois do logout global em outra sessão, o token antigo, ainda bem assinado, não lê nem age", async () => {
@@ -92,6 +101,14 @@ describe("sessão viva", () => {
     // As ações do painel e a gestão da equipe também param.
     const { data: assumir } = await cliente.rpc("assume_conversation", { p_conversation_id: conversa })
     expect(assumir).toBe("nao-encontrada")
+
+    // O CRM também: nem lê nem move.
+    const { data: ops } = await cliente.from("opportunities").select("id").eq("clinic_id", C.id)
+    expect(ops).toEqual([])
+    const { data: mover } = await cliente.rpc("move_opportunity", { p_opportunity_id: oportunidade, p_from: "novo", p_to: "agendado" })
+    expect(mover).toBe("nao-encontrada")
+    const { data: linha } = await admin.from("opportunities").select("stage").eq("id", oportunidade).single()
+    expect(linha?.stage).toBe("novo")
     const { data: removidos } = await cliente.from("clinic_members").delete().eq("user_id", C.equipe.staff!.id).select("user_id")
     expect(removidos ?? []).toEqual([])
     const { count } = await admin.from("clinic_members").select("*", { count: "exact", head: true }).eq("clinic_id", C.id)

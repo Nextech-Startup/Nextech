@@ -178,6 +178,55 @@ describe("qualificação pela IA", () => {
     expect((await oportunidades(p))[0].stage).toBe("agendado")
     expect(await eventos(op.id)).toHaveLength(1)
   })
+
+  it("já em Qualificado (movida à mão), a qualificação não grava evento de novo", async () => {
+    const p = await novoPaciente(A)
+    const { conversa } = await registrar(A, p, { autor: "patient", texto: "Oi", em: emMinutos(0) })
+    const [op] = await oportunidades(p)
+    const { error } = await admin.from("opportunities").update({ stage: "qualificado" }).eq("id", op.id)
+    if (error) throw error
+    await qualificar(conversa)
+    expect((await oportunidades(p))[0].stage).toBe("qualificado")
+    expect(await eventos(op.id)).toHaveLength(1)
+  })
+
+  it("com a oportunidade encerrada e nenhuma aberta, a qualificação não abre nem mexe em nada", async () => {
+    const p = await novoPaciente(A)
+    const { conversa } = await registrar(A, p, { autor: "patient", texto: "Oi", em: emMinutos(0) })
+    const [op] = await oportunidades(p)
+    const { error } = await admin
+      .from("opportunities")
+      .update({ stage: "perdido", lost_reason: "preco", closed_at: new Date().toISOString() })
+      .eq("id", op.id)
+    if (error) throw error
+    await qualificar(conversa)
+    const ops = await oportunidades(p)
+    expect(ops.map((o) => o.stage)).toEqual(["perdido"])
+    expect(await eventos(op.id)).toHaveLength(1)
+  })
+})
+
+describe("urgência e opt-out não mexem na etapa", () => {
+  it("a conversa escalada como urgente (vai para humano) deixa a oportunidade na etapa, sem evento", async () => {
+    const p = await novoPaciente(A)
+    const { conversa } = await registrar(A, p, { autor: "patient", texto: "Oi", em: emMinutos(0) })
+    const { error } = await admin.from("conversations").update({ is_urgent: true, handled_by: "human" }).eq("id", conversa)
+    if (error) throw error
+    const [op] = await oportunidades(p)
+    expect(op.stage).toBe("novo")
+    expect(await eventos(op.id)).toHaveLength(1)
+  })
+
+  it("o paciente que pede opt-out deixa a oportunidade na etapa, sem evento", async () => {
+    const p = await novoPaciente(A)
+    await registrar(A, p, { autor: "patient", texto: "Oi", em: emMinutos(0) })
+    const { error } = await admin.from("patients").update({ opted_out: true }).eq("id", p)
+    if (error) throw error
+    const [op] = await oportunidades(p)
+    expect(op.stage).toBe("novo")
+    expect(op.closed_at).toBeNull()
+    expect(await eventos(op.id)).toHaveLength(1)
+  })
 })
 
 describe("encerramento", () => {
@@ -264,10 +313,16 @@ describe("leitura e escrita pela sessão", () => {
     expect(evs.data).toEqual([])
   })
 
-  it("membro de outra clínica não lê", async () => {
+  it("membro de outra clínica não lê a oportunidade nem os eventos", async () => {
+    const p = await novoPaciente(A)
+    await registrar(A, p, { autor: "patient", texto: "Oi", em: emMinutos(0) })
+    const [op] = await oportunidades(p)
     const db = await comoUsuario(B.equipe.owner!)
     const { data } = await db.from("opportunities").select("id").eq("clinic_id", A.id)
     expect(data).toEqual([])
+    const evs = await db.from("opportunity_events").select("id").eq("opportunity_id", op.id)
+    expect(evs.error).toBeNull()
+    expect(evs.data).toEqual([])
   })
 
   it("ninguém pela sessão insere, altera ou apaga oportunidade ou evento", async () => {
