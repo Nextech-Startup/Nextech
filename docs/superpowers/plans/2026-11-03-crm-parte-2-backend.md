@@ -4309,3 +4309,7 @@ git push origin staging
 ```
 
 O PR de `staging` → `main` fica com o Jhones.
+
+## Depois da tarefa 8: endurecimento (2026-11-04)
+
+Decisão do Jhones: fechar numa migration (`20261104120000_crm_hardening`, aplicada com aprovação depois do `--dry-run`) três achados do `security-reviewer`: `update_opportunity_details` ganhou `p_keep_notes` (a nota não editada é mantida sob a trava, e a lib não relê mais o blob) e `p_clinic_id` (a clínica da sessão, AAD da nota, tem de ser a da oportunidade); `crm_clinic_ids()` e `crm_team` passaram a exigir o plano. Testes: `lib/crm/servidor.test.ts`, `tests/rls/crm-acoes.test.ts` (nota mantida, ilegível preservada, pedido ambíguo, corrida de duas pessoas, usuário de duas clínicas, Starter sem leitura), `crm-automacao.test.ts` (automação no Starter sem leitura pela sessão) e `crm-realtime.test.ts` (clínicas no Pro). Ficam em `docs/status.md`: `actor_email`/`on delete restrict` e a AAD por propósito.

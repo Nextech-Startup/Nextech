@@ -76,6 +76,9 @@ beforeAll(async () => {
     montarClinica("crm-rt-a", ["owner", "professional"]),
     montarClinica("crm-rt-b", ["owner"]),
   ])
+  // O canal exige o plano, como a leitura (crm_clinic_ids).
+  const { error } = await admin.from("clinics").update({ plan: "pro" }).in("id", [A.id, B.id])
+  if (error) throw error
   ;[pacienteA, pacienteB] = await Promise.all([novoPaciente(A), novoPaciente(B)])
   await registrar(A, pacienteA, { autor: "patient", texto: "Oi", em: emMinutos(0) })
   await registrar(B, pacienteB, { autor: "patient", texto: "Oi", em: emMinutos(0) })

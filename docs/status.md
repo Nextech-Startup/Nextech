@@ -18,14 +18,13 @@
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**2294 testes passando** (173 arquivos, suíte inteira em 2026-11-04, depois da parte 2 do CRM) · 43 migrations aplicadas · em produção em `app.nextech.ia.br`
+**2294 testes passando** (173 arquivos, suíte inteira em 2026-11-04, depois da parte 2 do CRM) · 44 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 **Prioridade atual (2026-10-26): o desenvolvimento do produto**, spec por spec. A apresentação ao investidor está resolvida: o Jhones concluiu os passos pendentes (número do investidor e limpeza).
 
-**Próxima sessão:** decidir os pontos abertos da parte 2 do CRM (abaixo) e abrir o PR de `staging` para `main`. A parte 2 ficou pronta em 2026-11-04.
+**Próxima sessão:** o PR de `staging` para `main` (CRM parte 2 e o endurecimento) e a próxima spec do roadmap. A parte 2 ficou pronta em 2026-11-04, com a migration `crm_hardening` (nota mantida sob a trava, clínica da sessão na RPC, leitura com plano).
 
 ### CRM, parte 2 — pendências com o Jhones
-- **Migration de endurecimento (pede `db push` com aprovação):** (1) com a nota ausente, `salvarDetalhes` lê o blob e o regrava em duas idas ao banco, e uma nota salva por outra pessoa nesse intervalo se perde: a RPC passa a aceitar "não mexer na nota" (`p_keep_notes`) sob o `for update`; (2) a nota é cifrada com a clínica da sessão (`limit(1)` no vínculo), mas a RPC aceita oportunidade de qualquer clínica que o usuário opere: num usuário de duas clínicas, a nota gravaria ilegível na outra; a RPC recebe `p_clinic_id` da sessão; (3) a leitura (RLS, busca, `crm_team`) não confere o plano: o Starter lê pelo PostgREST direto as próprias oportunidades; incluir `clinic_has_crm` em `crm_clinic_ids()` se a spec quiser.
 - **`opportunity_events.actor_user_id ... on delete restrict`** (mesmo padrão de `conversation_events`): apagar a conta de um membro que moveu cartões esbarra nos eventos, e o `actor_email` fica sem prazo. Decidir o fluxo LGPD do funcionário.
 - **AAD por propósito:** nota e mensagem usam a mesma chave e a mesma AAD (`clinic_id`). Separar (`crm-note:<clinic_id>`) fecha a troca de blobs entre domínios; não dá acesso a nada novo.
 - **Digitar na nota** não tem teste de interação (sem jsdom): a regra fica em `formularioParaEnvio` e na textarea sem `name`, e foi conferida na tela.

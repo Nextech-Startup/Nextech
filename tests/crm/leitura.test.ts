@@ -27,6 +27,8 @@ beforeAll(async () => {
   procedimento = p!.id
   const staff = await comoUsuario(A.equipe.staff!)
   await staff.rpc("update_opportunity_details", {
+    p_clinic_id: A.id,
+    p_keep_notes: false,
     p_opportunity_id: op,
     p_procedure_id: procedimento,
     p_value_cents: 90000,

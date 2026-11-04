@@ -65,7 +65,10 @@ const mover = async (quem: ReturnType<typeof comoUsuario>, args: Record<string, 
   return data as string
 }
 
+/** A clínica padrão é A; o teste de outra clínica passa p_clinic_id. */
 const detalhes = (op: string, p: Partial<Record<string, unknown>> = {}) => ({
+  p_clinic_id: A.id,
+  p_keep_notes: false,
   p_opportunity_id: op,
   p_procedure_id: null,
   p_value_cents: null,
@@ -306,15 +309,76 @@ describe("update_opportunity_details", () => {
   it("membro de B, profissional de A e Starter: nao-encontrada", async () => {
     const { op } = await abrir(A)
     const { op: opS } = await abrir(S)
-    for (const [quem, alvo] of [
-      [B.equipe.owner!, op],
-      [A.equipe.professional!, op],
-      [S.equipe.owner!, opS],
+    for (const [quem, alvo, clinica] of [
+      [B.equipe.owner!, op, B.id],
+      [A.equipe.professional!, op, A.id],
+      [S.equipe.owner!, opS, S.id],
     ] as const) {
-      const { data } = await (await comoUsuario(quem)).rpc("update_opportunity_details", detalhes(alvo, { p_value_cents: 100 }))
+      const { data } = await (await comoUsuario(quem)).rpc("update_opportunity_details", detalhes(alvo, { p_value_cents: 100, p_clinic_id: clinica }))
       expect(data).toBe("nao-encontrada")
     }
     expect((await linha(op)).value_cents).toBeNull()
+  })
+})
+
+describe("update_opportunity_details: nota mantida e clínica da sessão", () => {
+  it("p_keep_notes mantém a nota gravada (inclusive uma que não decifra) e grava o resto", async () => {
+    const { op } = await abrir(A)
+    const staff = await comoUsuario(A.equipe.staff!)
+    // Um blob bem formado, mas de outra clínica: não decifra com a AAD de A.
+    const ilegivel = cifrarConteudo(B.id, "Nota de outra chave")
+    const { error } = await admin.from("opportunities").update({ notes_encrypted: ilegivel }).eq("id", op)
+    if (error) throw error
+    const { data } = await staff.rpc("update_opportunity_details", detalhes(op, { p_value_cents: 4200, p_keep_notes: true }))
+    expect(data).toBe("ok")
+    const depois = await linha(op)
+    expect(depois.notes_encrypted).toBe(ilegivel)
+    expect(depois.value_cents).toBe(4200)
+  })
+
+  it("manter e mandar nota ao mesmo tempo, ou p_keep_notes nulo: invalido, e nada muda", async () => {
+    const { op } = await abrir(A)
+    const staff = await comoUsuario(A.equipe.staff!)
+    for (const p of [
+      { p_keep_notes: true, p_notes_encrypted: cifrarConteudo(A.id, "Ambígua") },
+      { p_keep_notes: null },
+    ]) {
+      const { data } = await staff.rpc("update_opportunity_details", detalhes(op, { p_value_cents: 100, ...p }))
+      expect(data, JSON.stringify(p)).toBe("invalido")
+    }
+    expect((await linha(op)).value_cents).toBeNull()
+  })
+
+  it("duas pessoas salvam ao mesmo tempo, uma sem mexer na nota: a nota da outra não se perde", async () => {
+    const { op } = await abrir(A)
+    const [owner, staff] = await Promise.all([comoUsuario(A.equipe.owner!), comoUsuario(A.equipe.staff!)])
+    const nova = cifrarConteudo(A.id, "Retornar na sexta")
+    const [comNota, semNota] = await Promise.all([
+      owner.rpc("update_opportunity_details", detalhes(op, { p_notes_encrypted: nova })),
+      staff.rpc("update_opportunity_details", detalhes(op, { p_value_cents: 900, p_keep_notes: true })),
+    ])
+    expect(comNota.data).toBe("ok")
+    expect(semNota.data).toBe("ok")
+    expect((await linha(op)).notes_encrypted).toBe(nova)
+  })
+
+  it("quem opera duas clínicas não grava na oportunidade de uma com a clínica da outra (a AAD da nota)", async () => {
+    const { op: opB } = await abrir(B)
+    const dono = A.equipe.owner!
+    const { error } = await admin.from("clinic_members").insert({ clinic_id: B.id, user_id: dono.id, role: "owner" })
+    if (error) throw error
+    try {
+      const db = await comoUsuario(dono)
+      const nota = cifrarConteudo(A.id, "Cifrada com a clínica errada")
+      const errada = await db.rpc("update_opportunity_details", detalhes(opB, { p_clinic_id: A.id, p_notes_encrypted: nota }))
+      expect(errada.data).toBe("nao-encontrada")
+      expect((await linha(opB)).notes_encrypted).toBeNull()
+      const certa = await db.rpc("update_opportunity_details", detalhes(opB, { p_clinic_id: B.id, p_value_cents: 300 }))
+      expect(certa.data).toBe("ok")
+    } finally {
+      const { error: erroSaida } = await admin.from("clinic_members").delete().eq("clinic_id", B.id).eq("user_id", dono.id)
+      if (erroSaida) throw erroSaida
+    }
   })
 })
 
@@ -356,6 +420,24 @@ describe("search_opportunities e crm_team", () => {
   })
 })
 
+describe("leitura no Starter", () => {
+  it("o owner do Starter não lê oportunidade nem evento, não busca e não vê a equipe, pelo PostgREST direto", async () => {
+    await abrir(S, { nome: "Gertrudes Starter" })
+    const db = await comoUsuario(S.equipe.owner!)
+    const ops = await db.from("opportunities").select("id").eq("clinic_id", S.id)
+    const evs = await db.from("opportunity_events").select("id").eq("clinic_id", S.id)
+    const busca = await db.rpc("search_opportunities", { p_clinic_id: S.id, p_nome: "%gertrudes%", p_telefone: null })
+    const equipe = await db.rpc("crm_team", { p_clinic_id: S.id })
+    for (const r of [ops, evs, busca, equipe]) {
+      expect(r.error).toBeNull()
+      expect(r.data).toEqual([])
+    }
+    // O dado está lá: só a leitura pela sessão é que depende do plano.
+    const { count } = await admin.from("opportunities").select("*", { count: "exact", head: true }).eq("clinic_id", S.id)
+    expect(count).toBeGreaterThan(0)
+  })
+})
+
 describe("concorrência e plano", () => {
   it("a equipe move enquanto a IA qualifica: sai uma etapa só, e a trilha bate com ela", async () => {
     const { paciente, op } = await abrir(A)
@@ -391,7 +473,7 @@ describe("concorrência e plano", () => {
     if (error) throw error
     try {
       expect(await mover(owner, { p_opportunity_id: op, p_from: "agendado", p_to: "compareceu" })).toBe("nao-encontrada")
-      const { data } = await (await owner).rpc("update_opportunity_details", detalhes(op, { p_value_cents: 100 }))
+      const { data } = await (await owner).rpc("update_opportunity_details", detalhes(op, { p_value_cents: 100, p_clinic_id: B.id }))
       expect(data).toBe("nao-encontrada")
       const guardada = await linha(op)
       expect(guardada.stage).toBe("agendado")

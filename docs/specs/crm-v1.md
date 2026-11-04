@@ -106,7 +106,9 @@ Motivos de perda (lista fixa, nunca texto livre): preço; sem horário que sirva
 - **Exclusão LGPD** (`anonymize_patient`): a nota é apagada (`notes_redacted_at`), e a oportunidade fica com etapa, datas e valor, para o funil histórico não mudar.
 - **Procedimento apagado do perfil:** o campo fica vazio, o valor fica.
 - **Membro removido da equipe:** os cartões dele ficam sem responsável.
-- **Plano cai para Starter:** tela travada, dado preservado.
+- **Plano cai para Starter:** tela travada, dado preservado. Desde `20261104120000_crm_hardening`, a leitura pela sessão (RLS, busca, equipe e canal ao vivo) também exige o plano: o Starter não lê pelo PostgREST direto.
+- **Duas pessoas salvam ao mesmo tempo, uma sem mexer na nota:** a nota não se perde. Sem edição na nota, a RPC recebe `p_keep_notes` e mantém a gravada sob a trava da linha.
+- **Usuário de mais de uma clínica:** a RPC de edição recebe a clínica da sessão (`p_clinic_id`, a AAD da nota) e só grava em oportunidade dela.
 - **Paciente urgente:** a oportunidade não muda de etapa por causa da urgência; o cartão mostra o selo.
 
 ## Segurança e LGPD (`lgpd-security`)

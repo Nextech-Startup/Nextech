@@ -57,14 +57,14 @@ describe("trava de papel e de plano na lib", () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it("o clinic_id da cifra vem da sessão, e o pedido não tem campo de clínica", async () => {
+  it("o clinic_id da cifra e o p_clinic_id da RPC vêm da sessão, nunca do pedido", async () => {
     ctx.valor = { ...ctx.valor, clinicId: "c-sessao" }
     rpc.mockResolvedValue({ data: "ok", error: null })
     await salvarDetalhes({ ...detalhes, clinicId: "c-do-navegador" } as typeof detalhes)
     const args = rpc.mock.calls[0][1]
     expect(decifrarConteudo("c-sessao", args.p_notes_encrypted)).toBe("Prefere manhã")
     expect(() => decifrarConteudo("c-do-navegador", args.p_notes_encrypted)).toThrow()
-    expect(Object.keys(args)).not.toContain("p_clinic_id")
+    expect(args.p_clinic_id).toBe("c-sessao")
   })
 })
 
@@ -111,45 +111,30 @@ describe("salvarDetalhes", () => {
     expect(nome).toBe("update_opportunity_details")
     expect(JSON.stringify(args)).not.toContain("manhã")
     expect(decifrarConteudo("c-1", args.p_notes_encrypted)).toBe("Prefere manhã")
-    expect(args).toMatchObject({ p_opportunity_id: ID, p_value_cents: 5000, p_procedure_id: null, p_owner_user_id: null, p_next_action_at: null })
+    expect(args).toMatchObject({
+      p_clinic_id: "c-1",
+      p_opportunity_id: ID,
+      p_value_cents: 5000,
+      p_procedure_id: null,
+      p_owner_user_id: null,
+      p_next_action_at: null,
+      p_keep_notes: false,
+    })
   })
 
   it("nota null apaga: manda null e nem relê o banco", async () => {
     rpc.mockResolvedValue({ data: "ok", error: null })
     await salvarDetalhes({ ...detalhes, nota: null })
-    expect(rpc.mock.calls[0][1].p_notes_encrypted).toBeNull()
+    expect(rpc.mock.calls[0][1]).toMatchObject({ p_notes_encrypted: null, p_keep_notes: false })
     expect(from).not.toHaveBeenCalled()
   })
 
-  it("nota ausente preserva o blob atual, inclusive um ilegível, sem decifrar; relê pela sessão, filtrando a clínica", async () => {
+  it("nota ausente pede ao banco para manter a gravada (p_keep_notes), sem reler nem decifrar", async () => {
     rpc.mockResolvedValue({ data: "ok", error: null })
-    for (const blob of [cifrarConteudo("c-1", "Prefere manhã"), "blob-ilegivel-qualquer", null]) {
-      rpc.mockClear()
-      leitura.mockResolvedValueOnce({ data: { notes_encrypted: blob }, error: null })
-      const { nota: _nota, ...semNota } = detalhes
-      expect(await salvarDetalhes(semNota)).toBe("ok")
-      expect(rpc.mock.calls[0][1].p_notes_encrypted).toBe(blob)
-    }
-    expect(filtros).toContainEqual(["id", ID])
-    expect(filtros).toContainEqual(["clinic_id", "c-1"])
-    expect(filtros).toContainEqual(["opportunities.select", "notes_encrypted"])
-  })
-
-  it("nota ausente e oportunidade não encontrada na releitura: nao-encontrada, sem gravar", async () => {
-    leitura.mockResolvedValueOnce({ data: null, error: null })
     const { nota: _nota, ...semNota } = detalhes
-    expect(await salvarDetalhes(semNota)).toBe("nao-encontrada")
-    expect(rpc).not.toHaveBeenCalled()
-  })
-
-  it("erro na releitura vira Error genérico, com o original em cause", async () => {
-    const original = { code: "XX000", message: "Prefere manhã", details: null, hint: null }
-    leitura.mockResolvedValueOnce({ data: null, error: original })
-    const { nota: _nota, ...semNota } = detalhes
-    const erro = await salvarDetalhes(semNota).catch((e) => e)
-    expect(erro.message).toBe("Falha ao salvar a oportunidade")
-    expect(erro.cause).toBe(original)
-    expect(rpc).not.toHaveBeenCalled()
+    expect(await salvarDetalhes(semNota)).toBe("ok")
+    expect(rpc.mock.calls[0][1]).toMatchObject({ p_clinic_id: "c-1", p_notes_encrypted: null, p_keep_notes: true })
+    expect(from).not.toHaveBeenCalled()
   })
 
   it("o erro do PostgREST vira Error genérico", async () => {

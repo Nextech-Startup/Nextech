@@ -14,8 +14,9 @@ import {
 /**
  * O CRM próprio, parte 2 (spec crm-v1, seção 3): as oportunidades nascem e
  * andam com os eventos do sistema, por triggers no banco. Contra o banco
- * real. As clínicas de teste nascem no Starter: a automação vale em todo
- * plano ("o dado é gravado em todo plano").
+ * real. A, C e D ficam no Pro (a leitura pela sessão exige o plano); B fica
+ * no Starter, onde a automação grava do mesmo jeito ("o dado é gravado em
+ * todo plano").
  */
 
 let A: ClinicaDeTeste
@@ -68,7 +69,7 @@ beforeAll(async () => {
     montarClinica("crm-auto-c", ["owner", "staff"]),
     montarClinica("crm-auto-d", ["owner"]),
   ])
-  const { error } = await admin.from("clinics").update({ plan: "pro" }).eq("id", D.id)
+  const { error } = await admin.from("clinics").update({ plan: "pro" }).in("id", [A.id, C.id, D.id])
   if (error) throw error
 }, 60_000)
 
@@ -203,6 +204,19 @@ describe("qualificação pela IA", () => {
     const ops = await oportunidades(p)
     expect(ops.map((o) => o.stage)).toEqual(["perdido"])
     expect(await eventos(op.id)).toHaveLength(1)
+  })
+})
+
+describe("no Starter", () => {
+  it("a mensagem do paciente abre a oportunidade e a qualificação move, mas a equipe não lê pela sessão", async () => {
+    const p = await novoPaciente(B)
+    const { conversa } = await registrar(B, p, { autor: "patient", texto: "Oi", em: emMinutos(0) })
+    await qualificar(conversa)
+    const [op] = await oportunidades(p)
+    expect(op.stage).toBe("qualificado")
+    const db = await comoUsuario(B.equipe.owner!)
+    const { data } = await db.from("opportunities").select("id").eq("id", op.id)
+    expect(data).toEqual([])
   })
 })
 
