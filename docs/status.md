@@ -1,6 +1,6 @@
 # Status do Projeto — Nextech SaaS
 
-> Atualizado em 2026-11-03. Documento de acompanhamento: o que está pronto, o que falta e o que bloqueia.
+> Atualizado em 2026-11-04. Documento de acompanhamento: o que está pronto, o que falta e o que bloqueia.
 
 ## Onde estamos
 
@@ -16,13 +16,28 @@
 | **Páginas legais** | ✅ concluídas (`docs/specs/legal-pages-v1.md`): `/privacidade`, `/termos` e `/exclusao-de-dados`, com a exclusão dos leads em 12 meses pelo pg_cron |
 | **CRM próprio** | ✅ parte 2 pronta (2026-11-04): oportunidades no banco, automação por triggers, mover/editar/nota cifrada pela RPC, tempo real, trava de plano e de papel, demonstração juntando reais e de exemplo — `docs/specs/crm-v1.md` |
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
-| 4 a 10 | ⬜ não iniciadas |
+| **4 — Templates e sequências** | 🟡 templates prontos (2026-11-04): tabela com RLS e trava de plano, webhook de status e categoria, client da Meta e porta única de envio, tela real — `docs/specs/whatsapp-templates-v1.md`. Sequências a seguir |
+| 5 a 10 | ⬜ não iniciadas |
 
-**2300 testes passando** (173 arquivos, suíte inteira em 2026-11-04, depois da parte 2 do CRM) · 44 migrations aplicadas · em produção em `app.nextech.ia.br`
+**2457 testes passando** (183 arquivos, suíte inteira em 2026-11-04, depois dos templates; as correções das revisões, que vieram depois, rodaram nos arquivos afetados) · 46 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 **Prioridade atual (2026-10-26): o desenvolvimento do produto**, spec por spec. A apresentação ao investidor está resolvida: o Jhones concluiu os passos pendentes (número do investidor e limpeza).
 
-**Próxima sessão:** implementar `docs/superpowers/plans/2026-11-04-templates-do-whatsapp.md` (fase 4, primeira spec). A spec `whatsapp-templates-v1.md` foi revisada em 2026-11-04: o Jhones saiu no meio e pediu a opção recomendada, e as 12 decisões estão na seção "Decisões da revisão" da spec, para ele conferir (destaques: Starter só follow-up, status `paused`/`disabled`, variáveis de catálogo fechado, rejeitado reenvia pela edição da Meta). O push da migration da Tarefa 1 pede a aprovação dele. O PR de `staging` para `main` (CRM parte 2 e o endurecimento) segue com o Jhones.
+**Próxima sessão:** escrever o plano de `docs/specs/message-sequences-v1.md` (fase 4, segunda spec), que usa a porta de envio dos templates (`prepararEnvioDeTemplate` + `enviarTemplate`) e acrescenta o seu arquivo em `CHAMADORES_AUTORIZADOS` de `tests/architecture/envio-de-template.test.ts`. O PR de `staging` para `main` (CRM parte 2, endurecimento e templates) segue com o Jhones; as 12 decisões da revisão dos templates estão na spec, seção "Decisões da revisão".
+
+### Templates do WhatsApp — o que a entrega decidiu e o que não foi conferido (2026-11-04)
+- **Duas migrations:** `whatsapp_templates` e `whatsapp_templates_name_check`. A primeira subiu com a regex `{1,512}`, que o Postgres recusa (limite de repetição 255): todo insert falhava com `2201B`. A tabela estava vazia; a segunda troca por `^[a-z0-9_]+$` + `length(name) <= 512`. As duas aprovadas pelo Jhones na sessão.
+- **Categoria escolhida no rascunho**, como no protótipo; depois do envio, vale a da Meta. **Rascunho pode ficar incompleto** (variável sem associação, `{{n}}` fora de ordem); o envio exige tudo.
+- **Idempotência da submissão:** se a Meta criou e o banco não gravou, o reenvio esbarra no nome repetido (subcódigo `2388024`), e o template é reconhecido na WABA pelo nome **e pelo corpo**: um homônimo criado fora do Nextech não é adotado.
+- **Status gravado no envio com 60 s de margem** (`status_changed_at`): evento da Meta de antes do reenvio é ignorado, mas o relógio da Meta um pouco atrás não descarta a resposta do envio atual.
+- **Excluir template enviado numa WABA a que o agente não tem mais acesso** sai só do banco: a clínica ainda controla aquela conta no WhatsApp Manager.
+- **Porta de envio:** `prepararEnvioDeTemplate` também recusa `outra_clinica` (duas clínicas podem dividir uma WABA; achado M1 da revisão de segurança).
+- **Formulário do editor por `onSubmit` + `startTransition`:** com `<form action>`, o React 19 reseta o formulário depois da action, e o select da variável voltava a "Escolha…" (achado no Playwright; memória `form-action-reseta-controlado`).
+- **Conferido no navegador** numa clínica Pro temporária (criada e apagada por script): os seis status, a recategorização anunciada e "de outra conta", nos dois temas, em 1440 e 390 px, sem rolagem horizontal; a demonstração pelo `clinica@`. Fluxo real por Playwright: criar, salvar duas vezes mantendo a variável, envio recusado sem WhatsApp, duplicar o aprovado (`_v2`) e excluir.
+- **Não conferido:** nada contra a Meta real (sem credenciais). Client escrito pela referência de mai/2026; checklist em `docs/infra-setup.md`. O `message_template_id` chega como número JSON: um id acima de 2^53 perderia precisão no `JSON.parse` (os de hoje têm 16 dígitos, abaixo de 9×10^15).
+- **Lacunas de teste conhecidas:** `canal_sem_template` nas mutations não tem teste (o agente `evolution:` só existe na clínica de demonstração, que a mutation recusa antes); o reset do formulário não tem teste automatizado (sem jsdom), só o Playwright; o teste de arquitetura da porta é varredura de texto (pega menção ao nome fora de comentário, não confere que o chamador usa o resultado do preparo).
+- **Da revisão de segurança, fora do diff:** `resolverVinculo` (`lib/auth/context.ts`) usa `.limit(1)` sem `order`: para quem é membro de mais de uma clínica, a clínica da sessão é indeterminada. Vale para todas as mutations.
+
 
 ### CRM, parte 2 — pendências com o Jhones
 - **`opportunity_events.actor_user_id ... on delete restrict`** (mesmo padrão de `conversation_events`): apagar a conta de um membro que moveu cartões esbarra nos eventos, e o `actor_email` fica sem prazo. Decidir o fluxo LGPD do funcionário.
@@ -308,6 +323,7 @@ Spec `docs/specs/evolution-demo-v1.md`; plano `docs/superpowers/plans/2026-10-11
 ## Pendências
 
 ### Precisam de ação do Jhones
+- [ ] **Templates do WhatsApp:** conferir no PR as 12 decisões da revisão (`docs/specs/whatsapp-templates-v1.md`). Quando houver app da Meta: assinar `message_template_status_update` e `template_category_update`, garantir a permissão `whatsapp_business_management` no token e fazer o teste real do checklist (`docs/infra-setup.md`)
 - [ ] **Áudio (parte 5b):** (1) conferir no navegador, nos dois temas, a conversa com áudio transcrito; (2) reconfigurar o webhook da instância da Evolution com `base64 = $true` (`docs/infra-setup.md`, canal de demonstração, passo 4), senão o áudio da demonstração vai para a equipe; (3) confirmar que o plano da Vercel aceita `maxDuration = 180` nas rotas do webhook
 
 - [ ] **Páginas legais, depois do deploy em produção (PR `staging` → `main`):** pôr as três URLs (`https://www.nextech.ia.br/privacidade`, `/termos`, `/exclusao-de-dados`) nos campos do app na Meta (Configurações do app > Básico). Antes da primeira clínica: a revisão do texto, de preferência com advogado. Na revisão, confirmar o data center da conta do Zoho (a política diz "exterior") e o fundamento da transferência internacional (art. 33)

@@ -213,8 +213,9 @@ Para a apresentação a investidor: um chip da Nextech, ligado à Evolution API 
 ### Desempenho e segurança do painel (2026-10-11)
 A lentidão dos filtros de Conversas (~1,9 s por clique) vinha de idas em série ao Supabase, que está em us-west-2 (~300 ms por ida rodando do Brasil). O recorte da fila agora é do navegador (~50 ms), a leitura confere o token pela assinatura (`getClaims`), a fila sai numa RPC só e a conversa pedida sai junto da fila: abrir a conversa real caiu de 1,90 s para 0,72 s. Da revisão de segurança: a RLS das clínicas passou a exigir a sessão viva (logout e banimento valem na hora), o telefone do paciente saiu das URLs do PostgREST (RPC por POST) e as travas da demonstração fecharam duas brechas. Falta, no PR para a `main`: fixar as funções da Vercel em `pdx1`, junto do banco (`docs/infra-setup.md`).
 
-## Fase 4 — Templates e sequências
-- `whatsapp-templates-v1.md`, `message-sequences-v1.md`
+## Fase 4 — Templates e sequências 🟡 (templates ✅ 2026-11-04)
+- `whatsapp-templates-v1.md` ✅: tabela com RLS e trava de plano, regras puras (catálogo de variáveis, eventos da Meta, submissão), client da Meta (criar, editar, consultar, excluir e a porta única `enviarTemplate`), webhook de status e de categoria, mutations com trava de papel, tela real. Tudo contra mock da Meta, sem credencial real
+- `message-sequences-v1.md`: a próxima
 - Depende da fase 3b (precisa do agente e do paciente conversando)
 
 ## Fase 5 — Motor de agendamento

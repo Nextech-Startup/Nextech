@@ -85,6 +85,9 @@ Duas classes de segredo, que não se misturam:
 O webhook está em `app/api/whatsapp/webhook` desde a parte 1 do motor de conversa (2026-09-27), testado com payloads no formato documentado da Meta.
 - [ ] No app da Meta, apontar o webhook para `https://<domínio>/api/whatsapp/webhook`.
 - [ ] Assinar os campos `messages`, `smb_message_echoes` (eco da coexistência) e `account_update` (desconexão e reconexão).
+- [ ] Assinar também `message_template_status_update` (aprovação, rejeição, pausa e desativação de template) e `template_category_update` (recategorização pela Meta, com aviso de 24h). Sem eles, o template fica "Em análise" até a clínica clicar em "Conferir agora" (`docs/specs/whatsapp-templates-v1.md`).
+- [ ] O token de cada clínica precisa da permissão `whatsapp_business_management` (criar, editar, consultar e excluir template), além da `whatsapp_business_messaging`.
+- [ ] Depois de conectar o número de teste: criar um template na tela de Templates, enviar para aprovação e conferir que o webhook o leva a "Aprovado". O client (`lib/whatsapp/client.ts`) foi escrito contra a referência de mai/2026, sem chamada real: conferir o formato da resposta da criação (`id`, `status`, `category`), o subcódigo `2388024` de nome repetido e o `DELETE` com `hsm_id`.
 - [ ] Na Vercel, nos três ambientes:
   - `WHATSAPP_APP_SECRET`: o app secret, que confere o `X-Hub-Signature-256`;
   - `WHATSAPP_WEBHOOK_VERIFY_TOKEN`: um valor aleatório, o mesmo que vai no campo "Verify token" da Meta;
