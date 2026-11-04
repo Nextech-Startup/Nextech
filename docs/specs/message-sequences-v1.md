@@ -50,6 +50,10 @@ Um paciente só fica `active` em uma sequência por vez — evita mandar recall 
 - [ ] Paciente nunca fica `active` em mais de uma sequência ao mesmo tempo.
 - [ ] Teste automatizado cobre: parada por resposta, parada por opt-out, não-duplicação de enrollment.
 
+## Herdado de `whatsapp-templates-v1` (revisão de 2026-11-04)
+- **Plano:** decidido lá — Starter só follow-up; Pro e HealthTech, as três sequências (`USOS_DE_TEMPLATE`).
+- **Envio:** sempre por `prepararEnvioDeTemplate` + `enviarTemplate` (`lib/whatsapp/`). Registrar a recusa e mostrá-la à clínica é desta spec.
+- **Passo → template:** FK com `on delete restrict`; o template do passo precisa ter o uso da sequência.
+
 ## Em aberto
-- Custo: recall + reativação + follow-up em `MARKETING` (sem desconto de volume) pode ser caro demais pro plano Starter — decidir se ficam restritas a Pro/HealthTech (mesmo ponto do `whatsapp-templates-v1.md`, agora valendo pras três sequências).
 - Detecção de "paciente agendou por qualquer canal" depende do motor de agendamento (fase 5 do roadmap) — aqui assume que esse evento já existe disponível pro `SequenceEnrollment` escutar.

@@ -22,7 +22,7 @@
 
 **Prioridade atual (2026-10-26): o desenvolvimento do produto**, spec por spec. A apresentação ao investidor está resolvida: o Jhones concluiu os passos pendentes (número do investidor e limpeza).
 
-**Próxima sessão:** o PR de `staging` para `main` (CRM parte 2 e o endurecimento) e a próxima spec do roadmap. A parte 2 ficou pronta em 2026-11-04, com a migration `crm_hardening` (nota mantida sob a trava, clínica da sessão na RPC, leitura com plano).
+**Próxima sessão:** implementar `docs/superpowers/plans/2026-11-04-templates-do-whatsapp.md` (fase 4, primeira spec). A spec `whatsapp-templates-v1.md` foi revisada em 2026-11-04: o Jhones saiu no meio e pediu a opção recomendada, e as 12 decisões estão na seção "Decisões da revisão" da spec, para ele conferir (destaques: Starter só follow-up, status `paused`/`disabled`, variáveis de catálogo fechado, rejeitado reenvia pela edição da Meta). O push da migration da Tarefa 1 pede a aprovação dele. O PR de `staging` para `main` (CRM parte 2 e o endurecimento) segue com o Jhones.
 
 ### CRM, parte 2 — pendências com o Jhones
 - **`opportunity_events.actor_user_id ... on delete restrict`** (mesmo padrão de `conversation_events`): apagar a conta de um membro que moveu cartões esbarra nos eventos, e o `actor_email` fica sem prazo. Decidir o fluxo LGPD do funcionário.
