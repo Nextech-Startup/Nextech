@@ -4,11 +4,12 @@ import { receberStatus } from "@/lib/conversations/status"
 import { erroParaLog } from "@/lib/security/erro-para-log"
 import { assinaturaValida, desafioDaVerificacao } from "@/lib/whatsapp/assinatura"
 import { receberEventoDeConta } from "@/lib/whatsapp/conta"
+import { receberEventoDeTemplate } from "@/lib/whatsapp/templates/recepcao"
 import { falhaDefinitiva, interpretarWebhook } from "@/lib/whatsapp/webhook"
 
 /**
  * Webhook da Meta (conversation-engine-v1, recepção, eco, eventos de conta
- * e status de entrega).
+ * e status de entrega; whatsapp-templates-v1, status e categoria de template).
  *
  * Grava antes de responder: a gravação leva milissegundos, e um 200 com a
  * gravação falha perderia a mensagem para sempre. Com 500, a Meta reenvia,
@@ -85,6 +86,8 @@ export async function POST(request: Request) {
         await tratarMensagem(evento, (etapa, tarefa) => after(() => emSegundoPlano(etapa, tarefa)))
       } else if (evento.tipo === "status") {
         await receberStatus(evento)
+      } else if (evento.tipo === "template") {
+        await receberEventoDeTemplate(evento)
       } else {
         await receberEventoDeConta(evento)
       }

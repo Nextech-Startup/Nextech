@@ -1,5 +1,6 @@
 import type { ErroParaLog } from "@/lib/security/erro-para-log"
 import type { EventoDaConta } from "./conexao"
+import { CAMPOS_DE_TEMPLATE, interpretarEventoDeTemplate, type EventoDeTemplate } from "./templates/eventos"
 
 /**
  * Leitura do webhook da Meta (conversation-engine-v1, recepção e eco).
@@ -64,7 +65,11 @@ export type EventoDeStatusDoWebhook = {
   codigoDoErro: string | null
 }
 
-export type EventoDoWebhook = MensagemDoWebhook | EventoDeContaDoWebhook | EventoDeStatusDoWebhook
+export type EventoDoWebhook =
+  | MensagemDoWebhook
+  | EventoDeContaDoWebhook
+  | EventoDeStatusDoWebhook
+  | EventoDeTemplate
 
 type Bruto = Record<string, unknown>
 
@@ -239,6 +244,11 @@ export function interpretarWebhook(payload: unknown): EventoDoWebhook[] {
         eventos.push(...mensagens(wabaId, value, "message_echoes", "human"))
       } else if (change.field === "account_update") {
         const evento = eventoDeConta(entry, value)
+        if (evento) eventos.push(evento)
+      } else if ((CAMPOS_DE_TEMPLATE as readonly unknown[]).includes(change.field) && wabaId) {
+        // Status e categoria de template (whatsapp-templates-v1): a chave é
+        // o par WABA + id do template.
+        const evento = interpretarEventoDeTemplate(entry, change.field as string, value)
         if (evento) eventos.push(evento)
       }
     }

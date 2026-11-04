@@ -7,6 +7,7 @@ import {
   webhookDeEcos,
   webhookDeMensagens,
   webhookDeStatus,
+  webhookDeTemplate,
 } from "@/tests/fixtures/meta-webhook"
 
 const PHONE = "106540352242922"
@@ -145,6 +146,43 @@ describe("eventos de conta", () => {
 
   it("ignora outros eventos de conta", () => {
     expect(interpretarWebhook(webhookDeConta({ evento: "VERIFIED_ACCOUNT", time: T }))).toEqual([])
+  })
+})
+
+describe("eventos de template", () => {
+  it("lê message_template_status_update pelo WABA", () => {
+    const eventos = interpretarWebhook(webhookDeTemplate({
+      campo: "message_template_status_update", time: T,
+      value: { event: "APPROVED", message_template_id: 123, message_template_name: "x", message_template_language: "pt_BR", reason: "NONE" },
+    }))
+    expect(eventos).toEqual([expect.objectContaining({ tipo: "template", wabaId: WABA_ID, metaTemplateId: "123", status: "approved" })])
+  })
+
+  it("lê template_category_update", () => {
+    const eventos = interpretarWebhook(webhookDeTemplate({
+      campo: "template_category_update", time: T,
+      value: { message_template_id: 123, previous_category: "UTILITY", new_category: "MARKETING" },
+    }))
+    expect(eventos).toEqual([expect.objectContaining({ tipo: "template", categoria: "MARKETING", limparPendente: true })])
+  })
+
+  it("convive com mensagens no mesmo POST", () => {
+    const tpl = webhookDeTemplate({ campo: "message_template_status_update", time: T, value: { event: "REJECTED", message_template_id: 1 } })
+    const msg = webhookDeMensagens({ phoneNumberId: "123", waId: "5500999", mensagens: [mensagem("wamid.1", T, "Oi")] })
+    const payload = { ...msg, entry: [...msg.entry, ...tpl.entry] }
+    expect(interpretarWebhook(payload).map((e) => e.tipo)).toEqual(["mensagem", "template"])
+  })
+
+  it("campo de template sem WABA é ignorado", () => {
+    const tpl = webhookDeTemplate({ campo: "message_template_status_update", time: T, value: { event: "APPROVED", message_template_id: 1 } })
+    delete (tpl.entry[0] as { id?: string }).id
+    expect(interpretarWebhook(tpl)).toEqual([])
+  })
+
+  it("outro campo da WABA continua ignorado", () => {
+    const tpl = webhookDeTemplate({ campo: "message_template_status_update", time: T, value: { event: "APPROVED", message_template_id: 1 } })
+    ;(tpl.entry[0].changes[0] as { field: string }).field = "message_template_quality_update"
+    expect(interpretarWebhook(tpl)).toEqual([])
   })
 })
 

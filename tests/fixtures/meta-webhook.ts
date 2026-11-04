@@ -80,6 +80,19 @@ export function webhookDeConta(p: { wabaId?: string; evento: string; time: numbe
   }
 }
 
+/** Campos de template: `message_template_status_update` ou `template_category_update`. */
+export function webhookDeTemplate(p: {
+  wabaId?: string
+  campo: "message_template_status_update" | "template_category_update"
+  time: number
+  value: Record<string, unknown>
+}) {
+  return {
+    object: "whatsapp_business_account",
+    entry: [{ id: p.wabaId ?? WABA_ID, time: p.time, changes: [{ field: p.campo, value: p.value }] }],
+  }
+}
+
 export function assinar(corpo: string, segredo: string): string {
   return `sha256=${createHmac("sha256", segredo).update(corpo, "utf8").digest("hex")}`
 }
