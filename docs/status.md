@@ -18,7 +18,7 @@
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**2294 testes passando** (173 arquivos, suíte inteira em 2026-11-04, depois da parte 2 do CRM) · 44 migrations aplicadas · em produção em `app.nextech.ia.br`
+**2298 testes passando** (173 arquivos, suíte inteira em 2026-11-04, depois da parte 2 do CRM) · 44 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 **Prioridade atual (2026-10-26): o desenvolvimento do produto**, spec por spec. A apresentação ao investidor está resolvida: o Jhones concluiu os passos pendentes (número do investidor e limpeza).
 
