@@ -6,6 +6,7 @@ vi.mock("@/lib/conversations/queries", () => ({ buscarConversas: motor.buscarCon
 const contexto = vi.hoisted(() => ({ isDemo: false }))
 vi.mock("@/lib/auth/context", () => ({ requireClinicContext: async () => ({ isDemo: contexto.isDemo }) }))
 
+import { redirect } from "next/navigation"
 import { filtrarConversas } from "@/components/conversations/estado"
 import { relogioDoMinuto } from "@/lib/demo/relogio"
 import { AGORA } from "@/app/_fixtures/agora"
@@ -136,5 +137,33 @@ describe("buscar (server action da busca da fila)", () => {
     const termo = (CONVERSAS.find((c) => c.paciente.nome)?.paciente.nome ?? "").split(" ")[0]
     motor.buscarConversas.mockResolvedValue([])
     expect(await buscar(termo)).toEqual({ conversas: [], erro: null })
+  })
+})
+
+describe("sessão vencida nas actions de Conversas", () => {
+  /** O erro interno do Next que o redirect("/login") da porta da sessão lança. */
+  function erroDoRedirect(): unknown {
+    try {
+      redirect("/login")
+    } catch (e) {
+      return e
+    }
+  }
+  afterEach(() => vi.restoreAllMocks())
+
+  it("agir: o redirect para /login segue adiante, sem log nem mensagem genérica", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {})
+    const e = erroDoRedirect()
+    motor.agirNaConversa.mockReset().mockRejectedValueOnce(e)
+    await expect(agir("assumir", ID)).rejects.toBe(e)
+    expect(log).not.toHaveBeenCalled()
+  })
+
+  it("buscar: o redirect para /login segue adiante, sem log nem mensagem genérica", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {})
+    const e = erroDoRedirect()
+    motor.buscarConversas.mockReset().mockRejectedValueOnce(e)
+    await expect(buscar("maria")).rejects.toBe(e)
+    expect(log).not.toHaveBeenCalled()
   })
 })

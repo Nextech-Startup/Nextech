@@ -1,5 +1,6 @@
 "use server"
 
+import { unstable_rethrow } from "next/navigation"
 import { z } from "zod"
 import { filtrarConversas } from "@/components/conversations/estado"
 import { requireClinicContext } from "@/lib/auth/context"
@@ -27,6 +28,8 @@ export async function agir(acao: unknown, conversaId: unknown): Promise<{ erro: 
   try {
     return { erro: mensagemDaAcao(await agirNaConversa(acao, id.data)) }
   } catch (erro) {
+    // O redirect("/login") da sessão vencida é um erro interno do Next: segue adiante.
+    unstable_rethrow(erro)
     console.error("Falha na ação da conversa", erroParaLog(erro))
     return { erro: "Não foi possível concluir. Tente de novo." }
   }
@@ -52,6 +55,8 @@ export async function buscar(termo: unknown): Promise<{ conversas: ConversaResum
     const exemplos = relogioDoMinuto(AGORA).deslocar(CONVERSAS)
     return { conversas: [...reais, ...filtrarConversas(exemplos, { estado: "todas", busca: t.data })], erro: null }
   } catch (erro) {
+    // O redirect("/login") da sessão vencida é um erro interno do Next: segue adiante.
+    unstable_rethrow(erro)
     console.error("Falha na busca de conversas", erroParaLog(erro))
     return { conversas: [], erro: "Não foi possível buscar. Tente de novo." }
   }

@@ -18,7 +18,7 @@
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**2298 testes passando** (173 arquivos, suíte inteira em 2026-11-04, depois da parte 2 do CRM) · 44 migrations aplicadas · em produção em `app.nextech.ia.br`
+**2300 testes passando** (173 arquivos, suíte inteira em 2026-11-04, depois da parte 2 do CRM) · 44 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 **Prioridade atual (2026-10-26): o desenvolvimento do produto**, spec por spec. A apresentação ao investidor está resolvida: o Jhones concluiu os passos pendentes (número do investidor e limpeza).
 
@@ -29,7 +29,6 @@
 - **AAD por propósito:** nota e mensagem usam a mesma chave e a mesma AAD (`clinic_id`). Separar (`crm-note:<clinic_id>`) fecha a troca de blobs entre domínios; não dá acesso a nada novo.
 - **Digitar na nota** não tem teste de interação (sem jsdom): a regra fica em `formularioParaEnvio` e na textarea sem `name`, e foi conferida na tela.
 - **`npm run lint` quebrado** antes desta sessão: o Next 16 removeu o `next lint` e falta o `eslint.config.*`. Trocar o script pelo ESLint direto numa sessão de infra.
-- **`app/(dashboard)/dashboard/conversations/acoes.ts`** engole o `redirect("/login")` no `catch` (o do CRM já usa `unstable_rethrow`). Corrigir junto com a próxima mexida em Conversas.
 
 ---
 
