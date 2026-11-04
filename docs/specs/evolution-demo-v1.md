@@ -86,7 +86,7 @@ celular do investidor ──WhatsApp──▶ chip da Nextech (Evolution, Docker
 - **Desconectar e limpar, ao fim de cada apresentação:**
   - apaga os pacientes, as conversas e as mensagens da clínica de demonstração. O telefone e as mensagens do investidor são dado pessoal real;
   - tira o agente do ar e apaga o identificador e a credencial dele;
-  - registra a limpeza na trilha e confere no banco que não sobrou paciente nem agente conectado.
+  - registra a limpeza na trilha e confere no banco que não sobrou paciente nem agente conectado. As oportunidades do CRM que as conversas abriram saem pela cascata do paciente, e `conferirLimpeza` também as conta (2026-11-04).
 
   A demonstração volta ao estado de antes, e o script de preparo dela (`scripts/conta-demo`), que recusa clínica com paciente ou com agente conectado, continua valendo.
 

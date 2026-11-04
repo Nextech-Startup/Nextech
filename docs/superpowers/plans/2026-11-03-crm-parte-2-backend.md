@@ -968,7 +968,7 @@ reset lock_timeout;
 
 > **Correção na execução (rodada 1):** (M1) `set lock_timeout = '5s'` no topo e `reset` no fim; (I2) check `opportunities_nota_cifrada`: a nota só entra em base64 de 40 a 10708 caracteres (30 bytes mínimos = versão 1 + IV 12 + tag 16 + 1 de ciphertext; máximo 29 + 2000 x 4 = 8029 bytes = ceil(8029/3) x 4 = 10708); (M2) o trigger de abertura tenta de novo uma vez se a oportunidade aberta foi encerrada entre o `do nothing` e o update da atividade; (M7) índice `opportunity_events (clinic_id, created_at)`.
 
-- [ ] **Passo 6: `--dry-run` e aprovação do Jhones**
+- [x] **Passo 6: `--dry-run` e aprovação do Jhones** *(aplicada em 2026-11-03; `supabase migration list --remote` em 2026-11-04 confere local = remoto)*
 
 Run: `npx supabase db push --remote -p "$SUPABASE_DB_PASSWORD" --dry-run`
 Esperado: só `20261103150000_crm_opportunities.sql` na lista. Mostre a saída ao Jhones e peça a aprovação do push (o classificador barra o push em produção sem ela).
@@ -1752,7 +1752,7 @@ curl -s -X POST "https://api.supabase.com/v1/projects/bbfjwsrxastqpvbudhmc/datab
 
 Se o banco tiver algo que o corpo acima não tem, pare e acrescente (nunca tire o que já existe).
 
-- [ ] **Passo 4: `--dry-run` e aprovação do Jhones** (como na Tarefa 1). Esperado: só `20261103160000_crm_actions.sql`. A troca de `anonymize_patient` é alteração de função existente: diga isso explicitamente no pedido de aprovação.
+- [x] **Passo 4: `--dry-run` e aprovação do Jhones** (como na Tarefa 1). *(aplicada em 2026-11-03; conferida pelo `migration list --remote` em 2026-11-04)* Esperado: só `20261103160000_crm_actions.sql`. A troca de `anonymize_patient` é alteração de função existente: diga isso explicitamente no pedido de aprovação.
 
 - [ ] **Passo 5: aplicar**: `npx supabase db push --remote -p "$SUPABASE_DB_PASSWORD" --yes`
 
@@ -4239,7 +4239,7 @@ git commit -m "feat(crm): tela real com gravação, tempo real, convite do Start
 - Consome: tudo das tarefas anteriores.
 - Produz: a conferência da limpeza com as oportunidades; a documentação da parte 2.
 
-- [ ] **Passo 1: o teste da limpeza.** Em `tests/rls/canal-demo.test.ts`, no caso "depois de uma conversa gravada, deixa a clínica sem paciente, conversa, mensagem nem agente conectado", troque a lista de tabelas por:
+- [x] **Passo 1: o teste da limpeza.** Em `tests/rls/canal-demo.test.ts`, no caso "depois de uma conversa gravada, deixa a clínica sem paciente, conversa, mensagem nem agente conectado", troque a lista de tabelas por:
 
 ```ts
     for (const tabela of ["patients", "conversations", "messages", "attendance_sessions", "opportunities", "opportunity_events"]) {
@@ -4256,7 +4256,7 @@ e acrescente, antes do `limpar()`, a prova de que as conversas abriram oportunid
 Run: `npx vitest run tests/rls/canal-demo.test.ts`
 Esperado: PASS já (a cascata do paciente leva as oportunidades). Se falhar, a cascata não está como a Tarefa 1 manda: corrija lá.
 
-- [ ] **Passo 2: a conferência do script.** Em `scripts/canal-demo/limpar.ts`, `conferirLimpeza` passa a contar `opportunities`:
+- [x] **Passo 2: a conferência do script.** Em `scripts/canal-demo/limpar.ts`, `conferirLimpeza` passa a contar `opportunities`:
 
 ```ts
   const [pacientes, conversas, mensagens, oportunidades, agentes] = await Promise.all([
@@ -4275,11 +4275,14 @@ git add scripts/canal-demo/limpar.ts tests/rls/canal-demo.test.ts
 git commit -m "test(demo): a limpeza do canal leva as oportunidades do CRM"
 ```
 
-- [ ] **Passo 3: conferir na tela** (skill `run`; script de captura `shot-referencia.mjs` com a conta de demonstração): `/dashboard/crm` em 1440 e 390 px, nos dois temas. Conferir: a pílula "Ao vivo"; os KPIs compactos no celular sem rolagem horizontal; abrir uma oportunidade real (mande uma mensagem pelo canal de demonstração, ou registre uma pela fixture) e editar valor, responsável e nota; mover por arrastar e pelo menu; o selo IA só em Qualificado automático. Rode `npx tsx scripts/canal-demo.ts limpar` no fim, se usou o canal.
+- [x] **Passo 3: conferir na tela** (skill `run`; script de captura `shot-referencia.mjs` com a conta de demonstração): `/dashboard/crm` em 1440 e 390 px, nos dois temas. Conferir: a pílula "Ao vivo"; os KPIs compactos no celular sem rolagem horizontal; abrir uma oportunidade real (mande uma mensagem pelo canal de demonstração, ou registre uma pela fixture) e editar valor, responsável e nota; mover por arrastar e pelo menu; o selo IA só em Qualificado automático. Rode `npx tsx scripts/canal-demo.ts limpar` no fim, se usou o canal.
 
-- [ ] **Passo 4: revisões.** Peça a revisão do subagente `security-reviewer` (a parte 2 toca nota de paciente cifrada, RLS nova e um canal Realtime) e do `qa-reviewer` sobre o diff desde o início da sessão. Corrija com teste o que eles acharem e anote "Correção na execução" no passo da tarefa correspondente deste plano.
+- [x] **Passo 4: revisões.** Peça a revisão do subagente `security-reviewer` (a parte 2 toca nota de paciente cifrada, RLS nova e um canal Realtime) e do `qa-reviewer` sobre o diff desde o início da sessão. Corrija com teste o que eles acharem e anote "Correção na execução" no passo da tarefa correspondente deste plano.
 
-- [ ] **Passo 5: a suíte inteira**, em segundo plano, sem editar arquivo enquanto roda:
+  > **Correção na execução (2026-11-04):** o `qa-reviewer` pediu testes por papel em `search_opportunities` e `crm_team` (profissional recebe `[]`), a corrida real mover × qualificar, o plano rebaixado com o dado preservado, urgência e opt-out sem mexer na etapa, qualificação sobre Qualificado e sobre encerrada, eventos entre clínicas e a sessão revogada no CRM: todos entraram (`tests/rls/crm-acoes.test.ts`, `crm-automacao.test.ts`, `sessao-ativa.test.ts`). Do `security-reviewer` (nada bloqueante): o pedido de movimento ganhou o teto do valor (`lib/crm/movimento.ts`) e o `erroParaLog` passou a registrar o SQLSTATE do `cause`. O que exige migration nova (corrida da nota, AAD de outra clínica, plano na leitura, `actor_email`) ficou em `docs/status.md`, para decisão do Jhones.
+  > A conferência na tela usou uma oportunidade real criada pelo trigger (paciente, conversa e mensagem pela service role) e a limpeza do canal no fim; a "(81) •••••-0007" da tela é de exemplo.
+
+- [x] **Passo 5: a suíte inteira**, em segundo plano, sem editar arquivo enquanto roda:
 
 ```bash
 SAIDA="$SCRATCH/suite-crm-parte-2.txt"
@@ -4288,7 +4291,7 @@ SAIDA="$SCRATCH/suite-crm-parte-2.txt"
 
 Esperado: `exit=0`. Teste de banco travado muito além do `testTimeout` é queda de rede: confira a conexão e rode o arquivo sozinho antes de concluir que é falha.
 
-- [ ] **Passo 6: documentação.**
+- [x] **Passo 6: documentação.**
   - `docs/specs/crm-v1.md`: marcar `[x]` nos critérios da Parte 2 conferidos; registrar as três decisões de 2026-11-03 na seção "Decisões" (10: selo IA só na qualificação automática; 11: "hoje" por dia de calendário; 12: KPIs compactos no celular) e ajustar a linha do cartão na seção 5 ("selo IA quando a última mudança foi a qualificação automática");
   - `docs/status.md`: CRM próprio "parte 2 pronta"; tirar da seção "CRM, parte 1 — pendências" o que a parte 2 resolveu (layout do celular, `ehEtapa`, teste do log, redutor, selo IA, "hoje"); manter o `npm run lint` e o `acoes.ts` de Conversas;
   - `docs/specs/demo-account-v1.md`: o CRM junta as reais às de exemplo; "Meus" na demonstração é o usuário real;
@@ -4297,7 +4300,7 @@ Esperado: `exit=0`. Teste de banco travado muito além do `testTimeout` é queda
   - `.claude/skills/architecture/SKILL.md`: `lib/crm/` agora tem leitura, queries e mutations; o canal `crm:<clinic_id>`;
   - `docs/claude-memory/nextech-ambiente-supabase.md`: **43 migrations** (a 42ª `crm_opportunities`, a 43ª `crm_actions`), e atualizar a linha correspondente no `MEMORY.md`.
 
-- [ ] **Passo 7: commit e push da `staging`**
+- [x] **Passo 7: commit e push da `staging`**
 
 ```bash
 git add docs .claude/skills/architecture/SKILL.md docs/superpowers/plans/2026-11-03-crm-parte-2-backend.md

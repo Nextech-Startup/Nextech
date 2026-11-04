@@ -17,8 +17,8 @@ Uma por par paciente + agente. É o estado de longo prazo do relacionamento, dif
 - `handled_by` — `ai` | `human`
 - `human_took_over_at` — nullable; quando um humano respondeu pela última vez
 - `is_urgent` — boolean; disparado pela triagem, só limpo por ação humana
-- `qualified_at` — nullable; quando a IA detectou intenção de agendar
-- `last_inbound_at` — última mensagem **do paciente** (define a janela de 24h da Meta)
+- `qualified_at` — nullable; quando a IA detectou intenção de agendar. Gravado, move a oportunidade aberta do CRM de Novo para Qualificado (trigger, spec `crm-v1`)
+- `last_inbound_at` — última mensagem **do paciente** (define a janela de 24h da Meta). A mensagem do paciente em `messages` também abre a oportunidade do CRM, ou atualiza a última atividade da aberta (trigger, spec `crm-v1`); `anonymize_patient` apaga a nota dela
 - `last_message_at` — última mensagem de qualquer origem
 - `status` — `active` | `archived`
 

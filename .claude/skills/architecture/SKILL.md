@@ -33,7 +33,7 @@ Este projeto nasceu como landing page (nextech.ia.br) e o SaaS é construído no
 
 ## Onde cada coisa mora
 - Regra de negócio pura → `lib/<dominio>/` (ex: `lib/scheduling/`).
-  - `lib/crm/` — regras puras do funil (etapas, movimento, métricas da faixa e do resumo, filtros, busca), compartilhadas entre o protótipo da demonstração e o backend da parte 2.
+  - `lib/crm/` — regras puras do funil (etapas, movimento, métricas da faixa e do resumo, filtros, busca, acesso por plano), a leitura decifrada (`leitura.ts`, `queries.ts`) e as escritas pela sessão (`mutations.ts`, RPCs `move_opportunity` e `update_opportunity_details`, nota cifrada na lib). O tempo real é o canal privado `crm:<clinic_id>`, aviso sem dado (`ao-vivo.ts`).
 - Rota HTTP → `app/api/<recurso>/route.ts`, fina, só orquestra chamadas pro `lib`.
 - Cliente de serviço externo (WhatsApp, provider de CRM, OpenRouter, Resend, Google Calendar, Asaas) → `lib/<provider>/client.ts`, nunca instanciado direto num componente ou rota.
 - Job agendado → se só mexe no banco, função SQL com `cron.schedule` na mesma migration (pg_cron do Supabase), testada contra o banco real; se precisa da aplicação (Meta, modelo, e-mail), `app/api/cron/<job>/route.ts`, disparado pelo pg_cron com `pg_net` enquanto não houver Vercel Pro. O segredo que a rota confere (com `comparacaoSegura`) fica no Supabase Vault e é lido dentro do comando do job (`vault.decrypted_secrets`), nunca literal na migration: o comando do job é texto legível em `cron.job` e `cron.job_run_details`, e a migration vai para o repositório. O `clinic_id` vem do próprio dado, como no webhook.

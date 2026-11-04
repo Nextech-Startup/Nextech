@@ -14,22 +14,23 @@
 | **Conta de demonstração** | ✅ concluída (`docs/specs/demo-account-v1.md`): todas as telas do painel na "Clínica Demonstração Nextech", com dado de exemplo e selo |
 | **Canal de demonstração (Evolution)** | ✅ concluído e ensaiado com o chip (`docs/specs/evolution-demo-v1.md`) |
 | **Páginas legais** | ✅ concluídas (`docs/specs/legal-pages-v1.md`): `/privacidade`, `/termos` e `/exclusao-de-dados`, com a exclusão dos leads em 12 meses pelo pg_cron |
-| **CRM próprio** | 🟡 parte 1 pronta (protótipo na demonstração, `/dashboard/crm`); parte 2 (backend) a planejar — `docs/specs/crm-v1.md` |
+| **CRM próprio** | ✅ parte 2 pronta (2026-11-04): oportunidades no banco, automação por triggers, mover/editar/nota cifrada pela RPC, tempo real, trava de plano e de papel, demonstração juntando reais e de exemplo — `docs/specs/crm-v1.md` |
 | Redesign do painel | ✅ partes 1 a 4: design system, shell, estados das rotas reais e protótipos de todas as telas da clínica e do painel interno; telas reais chegam com cada fase — ver roadmap |
 | 4 a 10 | ⬜ não iniciadas |
 
-**2149 testes passando** (163 arquivos, suíte inteira em 2026-11-03, depois da parte 1 do CRM) · 41 migrations aplicadas · em produção em `app.nextech.ia.br`
+**2294 testes passando** (173 arquivos, suíte inteira em 2026-11-04, depois da parte 2 do CRM) · 43 migrations aplicadas · em produção em `app.nextech.ia.br`
 
 **Prioridade atual (2026-10-26): o desenvolvimento do produto**, spec por spec. A apresentação ao investidor está resolvida: o Jhones concluiu os passos pendentes (número do investidor e limpeza).
 
-**Próxima sessão:** o plano da parte 2 do CRM (backend: tabelas, automação no banco, RPC de movimento, tela real, trava de plano). A parte 1 ficou pronta em 2026-11-03 (PR de `staging` para `main`).
+**Próxima sessão:** decidir os pontos abertos da parte 2 do CRM (abaixo) e abrir o PR de `staging` para `main`. A parte 2 ficou pronta em 2026-11-04.
 
-### CRM, parte 1 — pendências com o Jhones
-- **404 fora da demonstração** não conferido no navegador (o script de captura só tem a conta de demonstração); coberto pelo teste da página (`notFound`) e por `tests/architecture/rotas.test.ts`.
-- **Celular:** os três números do resumo empilham e empurram a faixa e o quadro ~650 px para baixo (layout do `KpiCard`). Decidir na parte 2: faixa antes do resumo no celular, ou KPIs compactos.
-- **`npm run lint` quebrado** antes desta sessão: o Next 16 removeu o `next lint`. Trocar o script pelo ESLint direto numa sessão de infra.
+### CRM, parte 2 — pendências com o Jhones
+- **Migration de endurecimento (pede `db push` com aprovação):** (1) com a nota ausente, `salvarDetalhes` lê o blob e o regrava em duas idas ao banco, e uma nota salva por outra pessoa nesse intervalo se perde: a RPC passa a aceitar "não mexer na nota" (`p_keep_notes`) sob o `for update`; (2) a nota é cifrada com a clínica da sessão (`limit(1)` no vínculo), mas a RPC aceita oportunidade de qualquer clínica que o usuário opere: num usuário de duas clínicas, a nota gravaria ilegível na outra; a RPC recebe `p_clinic_id` da sessão; (3) a leitura (RLS, busca, `crm_team`) não confere o plano: o Starter lê pelo PostgREST direto as próprias oportunidades; incluir `clinic_has_crm` em `crm_clinic_ids()` se a spec quiser.
+- **`opportunity_events.actor_user_id ... on delete restrict`** (mesmo padrão de `conversation_events`): apagar a conta de um membro que moveu cartões esbarra nos eventos, e o `actor_email` fica sem prazo. Decidir o fluxo LGPD do funcionário.
+- **AAD por propósito:** nota e mensagem usam a mesma chave e a mesma AAD (`clinic_id`). Separar (`crm-note:<clinic_id>`) fecha a troca de blobs entre domínios; não dá acesso a nada novo.
+- **Digitar na nota** não tem teste de interação (sem jsdom): a regra fica em `formularioParaEnvio` e na textarea sem `name`, e foi conferida na tela.
+- **`npm run lint` quebrado** antes desta sessão: o Next 16 removeu o `next lint` e falta o `eslint.config.*`. Trocar o script pelo ESLint direto numa sessão de infra.
 - **`app/(dashboard)/dashboard/conversations/acoes.ts`** engole o `redirect("/login")` no `catch` (o do CRM já usa `unstable_rethrow`). Corrigir junto com a próxima mexida em Conversas.
-- Para a parte 2, das revisões: a server action de mover precisa conferir `ehEtapa(para)` (input não confiável); o teste do log da busca real tem de usar erro do PostgREST com o termo; o `useReducer` da tela precisa ressincronizar com as props no `router.refresh()`; decidir se o selo "IA" vale para toda oportunidade aberta pelo sistema; "atividade hoje" hoje significa "nas últimas 24 h".
 
 ---
 

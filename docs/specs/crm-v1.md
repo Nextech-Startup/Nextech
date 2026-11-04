@@ -20,6 +20,12 @@ Um funil comercial dentro do painel da clínica (`/dashboard/crm`, item "CRM" no
 8. **A automação das etapas mora no banco**, em *triggers* na mesma transação de quem gera o evento.
 9. **Mover por arrastar e por menu:** arrastar entre colunas no desktop (`@dnd-kit`, também por teclado) e o "Mover para…" no cartão e no painel.
 
+Decisões de 2026-11-03 (parte 2):
+
+10. **Selo "IA" só na qualificação automática:** o cartão mostra o selo quando o último evento foi Novo → Qualificado pelo sistema. Abrir pela primeira mensagem não é decisão da IA.
+11. **"Atividade hoje" por dia de calendário**, no fuso de São Paulo: ontem às 23h, vista às 8h de hoje, é "parado há 1 dia".
+12. **KPIs compactos no celular:** abaixo de `sm`, os três números do resumo viram uma faixa única de três colunas, e a ordem da tela não muda.
+
 ## Comportamento
 
 ### 1. Etapas
@@ -75,7 +81,7 @@ Motivos de perda (lista fixa, nunca texto livre): preço; sem horário que sirva
 - **Resumo do período:** valor ganho, conversão de Novo até Ganho e tempo médio até fechar. Período de 7, 30 ou 90 dias, na URL (`?periodo=`), como na Visão geral.
 - **A faixa do funil** (o elemento que marca a tela): uma barra única dividida pelas quatro etapas abertas, com contagem e valor de cada uma e a taxa de passagem entre elas. É também o cabeçalho das colunas. Ganho e Perdido aparecem como contagem ao lado, com link para a lista das encerradas.
 - **Quadro:** uma coluna por etapa aberta. O resto da tela segue o kit (`components/patterns`, tokens `surface`, `ink` e `hairline`); o verde `brand` só em Ganho.
-- **Cartão:** nome do paciente, procedimento, valor, iniciais do responsável, próxima ação ou "parado há N dias" (tom de alerta depois de 3 dias sem atividade), selo **IA** quando a última mudança foi automática, e selos de opt-out e urgência.
+- **Cartão:** nome do paciente, procedimento, valor, iniciais do responsável, próxima ação ou "parado há N dias" (tom de alerta depois de 3 dias sem atividade), selo **IA** quando a última mudança foi a qualificação automática (Novo → Qualificado pelo sistema), e selos de opt-out e urgência.
 - **Mover:** arrastar entre colunas no desktop (`@dnd-kit`, com sensor de teclado) e "Mover para…" no cartão e no painel. Ganho e Perdido abrem o pedido dos campos antes de mover. Movimento recusado (`sem-mudanca`) volta o cartão e avisa.
 - **Painel lateral** (tela cheia no celular), ao abrir o cartão: a etapa com o "Mover para…"; procedimento, valor, responsável, próxima ação e nota; a linha do tempo dos eventos ("IA qualificou", "Marina moveu para Agendado"); e "Abrir conversa", que leva a `/dashboard/conversations?c=<id>`.
 - **Encerradas:** lista à parte, com filtro por Ganho, Perdido e motivo, fora do quadro.
@@ -91,7 +97,7 @@ Motivos de perda (lista fixa, nunca texto livre): preço; sem horário que sirva
 
 ### 6. Conta de demonstração
 - **Parte 1:** ~15 oportunidades de exemplo, em todas as etapas, com valores, responsáveis da equipe de exemplo, notas fictícias e eventos, trazidas para hoje pelo relógio da demonstração. Fora da demonstração, a rota responde `notFound()` (regra das rotas de protótipo, `tests/architecture/rotas.test.ts`), e o item fica "em breve" no menu.
-- **Parte 2:** a fila junta as oportunidades reais da demonstração (as do canal de demonstração pela Evolution) às de exemplo, como a tela de Conversas faz. A limpeza do canal (`scripts/canal-demo.ts limpar`) leva as reais junto com os pacientes, pela cascata.
+- **Parte 2:** a fila junta as oportunidades reais da demonstração (as do canal de demonstração pela Evolution) às de exemplo, como a tela de Conversas faz. A limpeza do canal (`scripts/canal-demo.ts limpar`) leva as reais junto com os pacientes, pela cascata, e `conferirLimpeza` conta as oportunidades. O movimento numa de exemplo vive só no navegador e sobrevive ao aviso ao vivo; "Meus" usa o usuário real da sessão, então as de exemplo do membro "você" não entram nele.
 
 ## Edge cases
 - **Duas mensagens do mesmo paciente ao mesmo tempo:** o índice único resolve; abre uma oportunidade só.
@@ -152,16 +158,16 @@ Pro e HealthTech. Starter vê o convite. O dado é gravado em todos.
 - [x] Capturas da tela nos dois temas, em 1440 e 390 px, sem rolagem horizontal; o arrastar funciona pelo teclado.
 
 ### Parte 2: backend e tela real
-- [ ] Migration aditiva, com `--dry-run`: tabelas, enums, índice único parcial, *triggers*, RPC e RLS.
-- [ ] Mensagem nova do paciente sem oportunidade aberta abre uma em Novo, com evento "sistema"; com oportunidade aberta, só atualiza a última atividade; reenvio não duplica; eco não abre.
-- [ ] `qualified_at` gravado move de Novo para Qualificado; em qualquer outra etapa, não move.
-- [ ] `move_opportunity` move e grava o evento; com etapa esperada diferente, `sem-mudanca`; Ganho sem valor ou Perdido sem motivo são recusados; o `authenticated` não grava `stage` direto.
-- [ ] Ganho e Perdido encerram; mensagem nova depois do encerramento abre oportunidade nova.
-- [ ] A nota é gravada cifrada e lida decifrada; nunca aparece em log (teste com `console` espionado).
-- [ ] `anonymize_patient` apaga a nota e mantém etapa, datas e valor.
-- [ ] **Isolamento**, contra o banco real: membro da clínica B não lê nem move oportunidade da clínica A; profissional não lê; o canal ao vivo é privado por clínica.
-- [ ] Starter vê o convite, e a server action recusa; Pro e HealthTech veem o funil.
-- [ ] Na demonstração, as oportunidades reais juntam-se às de exemplo; a limpeza do canal as apaga.
+- [x] Migration aditiva, com `--dry-run`: tabelas, enums, índice único parcial, *triggers*, RPC e RLS. *(`20261103150000_crm_opportunities` e `20261103160000_crm_actions`, aplicadas em 2026-11-03; `supabase migration list --remote` confere local = remoto.)*
+- [x] Mensagem nova do paciente sem oportunidade aberta abre uma em Novo, com evento "sistema"; com oportunidade aberta, só atualiza a última atividade; reenvio não duplica; eco não abre.
+- [x] `qualified_at` gravado move de Novo para Qualificado; em qualquer outra etapa, não move.
+- [x] `move_opportunity` move e grava o evento; com etapa esperada diferente, `sem-mudanca`; Ganho sem valor ou Perdido sem motivo são recusados; o `authenticated` não grava `stage` direto.
+- [x] Ganho e Perdido encerram; mensagem nova depois do encerramento abre oportunidade nova.
+- [x] A nota é gravada cifrada e lida decifrada; nunca aparece em log (teste com `console` espionado).
+- [x] `anonymize_patient` apaga a nota e mantém etapa, datas e valor.
+- [x] **Isolamento**, contra o banco real: membro da clínica B não lê nem move oportunidade da clínica A; profissional não lê; o canal ao vivo é privado por clínica.
+- [x] Starter vê o convite, e a server action recusa; Pro e HealthTech veem o funil.
+- [x] Na demonstração, as oportunidades reais juntam-se às de exemplo; a limpeza do canal as apaga.
 
 ## Como medir
 - **Valor:** conversão de Novo até Ganho e valor ganho por mês, por clínica.
